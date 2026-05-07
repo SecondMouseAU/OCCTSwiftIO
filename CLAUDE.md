@@ -6,12 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `v0.1.0` is the spin-out of file-I/O concerns from [OCCTSwiftTools](https://github.com/gsdali/OCCTSwiftTools) per [OCCTSwiftTools#12](https://github.com/gsdali/OCCTSwiftTools/issues/12). The point: headless consumers (Scripts, PadCAM CLI, batch pipelines) shouldn't drag in `OCCTSwiftViewport` transitively just to load a STEP file.
 
-Files in `Sources/OCCTSwiftIO/`:
+Load-bearing types in `Sources/OCCTSwiftIO/`:
 
 - `ShapeLoader` — STEP / IGES / STL / OBJ / BREP / manifest → `ShapeLoadResult` (shapes + colors + AP242 metadata, **no bodies**).
 - `ExportManager` — OBJ / PLY / STEP / BREP / glTF / GLB writers.
-- `CADFileFormat`, `ExportFormat` — format enums.
-- `CADBodyMetadata` — pure-data type (face/edge/vertex pick indices). Produced by `OCCTSwiftTools.CADFileLoader.shapeToBodyAndMetadata` on the bridge side; lives here so it doesn't carry a Viewport dep.
+- `CADBodyMetadata` — pure-data type (face/edge/vertex pick indices). Produced by `OCCTSwiftTools.CADFileLoader.shapeToBodyAndMetadata` on the bridge side; lives here so the type itself doesn't carry a Viewport dep.
 - `ScriptManifest` — Codable manifest format for the script harness.
 - `ImportProgressClosure` — closure-backed `OCCTSwift.ImportProgress` for one-shot use.
 
@@ -35,11 +34,24 @@ OCCTSwift             (B-Rep kernel)
 
 ```bash
 swift build
-OCCT_SERIAL=1 swift test --parallel --num-workers 1   # MUST run serially
-swift test --filter OCCTSwiftIOTests.SuiteName/testName   # single test
+OCCT_SERIAL=1 swift test --parallel --num-workers 1                    # MUST run serially
+OCCT_SERIAL=1 swift test --parallel --num-workers 1 \
+    --filter ShapeLoaderTests/t_stepRoundTripProducesShapes             # single test
 ```
 
 `OCCT_SERIAL=1` + serial workers is **required** — known NCollection container-overflow race in OCCT on arm64 macOS. Inherited from OCCTSwift; do not "fix".
+
+`--filter` takes a regex over the test ID; use the Swift type name of the `@Suite` (e.g. `ShapeLoaderTests`), not the suite's display string.
+
+## Behaviors worth knowing
+
+These are non-obvious from type signatures and easy to get wrong:
+
+- **AP242 metadata is STEP-only.** `ShapeLoadResult.dimensions / geomTolerances / datums` are populated only when loading STEP files via `Document.load`. Non-STEP formats (STL / OBJ / BREP / IGES) always return empty arrays — that's not a bug to fix, it's the format limitation.
+- **`loadRobust` only differs for STL and IGES.** Those formats often ship with gaps that the basic importer can't close, so the robust path runs sewing/healing. For STEP / OBJ / BREP, `loadRobust` is identical to `load`.
+- **Multi-shape export auto-numbers files.** `ExportManager.export(shapes:format:to:)` writes one file per shape when given >1 shape, inserting an index before the extension (`out.glb` → `out.0.glb`, `out.1.glb`, ...). Callers that expected a single combined file will be surprised.
+- **Color is only carried by STEP.** STL / OBJ / BREP / IGES all return `color: nil` per shape — `shapesWithColors` still pairs them, but the color slot is empty.
+- **Progress callbacks fire off the main thread.** `ImportProgressClosure` runs on whatever thread the importer used (usually a background thread under the async API). UI updates must hop to `@MainActor` explicitly.
 
 ## Platform floor
 
