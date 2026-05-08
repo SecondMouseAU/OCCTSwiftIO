@@ -1,6 +1,12 @@
 # Changelog
 
-Most recent first. Pre-1.0: free to break; deprecations documented here.
+Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-stable from v1.0.0.
+
+## v1.0.0 — 2026-05-08
+
+OCCTSwift dependency bumped to **`from: "1.0.1"`** (OCCT 8.0.0 GA pin). No public API changes in this package — pure dep bump to graduate alongside [OCCTSwift v1.0.0](https://github.com/gsdali/OCCTSwift/releases/tag/v1.0.0). SemVer-stable from this tag.
+
+Closes [#3](https://github.com/gsdali/OCCTSwiftIO/issues/3).
 
 ## v0.2.0 — 2026-05-07
 
