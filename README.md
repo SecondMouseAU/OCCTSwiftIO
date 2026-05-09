@@ -4,7 +4,9 @@
 
 Headless CAD file I/O for [OCCTSwift](https://github.com/gsdali/OCCTSwift) — STEP, IGES, STL, OBJ, BREP loaders + glTF/GLB/OBJ/PLY/STEP/BREP exporters. **No Viewport dependency** — safe to use from CLIs, batch pipelines, and server-side workflows that don't need a Metal renderer.
 
-> Status: **v0.1.0**. Spun out of [OCCTSwiftTools#12](https://github.com/gsdali/OCCTSwiftTools/issues/12) so headless consumers don't drag in OCCTSwiftViewport transitively.
+Part of the [OCCTSwift ecosystem](https://github.com/gsdali/OCCTSwift/blob/main/docs/ecosystem.md) — see the ecosystem map for how this package fits with the kernel, viewport, and sibling layers.
+
+> Status: **v1.0.0**. Spun out of [OCCTSwiftTools#12](https://github.com/gsdali/OCCTSwiftTools/issues/12) so headless consumers don't drag in OCCTSwiftViewport transitively. SemVer-stable from this tag.
 
 ## What it does
 
