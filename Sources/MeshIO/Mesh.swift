@@ -46,4 +46,9 @@ public struct Mesh: Equatable, Sendable {
         }
         return Mesh(positions: positions, indices: indices)
     }
+
+    /// Index a triangle soup without welding (each corner becomes its own vertex).
+    public static func indexedSoup(_ soup: [SIMD3<Float>]) -> Mesh {
+        Mesh(positions: soup, indices: (0..<UInt32(soup.count)).map { $0 })
+    }
 }

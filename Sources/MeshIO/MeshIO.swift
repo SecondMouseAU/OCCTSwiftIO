@@ -13,6 +13,7 @@ public enum MeshError: Error, Equatable, Sendable {
 /// (STEP/IGES/BREP) live in the OCCT-backed `OCCTSwiftIO` target, not here.
 public enum MeshFormat: String, Sendable, CaseIterable {
     case stl, obj, ply, pmx, x          // x = DirectX .x
+    case threeMF = "3mf"
 
     public init?(fileExtension ext: String) {
         switch ext.lowercased() {
@@ -21,12 +22,13 @@ public enum MeshFormat: String, Sendable, CaseIterable {
         case "ply": self = .ply
         case "pmx": self = .pmx
         case "x":   self = .x
+        case "3mf": self = .threeMF
         default: return nil
         }
     }
 
     public var canRead: Bool { true }
-    public var canWrite: Bool { self == .stl || self == .obj || self == .ply }   // pmx/.x are source-only
+    public var canWrite: Bool { self != .pmx && self != .x }   // pmx/.x are source-only; STL/OBJ/PLY/3MF write
 }
 
 /// Pure-Swift mesh file I/O — no OCCT. Reads STL/OBJ/PLY natively and PMX/.x via the standalone
@@ -48,6 +50,7 @@ public enum MeshIO {
         case .ply: return try PLY.read(data: data, weldEpsilon: weldEpsilon)
         case .pmx: return adapt(try SwiftPMX.PMX.read(data: data, options: .init(weldEpsilon: weldEpsilon)))
         case .x:   return adapt(try SwiftX.X.read(data: data, options: .init(weldEpsilon: weldEpsilon)))
+        case .threeMF: return try readThreeMF(data: data, weldEpsilon: weldEpsilon)
         }
     }
 
@@ -58,6 +61,7 @@ public enum MeshIO {
         case .stl: try (asciiSTL ? Data(STL.asciiString(mesh).utf8) : STL.binaryData(mesh)).write(to: url)
         case .obj: try Data(OBJ.string(mesh).utf8).write(to: url)
         case .ply: try Data(PLY.string(mesh).utf8).write(to: url)
+        case .threeMF: try writeThreeMF(mesh).write(to: url)
         case .pmx, .x, nil: throw MeshError.unsupported("write \(fmt?.rawValue ?? url.pathExtension)")
         }
     }
