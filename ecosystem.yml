@@ -1,0 +1,10 @@
+okf_version: 1
+repo: OCCTSwiftIO
+cluster: kernel
+visibility: public
+status: active
+language: Swift
+summary: Headless CAD file I/O for OCCTSwift — STEP/IGES/STL/OBJ/BREP loaders plus glTF/GLB/OBJ/PLY/STEP/BREP exporters, with no Viewport dependency.
+products: []
+depends_on: [OCCTSwift]
+maintainer: gsdali
