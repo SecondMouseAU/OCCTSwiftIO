@@ -7,22 +7,19 @@ import Foundation
 // Local path deps let the whole OCCT ecosystem SHARE the single OCCTSwift/Libraries/OCCT.xcframework
 // (1.3 GB) instead of each repo downloading + extracting its own copy. CI / fresh clones (no sibling)
 // transparently use the URL pin. Detection is `#filePath`-relative so it's independent of build CWD.
-func occtDep(_ name: String, from version: String) -> Package.Dependency {
+// Use a local sibling checkout (../<name>) ONLY for top-level dev — never when this package is itself a
+// resolved dependency (i.e. checked out under a consumer's `.build/`), where `../<name>` would point at a
+// sibling checkout and create a path-vs-version identity conflict for that dependency.
+func siblingOrURL(_ name: String, from version: String) -> Package.Dependency {
     let manifestDir = URL(fileURLWithPath: #filePath).deletingLastPathComponent().path
-    if FileManager.default.fileExists(atPath: manifestDir + "/../\(name)/Package.swift") {
+    if !manifestDir.contains("/.build/"),
+       FileManager.default.fileExists(atPath: manifestDir + "/../\(name)/Package.swift") {
         return .package(path: "../\(name)")
     }
     return .package(url: "https://github.com/SecondMouseAU/\(name).git", from: Version(version)!)
 }
-
-// Same sibling-or-published rule, for the SecondMouseAU pure-Swift mesh-format readers consumed by MeshIO.
-func meshDep(_ name: String, from version: String) -> Package.Dependency {
-    let manifestDir = URL(fileURLWithPath: #filePath).deletingLastPathComponent().path
-    if FileManager.default.fileExists(atPath: manifestDir + "/../\(name)/Package.swift") {
-        return .package(path: "../\(name)")
-    }
-    return .package(url: "https://github.com/SecondMouseAU/\(name).git", from: Version(version)!)
-}
+func occtDep(_ name: String, from version: String) -> Package.Dependency { siblingOrURL(name, from: version) }
+func meshDep(_ name: String, from version: String) -> Package.Dependency { siblingOrURL(name, from: version) }
 
 let package = Package(
     name: "OCCTSwiftIO",
