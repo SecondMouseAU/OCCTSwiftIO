@@ -47,12 +47,20 @@ struct MeshIOTests {
         #expect(abs((m.bounds?.max.z ?? 0) - 5) < 1e-5)
     }
 
+    @Test("3MF round-trips geometry (write + read via ThreeMF)")
+    func threeMF() throws {
+        let m = try roundTrip(.threeMF)
+        #expect(m.triangleCount == 2)
+        let b = try #require(m.bounds)
+        #expect(abs(b.max.x - 2) < 1e-4 && abs(b.max.y - 3) < 1e-4 && abs(b.max.z - 5) < 1e-4)
+    }
+
     @Test("format detection + write capability")
     func formats() {
         #expect(MeshFormat(fileExtension: "PLY") == .ply)
-        #expect(MeshFormat(fileExtension: "pmx") == .pmx)
+        #expect(MeshFormat(fileExtension: "3mf") == .threeMF)
         #expect(MeshFormat(fileExtension: "dwg") == nil)
         #expect(MeshFormat.pmx.canWrite == false)   // source-only
-        #expect(MeshFormat.stl.canWrite == true)
+        #expect(MeshFormat.threeMF.canWrite == true)
     }
 }
