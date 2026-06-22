@@ -118,6 +118,8 @@ public enum ShapeLoader {
             return try loadBREP(from: url)
         case .iges:
             return try loadIGES(from: url, progress: progress, robust: robust)
+        case .jww:
+            return try JWWLoader.load(from: url)
         }
     }
 

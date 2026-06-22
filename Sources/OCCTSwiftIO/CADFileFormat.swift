@@ -13,6 +13,8 @@ public enum CADFileFormat: String, Sendable {
     case obj
     case brep
     case iges
+    /// JWW (Jw_cad) — a 2D vector drawing; loaded as a compound of OCCT edges (no B-Rep solid).
+    case jww
 
     public init?(fileExtension ext: String) {
         switch ext.lowercased() {
@@ -26,6 +28,8 @@ public enum CADFileFormat: String, Sendable {
             self = .brep
         case "iges", "igs":
             self = .iges
+        case "jww":
+            self = .jww
         default:
             return nil
         }

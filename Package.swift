@@ -49,6 +49,7 @@ let package = Package(
         // Pure-Swift source-format readers (no OCCT), adapted by MeshIO.
         meshDep("SwiftPMX", from: "1.0.0"),     // PMX (MikuMikuDance)
         meshDep("SwiftX", from: "1.0.0"),       // DirectX .x
+        meshDep("SwiftJWW", from: "1.2.1"),     // JWW (Jw_cad) 2D vector — used by OCCTSwiftIO, not MeshIO
         .package(url: "https://github.com/tomasf/ThreeMF.git", from: "0.2.3"),   // 3MF read+write (MIT)
         .package(url: "https://github.com/schwa/SwiftGLTF.git", from: "1.0.2"),  // glTF/GLB read (BSD-3)
     ],
@@ -75,6 +76,7 @@ let package = Package(
             name: "OCCTSwiftIO",
             dependencies: [
                 .product(name: "OCCTSwift", package: "OCCTSwift"),
+                .product(name: "SwiftJWW", package: "SwiftJWW"),
                 "MeshIO",
             ],
             path: "Sources/OCCTSwiftIO",
