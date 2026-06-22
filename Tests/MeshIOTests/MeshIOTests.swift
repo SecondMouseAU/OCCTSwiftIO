@@ -55,6 +55,21 @@ struct MeshIOTests {
         #expect(abs(b.max.x - 2) < 1e-4 && abs(b.max.y - 3) < 1e-4 && abs(b.max.z - 5) < 1e-4)
     }
 
+    @Test("GLB round-trips geometry (native write + SwiftGLTF read)")
+    func glb() throws {
+        let m = try roundTrip(.glb)
+        #expect(m.triangleCount == 2)
+        let b = try #require(m.bounds)
+        #expect(abs(b.max.x - 2) < 1e-4 && abs(b.max.y - 3) < 1e-4 && abs(b.max.z - 5) < 1e-4)
+    }
+
+    @Test("glTF round-trips geometry (native write + SwiftGLTF read)")
+    func gltf() throws {
+        let m = try roundTrip(.gltf)
+        #expect(m.triangleCount == 2)
+        #expect(abs((m.bounds?.max.z ?? 0) - 5) < 1e-4)
+    }
+
     @Test("format detection + write capability")
     func formats() {
         #expect(MeshFormat(fileExtension: "PLY") == .ply)
