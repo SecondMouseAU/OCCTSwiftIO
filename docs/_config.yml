@@ -1,0 +1,18 @@
+# GitHub Pages (Jekyll) config for the OCCTSwiftIO docs site — served from /docs on main.
+# Theme: just-the-docs (left sidebar nav + search), pinned to v0.3.3 for GitHub Pages' native build.
+# Matches the OCCTSwift docs setup so the ecosystem reads consistently.
+title: OCCTSwiftIO
+description: Headless file I/O for the OCCTSwift ecosystem — MeshIO (pure-Swift mesh) + OCCTSwiftIO (CAD B-Rep + JWW vector).
+remote_theme: just-the-docs/just-the-docs@v0.3.3
+
+search_enabled: true
+heading_anchors: true
+aux_links:
+  "GitHub": ["https://github.com/SecondMouseAU/OCCTSwiftIO"]
+aux_links_new_tab: true
+
+exclude:
+  - "*.sh"
+  - Gemfile
+  - Gemfile.lock
+  - CHANGELOG.md
