@@ -50,6 +50,7 @@ let package = Package(
         meshDep("SwiftPMX", from: "1.0.0"),     // PMX (MikuMikuDance)
         meshDep("SwiftX", from: "1.0.0"),       // DirectX .x
         .package(url: "https://github.com/tomasf/ThreeMF.git", from: "0.2.3"),   // 3MF read+write (MIT)
+        .package(url: "https://github.com/schwa/SwiftGLTF.git", from: "1.0.2"),  // glTF/GLB read (BSD-3)
     ],
     targets: [
         // Pure-Swift 3D mesh formats: STL / OBJ / PLY native + PMX / .x via the standalone packages.
@@ -60,6 +61,7 @@ let package = Package(
                 .product(name: "SwiftPMX", package: "SwiftPMX"),
                 .product(name: "SwiftX", package: "SwiftX"),
                 .product(name: "ThreeMF", package: "ThreeMF"),
+                .product(name: "SwiftGLTF", package: "SwiftGLTF"),
             ],
             path: "Sources/MeshIO",
             // ThreeMF → Nodal → pugixml is C++; importing it requires C++ interop on this target (and,
