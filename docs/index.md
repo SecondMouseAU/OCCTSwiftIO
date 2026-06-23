@@ -1,25 +1,74 @@
 ---
-title: Overview
+title: Home
 nav_order: 1
 ---
 
 # OCCTSwiftIO
 
-Headless file I/O for the [OCCTSwift](https://github.com/SecondMouseAU/OCCTSwift) ecosystem — **no
-Viewport dependency**, safe for CLIs, batch pipelines, and server-side workflows.
+Headless, multi-format CAD + mesh file I/O for the [OCCTSwift](https://github.com/SecondMouseAU/OCCTSwift)
+family — **no Viewport dependency**, so it is safe for CLIs, batch pipelines, and server-side workflows.
 
 The package ships **two products** so consumers take only what they need:
 
-- **`MeshIO`** — pure Swift, **no OCCT**. 3D mesh formats → a neutral `Mesh` (positions + indices).
-- **`OCCTSwiftIO`** — OCCT-backed. CAD B-Rep load/export as `Shape`s, plus **JWW** (Jw_cad 2D vector) load.
+- **`MeshIO`** — pure Swift, **no OCCT**. 3D mesh formats (STL / OBJ / PLY / glTF / GLB / 3MF / PMX / `.x`)
+  load and write into a neutral value-type `Mesh` (positions + indices).
+- **`OCCTSwiftIO`** — OCCT-backed. CAD B-Rep load/export as `Shape`s (STEP / IGES / BREP), plus **JWW**
+  (Jw_cad 2D vector) load, a `ScriptManifest` round-trip, and a `TopologyGraph` → ML export layer.
 
-The split lets OCCT-free consumers (e.g. a raw-mesh reconstruction ingest) read meshes without pulling
-in the 1.3 GB kernel; `OCCTSwiftIO` builds on `MeshIO` and adds the kernel-backed formats. See
-[Formats](formats.md) for the full table and per-format notes.
+The split lets OCCT-free consumers (e.g. a raw-mesh ingest) read meshes without pulling in the 1.3 GB
+kernel; `OCCTSwiftIO` builds on `MeshIO` and adds the kernel-backed formats. See
+[Formats](formats.md) for the full coverage table and per-format notes.
+
+---
+
+## Hero example
+
+```swift
+import OCCTSwift
+import OCCTSwiftIO
+
+// Load a STEP assembly → shapes + per-shape colors + AP242 GD&T metadata.
+let result = try await ShapeLoader.load(from: stepURL, format: .step)
+print(result.shapes.count, "shapes,", result.dimensions.count, "dimensions")
+
+// Re-export the loaded shapes as a single binary glTF container.
+try await ExportManager.export(shapes: result.shapes, format: .glb, to: outURL)
+```
+
+Pure-mesh, no kernel:
+
+```swift
+import MeshIO
+
+let mesh = try MeshIO.load(contentsOf: stlURL)     // format chosen by extension
+print(mesh.vertexCount, mesh.triangleCount)
+try MeshIO.write(mesh, to: objURL)                 // writer chosen by extension
+```
+
+---
+
+## Cookbook
+
+Task-oriented, example-rich recipes:
+
+- [Importing a CAD file](guides/cookbook/importing-cad.md) — `ShapeLoader`, format auto-detection, robust loading.
+- [Exporting shapes](guides/cookbook/exporting-shapes.md) — `ExportManager` to STEP / BREP / OBJ / PLY / glTF / GLB.
+- [Reading & writing meshes](guides/cookbook/mesh-roundtrip.md) — `MeshIO` across STL / OBJ / PLY / glTF / 3MF.
+- [The ScriptManifest format](guides/cookbook/script-manifest.md) — load a manifest + sibling BREP bodies.
+- [Progress reporting](guides/cookbook/progress-reporting.md) — `ImportProgressClosure` and cancellation.
+- [ML graph export](guides/cookbook/ml-export.md) — `TopologyGraph.exportForML()` / `exportJSON()`.
+
+---
+
+## Reference
+
+Per-type API reference with real signatures: [API Reference](reference/README.md).
 
 ---
 
 ## Install
+
+Add the package and pick the product(s) you need. Latest release: **v1.4.1**.
 
 ```swift
 dependencies: [
@@ -27,61 +76,11 @@ dependencies: [
 ],
 .target(name: "YourTarget", dependencies: [
     .product(name: "MeshIO", package: "OCCTSwiftIO"),        // mesh, no OCCT
-    .product(name: "OCCTSwiftIO", package: "OCCTSwiftIO"),   // CAD + JWW (pulls OCCT)
+    .product(name: "OCCTSwiftIO", package: "OCCTSwiftIO"),   // CAD + JWW + ML (pulls OCCT)
 ]),
 ```
 
----
-
-## MeshIO
-
-```swift
-import MeshIO
-
-let mesh = try MeshIO.load(contentsOf: url)        // .stl/.obj/.ply/.gltf/.glb/.3mf/.pmx/.x
-print(mesh.vertexCount, mesh.triangleCount, mesh.bounds as Any)
-
-try MeshIO.write(mesh, to: outURL)                 // format inferred from extension
-try MeshIO.write(mesh, to: stlURL, format: .stl, asciiSTL: true)
-```
-
-`Mesh` is a value type:
-
-```swift
-public struct Mesh: Equatable, Sendable {
-    public var positions: [SIMD3<Float>]
-    public var indices: [UInt32]
-    public var vertexCount: Int
-    public var triangleCount: Int
-    public var bounds: (min: SIMD3<Float>, max: SIMD3<Float>)?
-}
-```
-
-`MeshFormat(fileExtension:)` maps an extension to a format; `MeshFormat.canWrite` reports whether a
-writer exists (PMX / `.x` are read-only source formats).
-
----
-
-## OCCTSwiftIO
-
-```swift
-import OCCTSwift
-import OCCTSwiftIO
-
-// STEP / IGES / BREP → shapes + colors + AP242 metadata.
-let result = try await ShapeLoader.load(from: stepURL, format: .step)
-for (shape, color) in result.shapesWithColors { /* … */ }
-
-// JWW (Jw_cad 2D drawing) → one compound Shape of OCCT edges (lines, arcs/circles, points).
-let drawing = try await ShapeLoader.load(from: jwwURL, format: .jww)
-
-// Export shapes to STEP / BREP / OBJ / PLY / glTF / GLB.
-try await ExportManager.export(shapes: result.shapes, format: .glb, to: outURL)
-```
-
-`ShapeLoader.load` returns a `ShapeLoadResult` (shapes + per-shape colors + AP242 dimensions / datums).
-For body-producing loaders (CPU mesh + pick data for AIS), use
-[OCCTSwiftTools](https://github.com/SecondMouseAU/OCCTSwiftTools), which wraps this package.
+GitHub: <https://github.com/SecondMouseAU/OCCTSwiftIO>
 
 ---
 
