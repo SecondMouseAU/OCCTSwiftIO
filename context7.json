@@ -1,7 +1,7 @@
 {
   "$schema": "https://context7.com/schema/context7.json",
   "projectTitle": "OCCTSwiftIO",
-  "description": "Headless, multi-format CAD + mesh file I/O for the OCCTSwift family. Ships two products: MeshIO (pure-Swift, no OCCT) for STL/OBJ/PLY/glTF/GLB/3MF/PMX/.x meshes into a neutral Mesh value type, and OCCTSwiftIO (OCCT-backed) for STEP/IGES/BREP B-Rep load/export, JWW 2D-vector load, ScriptManifest round-trips, and TopologyGraph ML export. No Viewport dependency — safe for CLIs, batch pipelines, and servers.",
+  "description": "Headless multi-format CAD + mesh file I/O for OCCTSwift. MeshIO (pure-Swift) reads STL/OBJ/PLY/glTF/GLB/3MF/PMX/.x into a neutral Mesh; OCCTSwiftIO handles STEP/IGES/BREP, JWW, ScriptManifest, ML.",
   "folders": [
     "docs",
     "Sources/OCCTSwiftIO",
@@ -13,12 +13,12 @@
   ],
   "rules": [
     "Two products, two imports: `import MeshIO` for pure-Swift mesh I/O (no OCCT); `import OCCTSwift` + `import OCCTSwiftIO` for CAD B-Rep, JWW, manifests, and ML export.",
-    "CAD loading goes through the `ShapeLoader` enum: `ShapeLoader.load(from:format:progress:)` and `loadRobust(...)` are `async throws` and return a `ShapeLoadResult`; `loadFromManifest(at:)` is synchronous `throws`. Use `loadRobust` to sew/heal gappy STL and IGES.",
+    "CAD loading uses the `ShapeLoader` enum: `ShapeLoader.load(from:format:progress:)` and `loadRobust(...)` are `async throws` returning a `ShapeLoadResult`; `loadFromManifest(at:)` is synchronous `throws`. Use `loadRobust` to sew/heal gappy STL and IGES.",
     "Select a load format with `CADFileFormat` (`.step`, `.stl`, `.obj`, `.brep`, `.iges`, `.jww`), or detect it via `CADFileFormat(fileExtension:)` (step/stp, stl, obj, brep/brp, iges/igs, jww).",
     "`ShapeLoadResult` exposes `shapesWithColors` (per-shape color is nil for STL/OBJ/BREP/IGES), a `shapes` convenience, and STEP-only AP242 `dimensions` / `geomTolerances` / `datums`.",
-    "Export OCCT shapes with `ExportManager.export(shapes:format:to:deflection:)` (async throws). `ExportFormat` is `.obj`/`.ply`/`.step`/`.brep`/`.gltf`/`.glb`; meshed formats use `deflection` (default 0.1), STEP/BREP are exact. Multiple shapes write one indexed file each (out.0.ext, out.1.ext).",
-    "Mesh I/O is synchronous and OCCT-free: `MeshIO.load(contentsOf:weldEpsilon:)` picks the reader by extension and welds vertices (default 1e-4); `MeshIO.write(_:to:format:asciiSTL:)` picks the writer by `format` or extension. PMX and `.x` are read-only (`MeshFormat.canWrite` is false); writing them throws `MeshError.unsupported`.",
-    "`Mesh` is a pure value type (`positions: [SIMD3<Float>]`, `indices: [UInt32]`) with `vertexCount`/`triangleCount`/`bounds`; build from soups via `Mesh.welded(_:epsilon:)` or `Mesh.indexedSoup(_:)`. Native readers `STL` / `OBJ` / `PLY` are callable directly on `Data`.",
-    "`ScriptManifest` (+ `BodyDescriptor`, `ManifestMetadata`) is plain Codable (no OCCT to decode); ISO-8601 dates; `BodyDescriptor.color` decodes a `[r,g,b,a]` JSON array to `SIMD4<Float>?`. Use `ImportProgressClosure { fraction, step in ... }` (with an optional `cancelCheck`) for STEP/IGES progress, and `TopologyGraph.exportForML()` / `exportJSON()` for ML graph export."
+    "Export OCCT shapes with `ExportManager.export(shapes:format:to:deflection:)` (async throws). `ExportFormat` is `.obj`/`.ply`/`.step`/`.brep`/`.gltf`/`.glb`; meshed formats use `deflection` (default 0.1), STEP/BREP exact; multiple shapes write indexed.",
+    "Mesh I/O is synchronous and OCCT-free: `MeshIO.load(contentsOf:weldEpsilon:)` reads by extension and welds vertices (default 1e-4); `MeshIO.write(_:to:format:asciiSTL:)` writes by `format` or extension. PMX/`.x` read-only; writing throws.",
+    "`Mesh` is a value type (`positions: [SIMD3<Float>]`, `indices: [UInt32]`) with `vertexCount`/`triangleCount`/`bounds`; build via `Mesh.welded(_:epsilon:)` or `Mesh.indexedSoup(_:)`. Native readers `STL` / `OBJ` / `PLY` are callable directly on `Data`.",
+    "`ScriptManifest` (+ `BodyDescriptor`, `ManifestMetadata`) is Codable; ISO-8601 dates; `BodyDescriptor.color` decodes `[r,g,b,a]` to `SIMD4<Float>?`. Use `ImportProgressClosure { fraction, step in }` (optional `cancelCheck`); `TopologyGraph.exportForML()`."
   ]
 }
