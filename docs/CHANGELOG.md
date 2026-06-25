@@ -4,10 +4,13 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 ## v1.1.0 — 2026-06-26
 
-**New format: DXF (AutoCAD Drawing Interchange Format)** — a 2D vector reader, alongside the existing JWW path.
+**New format: DXF (AutoCAD Drawing Interchange Format)** — entity-level read (geometry + TEXT + layers), alongside the existing JWW path. Closes [#11](https://github.com/gsdali/OCCTSwiftIO/issues/11).
 
-- `CADFileFormat.dxf` (extension `dxf`); `ShapeLoader` loads ASCII DXF into a compound of OCCT edges in the Z=0 plane (lines, circles, arcs, ellipses, polylines → edges; points → vertices; text skipped), same shape as the JWW loader. No B-Rep solid, no color/metadata (matches the other 2D path).
-- Reading is delegated to the new pure-Swift [SwiftDXF](https://github.com/SecondMouseAU/SwiftDXF) package (MIT), validated bit-exact against the MIT-licensed `ezdxf` reference reader (entity counts and every coordinate scalar) across an 11-file / ~62k-entity corpus.
+**Entity model (primary).** `import OCCTSwiftIO` now re-exports [SwiftDXF](https://github.com/SecondMouseAU/SwiftDXF), so the neutral `DXF.Drawing` / `DXF.Entity` model is in scope directly. `DXFLoader.readEntities(from:)` returns it. The model preserves what DXF actually carries — geometry (`LINE`/`CIRCLE`/`ARC`/`ELLIPSE`/`LWPOLYLINE`/`POLYLINE` with per-vertex bulge), `TEXT`/`MTEXT` (insertion point **and** string), **per-entity layer name**, and header essentials (`$INSUNITS`, `$EXTMIN`/`$EXTMAX`).
+
+**OCCT `Shape` convenience.** `CADFileFormat.dxf` (extension `dxf`); `ShapeLoader` also builds a compound of OCCT edges in the Z=0 plane (lines/circles/arcs/ellipses/bulged-polylines → edges; points → vertices; text skipped) — same shape as the JWW path. No B-Rep solid; the entity model, not the `Shape`, is the source of truth for DXF.
+
+**Reader.** Pure-Swift SwiftDXF (MIT), validated bit-exact against the MIT-licensed `ezdxf` reference reader — entity counts and every coordinate scalar — across an 11-file / ~62k-entity corpus.
 
 ## v1.0.0 — 2026-05-08
 

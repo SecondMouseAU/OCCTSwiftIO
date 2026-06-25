@@ -10,9 +10,18 @@
 import Foundation
 import simd
 import OCCTSwift
-import SwiftDXF
+// Re-export so `import OCCTSwiftIO` brings the DXF entity model (DXF.Drawing / DXF.Entity, with TEXT
+// strings, per-entity layers, $INSUNITS and extents) into scope — that entity model is the primary
+// deliverable; the OCCT `Shape` compound below is the optional convenience.
+@_exported import SwiftDXF
 
-enum DXFLoader {
+public enum DXFLoader {
+
+    /// Read a DXF file into the neutral SwiftDXF entity model (geometry + TEXT + layers + header).
+    /// This is the entity-level surface; use ``load(from:)`` (or `ShapeLoader`) for the OCCT compound.
+    public static func readEntities(from url: URL) throws -> DXF.Drawing {
+        try DXF.read(contentsOf: url)
+    }
 
     static func load(from url: URL) throws -> ShapeLoadResult {
         let drawing = try DXF.read(contentsOf: url)
@@ -55,12 +64,23 @@ enum DXFLoader {
             case let .point(p, _, _):
                 if let v = Shape.vertex(at: p3(p.x, p.y)) { shapes.append(v) }
 
-            case let .polyline(points, closed, _, _):
-                var pts = points
-                if closed, let first = points.first, points.count > 2 { pts.append(first) }
-                for i in 1..<max(pts.count, 1) {
-                    let a = pts[i - 1], b = pts[i]
-                    if a != b, let s = Shape.edgeFromPoints(p3(a.x, a.y), p3(b.x, b.y)) { shapes.append(s) }
+            case let .polyline(verts, closed, _, _):
+                guard verts.count >= 2 else {
+                    if let v = verts.first, let vx = Shape.vertex(at: p3(v.point.x, v.point.y)) { shapes.append(vx) }
+                    continue
+                }
+                let n = verts.count
+                let segs = closed ? n : n - 1
+                for i in 0..<segs {
+                    let a = verts[i], b = verts[(i + 1) % n]
+                    if a.point == b.point { continue }
+                    if abs(a.bulge) < 1e-12 {
+                        if let s = Shape.edgeFromPoints(p3(a.point.x, a.point.y), p3(b.point.x, b.point.y)) {
+                            shapes.append(s)
+                        }
+                    } else {
+                        emitBulgeArc(a.point, b.point, bulge: a.bulge, axis: axis, into: &shapes)
+                    }
                 }
 
             case .text:
@@ -70,6 +90,24 @@ enum DXFLoader {
 
         guard let compound = Shape.compound(shapes) else { return ShapeLoadResult(shapesWithColors: []) }
         return ShapeLoadResult(shapesWithColors: [(shape: compound, color: nil)])
+    }
+
+    /// Emit one circular-arc edge for a bulged polyline segment. `bulge = tan(θ/4)` where θ is the
+    /// included angle, swept CCW from `a` to `b` (the AutoCAD/ezdxf convention). Center derived as
+    /// `h = (1/b − b)/2`; the arc is added over its angular interval.
+    private static func emitBulgeArc(_ a: DXF.Point, _ b: DXF.Point, bulge: Double,
+                                     axis: SIMD3<Double>, into shapes: inout [Shape]) {
+        let h = (1 / bulge - bulge) / 2
+        let cx = (a.x + b.x) / 2 + h * (a.y - b.y) / 2
+        let cy = (a.y + b.y) / 2 + h * (b.x - a.x) / 2
+        let r = (pow(a.x - cx, 2) + pow(a.y - cy, 2)).squareRoot()
+        guard r > 0 else { return }
+        let phi1 = atan2(a.y - cy, a.x - cx)
+        let theta = 4 * atan(bulge)
+        let lo = min(phi1, phi1 + theta), hi = max(phi1, phi1 + theta)
+        if let s = Shape.edgeFromCircle(center: SIMD3(cx, cy, 0), axis: axis, radius: r, p1: lo, p2: hi) {
+            shapes.append(s)
+        }
     }
 
     /// Sample an elliptical arc into edges. `start`/`end` are the DXF ellipse parameters (radians);
