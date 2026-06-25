@@ -15,6 +15,9 @@ public enum CADFileFormat: String, Sendable {
     case iges
     /// JWW (Jw_cad) — a 2D vector drawing; loaded as a compound of OCCT edges (no B-Rep solid).
     case jww
+    /// DXF (AutoCAD Drawing Interchange Format) — a 2D vector drawing; loaded as a compound of OCCT
+    /// edges (no B-Rep solid). ASCII DXF only.
+    case dxf
 
     public init?(fileExtension ext: String) {
         switch ext.lowercased() {
@@ -30,6 +33,8 @@ public enum CADFileFormat: String, Sendable {
             self = .iges
         case "jww":
             self = .jww
+        case "dxf":
+            self = .dxf
         default:
             return nil
         }

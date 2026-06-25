@@ -2,6 +2,13 @@
 
 Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-stable from v1.0.0.
 
+## v1.1.0 — 2026-06-26
+
+**New format: DXF (AutoCAD Drawing Interchange Format)** — a 2D vector reader, alongside the existing JWW path.
+
+- `CADFileFormat.dxf` (extension `dxf`); `ShapeLoader` loads ASCII DXF into a compound of OCCT edges in the Z=0 plane (lines, circles, arcs, ellipses, polylines → edges; points → vertices; text skipped), same shape as the JWW loader. No B-Rep solid, no color/metadata (matches the other 2D path).
+- Reading is delegated to the new pure-Swift [SwiftDXF](https://github.com/SecondMouseAU/SwiftDXF) package (MIT), validated bit-exact against the MIT-licensed `ezdxf` reference reader (entity counts and every coordinate scalar) across an 11-file / ~62k-entity corpus.
+
 ## v1.0.0 — 2026-05-08
 
 OCCTSwift dependency bumped to **`from: "1.0.1"`** (OCCT 8.0.0 GA pin). No public API changes in this package — pure dep bump to graduate alongside [OCCTSwift v1.0.0](https://github.com/gsdali/OCCTSwift/releases/tag/v1.0.0). SemVer-stable from this tag.
