@@ -2,7 +2,9 @@
 
 Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-stable from v1.0.0.
 
-## v1.1.0 — 2026-06-26
+> Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
+
+## v1.5.0 — 2026-06-26
 
 **New format: DXF (AutoCAD Drawing Interchange Format)** — entity-level read (geometry + TEXT + layers), alongside the existing JWW path. Closes [#11](https://github.com/gsdali/OCCTSwiftIO/issues/11).
 
