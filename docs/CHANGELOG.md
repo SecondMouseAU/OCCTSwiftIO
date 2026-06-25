@@ -2,6 +2,16 @@
 
 Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-stable from v1.0.0.
 
+## v1.1.0 — 2026-06-26
+
+**New format: DXF (AutoCAD Drawing Interchange Format)** — entity-level read (geometry + TEXT + layers), alongside the existing JWW path. Closes [#11](https://github.com/gsdali/OCCTSwiftIO/issues/11).
+
+**Entity model (primary).** `import OCCTSwiftIO` now re-exports [SwiftDXF](https://github.com/SecondMouseAU/SwiftDXF), so the neutral `DXF.Drawing` / `DXF.Entity` model is in scope directly. `DXFLoader.readEntities(from:)` returns it. The model preserves what DXF actually carries — geometry (`LINE`/`CIRCLE`/`ARC`/`ELLIPSE`/`LWPOLYLINE`/`POLYLINE` with per-vertex bulge), `TEXT`/`MTEXT` (insertion point **and** string), **per-entity layer name**, and header essentials (`$INSUNITS`, `$EXTMIN`/`$EXTMAX`).
+
+**OCCT `Shape` convenience.** `CADFileFormat.dxf` (extension `dxf`); `ShapeLoader` also builds a compound of OCCT edges in the Z=0 plane (lines/circles/arcs/ellipses/bulged-polylines → edges; points → vertices; text skipped) — same shape as the JWW path. No B-Rep solid; the entity model, not the `Shape`, is the source of truth for DXF.
+
+**Reader.** Pure-Swift SwiftDXF (MIT), validated bit-exact against the MIT-licensed `ezdxf` reference reader — entity counts and every coordinate scalar — across an 11-file / ~62k-entity corpus.
+
 ## v1.0.0 — 2026-05-08
 
 OCCTSwift dependency bumped to **`from: "1.0.1"`** (OCCT 8.0.0 GA pin). No public API changes in this package — pure dep bump to graduate alongside [OCCTSwift v1.0.0](https://github.com/gsdali/OCCTSwift/releases/tag/v1.0.0). SemVer-stable from this tag.
