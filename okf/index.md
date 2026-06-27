@@ -39,3 +39,8 @@ OpenCASCADE upstream.
 - Tests must run serially (`OCCT_SERIAL=1`, single worker) due to an inherited OCCT NCollection
   race on arm64 macOS.
 - LGPL-2.1, matching OCCTSwift / OCCTSwiftTools.
+
+## Policies
+
+- [Query `context` first for OCCT / OCCTSwift docs](policies/context-first.md)
+- [Documentation updates are mandatory](policies/docs-current.md)
