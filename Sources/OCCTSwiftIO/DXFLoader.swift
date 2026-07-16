@@ -85,6 +85,9 @@ public enum DXFLoader {
 
             case .text:
                 break   // text → no geometry
+
+            case .dimension:
+                break   // dimension → annotation (extent/extension lines, text, arrows), not drawable curve geometry
             }
         }
 
