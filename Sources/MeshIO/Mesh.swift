@@ -1,14 +1,35 @@
 import Foundation
 
+/// One contiguous run of `Mesh.indices` belonging to a single source-format material — the source
+/// format's own segmentation of the face buffer, so a single part can be isolated from a whole-model
+/// mesh. Empty for formats that carry no such grouping (STL, OBJ, PLY, ...).
+public struct Submesh: Equatable, Sendable {
+    /// Start of this run in `Mesh.indices`.
+    public var indexOffset: Int
+    /// Length of this run (always a multiple of 3).
+    public var indexCount: Int
+    /// Index into the source file's material list (0-based, file order).
+    public var materialIndex: Int
+
+    public init(indexOffset: Int, indexCount: Int, materialIndex: Int) {
+        self.indexOffset = indexOffset
+        self.indexCount = indexCount
+        self.materialIndex = materialIndex
+    }
+}
+
 /// A welded, indexed triangle mesh — the neutral currency of ``MeshIO``. Positions are unique;
 /// `indices` holds three vertex indices per triangle. Pure value type, no OCCT.
 public struct Mesh: Equatable, Sendable {
     public var positions: [SIMD3<Float>]
     public var indices: [UInt32]
+    /// Per-material index ranges, in source file order. Empty for formats/files with no such grouping.
+    public var submeshes: [Submesh]
 
-    public init(positions: [SIMD3<Float>] = [], indices: [UInt32] = []) {
+    public init(positions: [SIMD3<Float>] = [], indices: [UInt32] = [], submeshes: [Submesh] = []) {
         self.positions = positions
         self.indices = indices
+        self.submeshes = submeshes
     }
 
     public var vertexCount: Int { positions.count }

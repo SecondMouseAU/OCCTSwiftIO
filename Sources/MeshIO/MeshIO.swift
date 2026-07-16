@@ -75,6 +75,12 @@ public enum MeshIO {
     }
 
     // Adapters from the standalone source-format packages' neutral meshes.
-    static func adapt(_ m: SwiftPMX.PMX.Mesh) -> Mesh { Mesh(positions: m.positions, indices: m.indices) }
+    static func adapt(_ m: SwiftPMX.PMX.Mesh) -> Mesh {
+        Mesh(
+            positions: m.positions,
+            indices: m.indices,
+            submeshes: m.submeshes.map { Submesh(indexOffset: $0.indexOffset, indexCount: $0.indexCount, materialIndex: $0.materialIndex) }
+        )
+    }
     static func adapt(_ m: SwiftX.X.Mesh) -> Mesh { Mesh(positions: m.positions, indices: m.indices) }
 }

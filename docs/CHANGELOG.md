@@ -4,6 +4,27 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## v1.6.0 — 2026-07-16
+
+**`MeshIO.Mesh` carries PMX material groups.** Closes [#17](https://github.com/gsdali/OCCTSwiftIO/issues/17).
+
+Previously `MeshIO`'s PMX adapter discarded SwiftPMX 1.1.0's `Mesh.submeshes` — the material section's
+per-material index ranges — so a consumer had no way to isolate one part of a whole-model PMX (e.g. a
+vehicle's carbody skin out of the full fused mesh) without bypassing `MeshIO` and consuming `SwiftPMX`
+directly.
+
+**New public API** (additive; existing consumers unaffected):
+
+- `struct Submesh` — `indexOffset` / `indexCount` / `materialIndex`, one per source-file material.
+- `Mesh.submeshes: [Submesh]` — empty for formats/files with no such grouping; populated for PMX.
+
+**Dependencies:** `SwiftPMX` bumped `from: "1.0.0"` → `from: "1.1.0"` (the release that added
+`Mesh.submeshes`).
+
+Out of scope (noted, not requested): `SwiftX` (`.x`) has the same structural gap — it fuses every
+`Mesh` block in a file into one buffer with no per-block grouping exposed — but no `.x` model in the
+corpus needed a sub-part isolated yet, so `MeshIO`'s `.x` adapter is unchanged.
+
 ## v1.5.0 — 2026-06-26
 
 **New format: DXF (AutoCAD Drawing Interchange Format)** — entity-level read (geometry + TEXT + layers), alongside the existing JWW path. Closes [#11](https://github.com/gsdali/OCCTSwiftIO/issues/11).

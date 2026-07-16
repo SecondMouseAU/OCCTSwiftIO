@@ -80,7 +80,8 @@ public static func load(contentsOf url: URL, weldEpsilon: Float = 1e-4) throws -
 - **Returns:** a welded `Mesh`.
 - **Throws:** `MeshError.unknownExtension` for an unrecognised extension; `.empty` / `.notRecognized`
   for unparseable data; `.unsupported` for unsupported variants. PMX / `.x` are read via the SwiftPMX /
-  SwiftX packages.
+  SwiftX packages. For PMX, the returned `Mesh.submeshes` carries the file's per-material index ranges
+  (see [`Submesh`](Mesh.md#submesh)) — empty for every other format, including `.x`.
 - **Example:**
   ```swift
   let mesh = try MeshIO.load(contentsOf: url)

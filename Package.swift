@@ -44,7 +44,7 @@ let package = Package(
     dependencies: [
         occtDep("OCCTSwift", from: "1.7.1"),
         // Pure-Swift source-format readers (no OCCT), adapted by MeshIO.
-        meshDep("SwiftPMX", from: "1.0.0"),     // PMX (MikuMikuDance)
+        meshDep("SwiftPMX", from: "1.1.0"),     // PMX (MikuMikuDance) — 1.1.0 adds Mesh.submeshes
         meshDep("SwiftX", from: "1.0.0"),       // DirectX .x
         meshDep("SwiftJWW", from: "1.2.1"),     // JWW (Jw_cad) 2D vector — used by OCCTSwiftIO, not MeshIO
         meshDep("SwiftDXF", from: "0.2.0"),     // DXF (AutoCAD) 2D vector — used by OCCTSwiftIO, not MeshIO
