@@ -58,9 +58,12 @@ try MeshIO.write(mesh, to: outURL)                 // format inferred from exten
 try MeshIO.write(mesh, to: stlURL, format: .stl, asciiSTL: true)
 ```
 
-`Mesh` is a value type (`positions: [SIMD3<Float>]`, `indices: [UInt32]`). PMX/`.x` are read via the
-standalone [SwiftPMX](https://github.com/SecondMouseAU/SwiftPMX) / [SwiftX](https://github.com/SecondMouseAU/SwiftX)
-packages; 3MF via [ThreeMF](https://github.com/tomasf/ThreeMF); glTF read via
+`Mesh` is a value type (`positions: [SIMD3<Float>]`, `indices: [UInt32]`, `submeshes: [Submesh]`). PMX
+carries its material sections through as `submeshes` (empty for every other format, including `.x`) —
+isolate one part of a whole-model PMX with `sub.indexOffset ..< sub.indexOffset + sub.indexCount`. PMX/`.x`
+are read via the standalone [SwiftPMX](https://github.com/SecondMouseAU/SwiftPMX) /
+[SwiftX](https://github.com/SecondMouseAU/SwiftX) packages; 3MF via
+[ThreeMF](https://github.com/tomasf/ThreeMF); glTF read via
 [SwiftGLTF](https://github.com/schwa/SwiftGLTF) (write is native).
 
 ## OCCTSwiftIO — CAD + JWW
