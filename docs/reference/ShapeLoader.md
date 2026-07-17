@@ -41,7 +41,11 @@ public struct ShapeLoadResult: @unchecked Sendable {
 ```
 
 - `shapesWithColors` — source shapes paired with a per-shape color, `nil` when the format carries no
-  color (STL / OBJ / BREP / IGES).
+  color (STL / OBJ / BREP / IGES). **One entry per body:** a multibody file yields one entry per solid,
+  matching what the STEP path produces via `Document.shapesWithColors()`. A single-body file, or one
+  whose result carries no solids (e.g. a raw-mesh STL that loads as loose faces), yields a single entry.
+  This requires OCCTSwift ≥ 1.11.3, where the robust importers return a compound of solids for
+  multibody files instead of dropping all but the first ([OCCTSwift#302](https://github.com/SecondMouseAU/OCCTSwift/issues/302)).
 - `dimensions` / `geomTolerances` / `datums` — AP242 GD&T extracted from the document (STEP only;
   empty otherwise). The element types (`DimensionInfo`, `GeomToleranceInfo`, `DatumInfo`) come from
   OCCTSwift.

@@ -147,23 +147,37 @@ public enum ShapeLoader {
 
     private static func loadSTL(from url: URL, robust: Bool) throws -> ShapeLoadResult {
         let shape = try (robust ? Shape.loadSTLRobust(from: url) : Shape.loadSTL(from: url))
-        return ShapeLoadResult(shapesWithColors: [(shape: shape, color: nil)])
+        return ShapeLoadResult(shapesWithColors: bodyEntries(from: shape))
     }
 
     private static func loadOBJ(from url: URL) throws -> ShapeLoadResult {
         let shape = try Shape.loadOBJ(from: url)
-        return ShapeLoadResult(shapesWithColors: [(shape: shape, color: nil)])
+        return ShapeLoadResult(shapesWithColors: bodyEntries(from: shape))
     }
 
     private static func loadBREP(from url: URL) throws -> ShapeLoadResult {
         let shape = try Shape.loadBREP(from: url)
-        return ShapeLoadResult(shapesWithColors: [(shape: shape, color: nil)])
+        return ShapeLoadResult(shapesWithColors: bodyEntries(from: shape))
     }
 
     private static func loadIGES(from url: URL, progress: ImportProgress?, robust: Bool) throws -> ShapeLoadResult {
         let shape = try (robust
             ? Shape.loadIGESRobust(from: url, progress: progress)
             : Shape.loadIGES(from: url, progress: progress))
-        return ShapeLoadResult(shapesWithColors: [(shape: shape, color: nil)])
+        return ShapeLoadResult(shapesWithColors: bodyEntries(from: shape))
+    }
+
+    /// One `shapesWithColors` entry per body, so the colorless formats match the
+    /// per-body granularity the STEP path already gives via `Document.shapesWithColors()`.
+    ///
+    /// Since OCCTSwift v1.11.3 the robust importers return a `Compound` of solids
+    /// for a multibody file (before then they silently dropped all but the first —
+    /// SecondMouseAU/OCCTSwift#302). A plain `Solid`, or a compound that carries no
+    /// solids (e.g. a raw-mesh STL that came back as loose faces), stays a single
+    /// entry — the caller still gets the whole shape, just not split. These formats
+    /// carry no color, so every entry is `nil`.
+    private static func bodyEntries(from shape: Shape) -> [(shape: Shape, color: SIMD4<Float>?)] {
+        let bodies = shape.shapeType == .solid ? [shape] : shape.subShapes(ofType: .solid)
+        return (bodies.isEmpty ? [shape] : bodies).map { (shape: $0, color: nil) }
     }
 }

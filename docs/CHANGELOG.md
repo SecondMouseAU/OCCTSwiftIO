@@ -4,6 +4,27 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## v1.7.0 — 2026-07-18
+
+**`ShapeLoader` splits a multibody file into one entry per body.** Closes [#21](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/21).
+
+OCCTSwift v1.11.3 fixed a silent data-loss bug in the robust importers: before it, `loadSTLRobust`
+(and `loadRobust` / `loadWithDiagnostics`) dropped every body after the first, so a 10-body file came
+back as 1 solid ([OCCTSwift#302](https://github.com/SecondMouseAU/OCCTSwift/issues/302)). It now returns
+a **compound of solids** for a multibody file, a plain **solid** for a single-body one.
+
+`ShapeLoader`'s STL / OBJ / BREP / IGES paths wrapped whatever they got in a **single** `shapesWithColors`
+entry, so post-fix they lumped a whole compound-of-solids into one entry — inconsistent with the STEP
+path, which has always returned one entry per body via `Document.shapesWithColors()`. A consumer got N
+bodies from a STEP assembly but 1 lumped body from the equivalent STL, collapsing per-body selection,
+colour and metadata.
+
+**Change:** these paths now return **one entry per body**. A `.solid` result stays a single entry; a
+compound is split into its solids; a result with no solids (a raw-mesh STL that loaded as loose faces)
+stays a single entry. No API change — same `shapesWithColors` shape, more entries.
+
+Minimum OCCTSwift bumped to **1.11.3** (the split has nothing to split without the #302 fix).
+
 ## v1.6.0 — 2026-07-16
 
 **`MeshIO.Mesh` carries PMX material groups.** Closes [#17](https://github.com/gsdali/OCCTSwiftIO/issues/17).
