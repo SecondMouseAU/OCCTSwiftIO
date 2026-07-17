@@ -1,5 +1,7 @@
 # OCCTSwiftIO
 
+[![Swift](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FSecondMouseAU%2FOCCTSwiftIO%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/SecondMouseAU/OCCTSwiftIO)
+[![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2FSecondMouseAU%2FOCCTSwiftIO%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/SecondMouseAU/OCCTSwiftIO)
 [![License](https://img.shields.io/badge/license-LGPL--2.1-blue)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-page-2ea44f)](https://secondmouseau.github.io/OCCTSwiftIO/)
 
