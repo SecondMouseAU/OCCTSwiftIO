@@ -42,7 +42,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        occtDep("OCCTSwift", from: "1.11.3"),   // robust importers split multibody files (OCCTSwift#302)
+        occtDep("OCCTSwift", from: "1.12.3"),   // ≥1.12.3: thread-safe 3D fillet/chamfer (#298); robust importers split multibody (#302)
         // Pure-Swift source-format readers (no OCCT), adapted by MeshIO.
         meshDep("SwiftPMX", from: "1.1.0"),     // PMX (MikuMikuDance) — 1.1.0 adds Mesh.submeshes
         meshDep("SwiftX", from: "1.0.0"),       // DirectX .x

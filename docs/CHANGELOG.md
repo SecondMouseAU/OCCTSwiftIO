@@ -4,6 +4,10 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## v1.7.1 — 2026-07-18
+
+**Repin OCCTSwift floor to 1.12.3.** OCCTSwift v1.12.3 fixes non-reentrant 3D fillet/chamfer statics in the OCCT kernel (carried patch 0003 — [OCCTSwift#298](https://github.com/SecondMouseAU/OCCTSwift/issues/298) / upstream [OCCT#1374](https://github.com/Open-Cascade-SAS/OCCT/pull/1374)): concurrent fillet builds no longer corrupt each other into wrong-but-plausible solids. Ecosystem-wide floor bump so no consumer of this package can transitively resolve a pre-fix OCCTSwift. No API or behaviour change here.
+
 ## v1.7.0 — 2026-07-18
 
 **`ShapeLoader` splits a multibody file into one entry per body.** Closes [#21](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/21).
