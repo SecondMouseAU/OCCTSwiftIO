@@ -42,7 +42,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        occtDep("OCCTSwift", from: "1.12.7"),   // ≥1.12.7: kernel crash fixes (fillet #298, free-bounds #310, ShapeFix_Face null-context #317); multibody importers (#302)
+        occtDep("OCCTSwift", from: "1.12.9"),   // ≥1.12.9: OCCT kernel crash/hang fixes through #318 and #323 (patches 0003-0009); multibody importers (#302)
         // Pure-Swift source-format readers (no OCCT), adapted by MeshIO.
         meshDep("SwiftPMX", from: "1.1.0"),     // PMX (MikuMikuDance) — 1.1.0 adds Mesh.submeshes
         meshDep("SwiftX", from: "1.0.0"),       // DirectX .x
