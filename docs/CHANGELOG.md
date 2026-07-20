@@ -4,6 +4,16 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## v1.7.5 — 2026-07-20
+
+**Migrate off deprecated `TopologyGraph` → `BRepGraph`.** OCCTSwift renamed its core graph class from `TopologyGraph` to `BRepGraph` in [OCCTSwift#335](https://github.com/SecondMouseAU/OCCTSwift/pull/335) (v1.15.0), keeping a deprecated `typealias TopologyGraph = BRepGraph` for source compatibility. Closes [#27](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/27).
+
+`Sources/OCCTSwiftIO/MLExport.swift`'s `extension TopologyGraph { ... }` (the `exportForML()` / `exportJSON()` / `GraphExport` ML export layer) now reads `extension BRepGraph`, plus the matching test suite (`BRepGraphMLExportTests`) and docs. No public API or behaviour change: `TopologyGraph` remains callable (deprecated, with a compiler warning) since it names the same underlying type; this just stops OCCTSwiftIO's own source from routing through the deprecated name.
+
+Also fixed a pre-existing doc bug in `docs/guides/cookbook/ml-export.md` and `docs/reference/GraphExport.md`: both called a `shape.topologyGraph()` convenience method that has never existed on `Shape` in OCCTSwift (the same bug was independently caught and fixed upstream in OCCTSwift's own docs the same day, commit `cf57630`). Examples now use the real, failable `BRepGraph(shape:)` initializer.
+
+OCCTSwift dependency floor (`from: "1.12.9"`) already permits 1.15.0 as an open semver range — no `Package.swift` change needed. Verified building and testing against OCCTSwift 1.15.0 via a refreshed `Package.resolved`.
+
 ## v1.7.4 — 2026-07-20
 
 **Repin OCCTSwift floor to 1.12.9.** OCCTSwift v1.12.8 added kernel patch 0006 (a `BRepGProp_EdgeTool` null-curve-on-surface guard, [OCCTSwift#318](https://github.com/SecondMouseAU/OCCTSwift/issues/318)) and v1.12.9 added patches 0007 through 0009 (free-bounds `lwire` reset, boolean-path BSpline O(1) periodic normalization, and STEP-writer oversized-string split; [OCCTSwift#323](https://github.com/SecondMouseAU/OCCTSwift/issues/323)), on top of the earlier fillet, free-bounds, and ShapeFix_Face patches. Ecosystem-wide floor bump; no API or behaviour change.

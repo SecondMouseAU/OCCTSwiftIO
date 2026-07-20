@@ -24,7 +24,7 @@ The package spans two products:
 - [CADFileFormat](CADFileFormat.md) — the load-side format enum and its extension initializer.
 - [ScriptManifest](ScriptManifest.md) — `ScriptManifest`, `BodyDescriptor`, `ManifestMetadata`.
 - [ImportProgressClosure](ImportProgressClosure.md) — closure-backed `ImportProgress` + cancellation.
-- [GraphExport (ML)](GraphExport.md) — `TopologyGraph.exportForML()` / `exportJSON()` and the `GraphExport` struct.
+- [GraphExport (ML)](GraphExport.md) — `BRepGraph.exportForML()` / `exportJSON()` and the `GraphExport` struct.
 - [CADBodyMetadata](CADBodyMetadata.md) — sub-body selection metadata produced by the bridge layer.
 
 ### MeshIO (mesh)

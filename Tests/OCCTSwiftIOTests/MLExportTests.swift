@@ -2,20 +2,20 @@
 // OCCTSwiftIOTests
 //
 // Lifted from OCCTSwift/Tests/OCCTSwiftTests/ShapeTests.swift, suite
-// "TopologyGraph ML Export". The third test was renamed `t_exportJSON`
+// "BRepGraph ML Export". The third test was renamed `t_exportJSON`
 // to avoid shadowing the API method per local CLAUDE.md convention.
-// "TopologyGraph UV Grid" stays in OCCTSwift — see MLExport.swift header.
+// "BRepGraph UV Grid" stays in OCCTSwift — see MLExport.swift header.
 
 import Testing
 import Foundation
 import OCCTSwift
 @testable import OCCTSwiftIO
 
-@Suite("TopologyGraph ML Export")
-struct TopologyGraphMLExportTests {
+@Suite("BRepGraph ML Export")
+struct BRepGraphMLExportTests {
     @Test func exportBoxGraph() {
         if let box = Shape.box(width: 10, height: 10, depth: 10) {
-            if let graph = TopologyGraph(shape: box) {
+            if let graph = BRepGraph(shape: box) {
                 let export_ = graph.exportForML()
                 #expect(export_.vertexPositions.count == 8)
                 #expect(export_.edgeBoundaryFlags.count == 12)
@@ -37,7 +37,7 @@ struct TopologyGraphMLExportTests {
 
     @Test func exportCOOFormat() {
         if let box = Shape.box(width: 10, height: 10, depth: 10) {
-            if let graph = TopologyGraph(shape: box) {
+            if let graph = BRepGraph(shape: box) {
                 let export_ = graph.exportForML()
                 #expect(export_.edgeToVertex.sources.count == export_.edgeToVertex.targets.count)
                 #expect(export_.edgeToVertex.sources.count == 24)
@@ -51,7 +51,7 @@ struct TopologyGraphMLExportTests {
 
     @Test func t_exportJSON() {
         if let box = Shape.box(width: 10, height: 10, depth: 10) {
-            if let graph = TopologyGraph(shape: box) {
+            if let graph = BRepGraph(shape: box) {
                 let json = graph.exportJSON()
                 #expect(json != nil)
                 if let json {
@@ -70,7 +70,7 @@ struct TopologyGraphMLExportTests {
 
     @Test func exportSphere() {
         if let sphere = Shape.sphere(radius: 5) {
-            if let graph = TopologyGraph(shape: sphere) {
+            if let graph = BRepGraph(shape: sphere) {
                 let export_ = graph.exportForML()
                 #expect(export_.vertexPositions.count == graph.vertexCount)
                 #expect(export_.edgeBoundaryFlags.count == graph.edgeCount)

@@ -19,6 +19,6 @@
     "Export OCCT shapes with `ExportManager.export(shapes:format:to:deflection:)` (async throws). `ExportFormat` is `.obj`/`.ply`/`.step`/`.brep`/`.gltf`/`.glb`; meshed formats use `deflection` (default 0.1), STEP/BREP exact; multiple shapes write indexed.",
     "Mesh I/O is synchronous and OCCT-free: `MeshIO.load(contentsOf:weldEpsilon:)` reads by extension and welds vertices (default 1e-4); `MeshIO.write(_:to:format:asciiSTL:)` writes by `format` or extension. PMX/`.x` read-only; writing throws.",
     "`Mesh` is a value type (`positions: [SIMD3<Float>]`, `indices: [UInt32]`) with `vertexCount`/`triangleCount`/`bounds`; build via `Mesh.welded(_:epsilon:)` or `Mesh.indexedSoup(_:)`. Native readers `STL` / `OBJ` / `PLY` are callable directly on `Data`.",
-    "`ScriptManifest` (+ `BodyDescriptor`, `ManifestMetadata`) is Codable; ISO-8601 dates; `BodyDescriptor.color` decodes `[r,g,b,a]` to `SIMD4<Float>?`. Use `ImportProgressClosure { fraction, step in }` (optional `cancelCheck`); `TopologyGraph.exportForML()`."
+    "`ScriptManifest` (+ `BodyDescriptor`, `ManifestMetadata`) is Codable; ISO-8601 dates; `BodyDescriptor.color` decodes `[r,g,b,a]` to `SIMD4<Float>?`. Use `ImportProgressClosure { fraction, step in }` (optional `cancelCheck`); `BRepGraph.exportForML()`."
   ]
 }
