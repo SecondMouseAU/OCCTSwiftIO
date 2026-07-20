@@ -5,18 +5,18 @@ parent: API Reference
 
 # GraphExport (ML export)
 
-OCCTSwiftIO adds a consumption-side ML repacking layer as an extension on `OCCTSwift.TopologyGraph`:
+OCCTSwiftIO adds a consumption-side ML repacking layer as an extension on `OCCTSwift.BRepGraph`:
 flat vertex positions, per-edge boundary/manifold flags, and COO-format sparse adjacency for face /
 edge / vertex incidence. (Hoisted from OCCTSwift per OCCTSwiftIO#1 — pure batch / headless, fitting
 this package's charter.)
 
 ## Topics
 
-- [`TopologyGraph.GraphExport`](#topologygraphgraphexport) · [`TopologyGraph.exportForML()`](#topologygraphexportforml) · [`TopologyGraph.exportJSON()`](#topologygraphexportjson)
+- [`BRepGraph.GraphExport`](#brepgraphgraphexport) · [`BRepGraph.exportForML()`](#brepgraphexportforml) · [`BRepGraph.exportJSON()`](#brepgraphexportjson)
 
 ---
 
-## `TopologyGraph.GraphExport`
+## `BRepGraph.GraphExport`
 
 Graph data in ML-friendly form: flat arrays plus COO sparse adjacency.
 
@@ -43,7 +43,7 @@ Each COO pair is two parallel arrays: `sources[i]` → `targets[i]` is one edge 
 
 ---
 
-## `TopologyGraph.exportForML()`
+## `BRepGraph.exportForML()`
 
 Builds a `GraphExport` from the graph (vertex positions, per-edge flags, face adjacency, and the three
 COO incidence relations).
@@ -55,14 +55,14 @@ public func exportForML() -> GraphExport
 - **Returns:** a `GraphExport` value.
 - **Example:**
   ```swift
-  let export = shape.topologyGraph().exportForML()
+  let export = BRepGraph(shape: shape)!.exportForML()
   let (src, tgt) = export.faceToFace
   print(export.vertexPositions.count, "vertices,", src.count, "face-face edges")
   ```
 
 ---
 
-## `TopologyGraph.exportJSON()`
+## `BRepGraph.exportJSON()`
 
 Serializes the export as JSON for ML pipelines. The tuple-typed COO pairs are flattened into parallel
 `*Sources` / `*Targets` arrays in the JSON.
@@ -74,7 +74,7 @@ public func exportJSON() -> Data?
 - **Returns:** encoded JSON `Data`, or `nil` if encoding fails.
 - **Example:**
   ```swift
-  if let data = shape.topologyGraph().exportJSON() {
+  if let data = BRepGraph(shape: shape)!.exportJSON() {
       try data.write(to: graphURL)
   }
   ```

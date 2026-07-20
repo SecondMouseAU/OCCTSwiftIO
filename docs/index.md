@@ -13,7 +13,7 @@ The package ships **two products** so consumers take only what they need:
 - **`MeshIO`** — pure Swift, **no OCCT**. 3D mesh formats (STL / OBJ / PLY / glTF / GLB / 3MF / PMX / `.x`)
   load and write into a neutral value-type `Mesh` (positions + indices).
 - **`OCCTSwiftIO`** — OCCT-backed. CAD B-Rep load/export as `Shape`s (STEP / IGES / BREP), plus **JWW**
-  (Jw_cad 2D vector) load, a `ScriptManifest` round-trip, and a `TopologyGraph` → ML export layer.
+  (Jw_cad 2D vector) load, a `ScriptManifest` round-trip, and a `BRepGraph` → ML export layer.
 
 The split lets OCCT-free consumers (e.g. a raw-mesh ingest) read meshes without pulling in the 1.3 GB
 kernel; `OCCTSwiftIO` builds on `MeshIO` and adds the kernel-backed formats. See
@@ -56,7 +56,7 @@ Task-oriented, example-rich recipes:
 - [Reading & writing meshes](guides/cookbook/mesh-roundtrip.md) — `MeshIO` across STL / OBJ / PLY / glTF / 3MF.
 - [The ScriptManifest format](guides/cookbook/script-manifest.md) — load a manifest + sibling BREP bodies.
 - [Progress reporting](guides/cookbook/progress-reporting.md) — `ImportProgressClosure` and cancellation.
-- [ML graph export](guides/cookbook/ml-export.md) — `TopologyGraph.exportForML()` / `exportJSON()`.
+- [ML graph export](guides/cookbook/ml-export.md) — `BRepGraph.exportForML()` / `exportJSON()`.
 
 ---
 

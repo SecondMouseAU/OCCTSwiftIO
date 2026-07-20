@@ -6,9 +6,9 @@ nav_order: 6
 
 # ML graph export
 
-OCCTSwiftIO adds a consumption-side ML repacking layer on top of OCCTSwift's `TopologyGraph`: flat
+OCCTSwiftIO adds a consumption-side ML repacking layer on top of OCCTSwift's `BRepGraph`: flat
 vertex positions, per-edge boundary/manifold flags, and COO-format sparse adjacency for face / edge /
-vertex incidence. It is an extension on `OCCTSwift.TopologyGraph`, so you call it on any graph you
+vertex incidence. It is an extension on `OCCTSwift.BRepGraph`, so you call it on any graph you
 already have.
 
 ## Export to a struct
@@ -17,7 +17,7 @@ already have.
 import OCCTSwift
 import OCCTSwiftIO
 
-let graph = shape.topologyGraph()       // an OCCTSwift TopologyGraph
+let graph = BRepGraph(shape: shape)!    // an OCCTSwift BRepGraph
 let export = graph.exportForML()
 
 print(export.vertexPositions.count)     // Nx3, each [x, y, z]

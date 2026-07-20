@@ -25,4 +25,4 @@ short bit of prose followed by runnable Swift snippets using the real shipped AP
 - [Reading & writing meshes](mesh-roundtrip.md) — `MeshIO.load` / `write`, the `Mesh` value type, the per-format readers.
 - [The ScriptManifest format](script-manifest.md) — `ShapeLoader.loadFromManifest`, `ScriptManifest` / `BodyDescriptor`.
 - [Progress reporting](progress-reporting.md) — `ImportProgressClosure`, fraction + step callbacks, cancellation.
-- [ML graph export](ml-export.md) — `TopologyGraph.exportForML()` / `exportJSON()`, the COO adjacency layout.
+- [ML graph export](ml-export.md) — `BRepGraph.exportForML()` / `exportJSON()`, the COO adjacency layout.

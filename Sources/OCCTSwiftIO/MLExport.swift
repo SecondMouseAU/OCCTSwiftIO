@@ -1,21 +1,21 @@
 // MLExport.swift
 // OCCTSwiftIO
 //
-// Consumption-side ML repacking of `TopologyGraph` data: flat vertex
+// Consumption-side ML repacking of `BRepGraph` data: flat vertex
 // positions, per-edge boundary/manifold flags, COO-format adjacency for
 // face/edge/vertex incidence. Lifted from OCCTSwift per OCCTSwiftIO#1
 // (supersedes OCCTSwift#71) — fits this package's headless charter.
 //
 // `FaceGridSample` / `sampleFaceUVGrid` (and `sampleEdgeCurve`) intentionally
 // stay in OCCTSwift: they call `OCCTBRepGraphSampleFaceUVGrid` / `*SampleEdgeCurve`
-// on `TopologyGraph.handle`, which is `internal` to the OCCTSwift module.
+// on `BRepGraph.handle`, which is `internal` to the OCCTSwift module.
 // Lifting them would require widening kernel visibility — out of scope per
 // the partial-lift decision recorded on the issue.
 
 import Foundation
 import OCCTSwift
 
-extension TopologyGraph {
+extension BRepGraph {
 
     /// Graph data exported in ML-friendly format with flat arrays and COO sparse adjacency.
     public struct GraphExport: Sendable {
