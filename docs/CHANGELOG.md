@@ -4,6 +4,10 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## v1.7.6 — 2026-07-30
+
+**Repin OCCTSwift floor to 1.17.0.** Picks up Pass 1a of OCCTSwift's [#377/#380](https://github.com/SecondMouseAU/OCCTSwift/issues/377) duplication/bug-fix audit: nine duplicated continuity enums consolidated into two (source-compatible via deprecated-alias shims), several dedup cleanups, and edge-case bug fixes (arc-length failure sentinels, `Surface.normal` at singularities, `Curve2D.circle` at radius zero). One real API break — `Surface.drawMesh`/`evaluateGrid` now return a `SurfaceGrid` struct instead of `[[SIMD3<Double>]]` — is unused in this repo (grep-verified). Ecosystem-wide floor bump; no API or behaviour change here.
+
 ## v1.7.5 — 2026-07-20
 
 **Migrate off deprecated `TopologyGraph` → `BRepGraph`.** OCCTSwift renamed its core graph class from `TopologyGraph` to `BRepGraph` in [OCCTSwift#335](https://github.com/SecondMouseAU/OCCTSwift/pull/335) (v1.15.0), keeping a deprecated `typealias TopologyGraph = BRepGraph` for source compatibility. Closes [#27](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/27).
