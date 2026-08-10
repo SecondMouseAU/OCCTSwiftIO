@@ -4,6 +4,10 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## v1.7.7 — 2026-08-10
+
+**Repin OCCTSwift floor to 2.0.0.** OCCTSwift's v2.0.0 ([`docs/SEMVER.md#v200`](https://github.com/SecondMouseAU/OCCTSwift/blob/main/docs/SEMVER.md#v200)) is a correctness major (Pass 1a/1b duplication+bug-fix audit, [#377](https://github.com/SecondMouseAU/OCCTSwift/issues/377)/[#669](https://github.com/SecondMouseAU/OCCTSwift/issues/669); OCCT absorbed to 8.0.1), 17 breaking API changes (12 compile errors, 5 silent value changes). Audited this package's call sites against the full break table, including the sub-shape-enumeration (#541/#568/#613/#502) and AAG (#642/#699) families a first-pass grep at issue-filing time hadn't covered: zero hits anywhere. `Sources/OCCTSwiftIO/ShapeLoader.swift`'s `subShapes(ofType: .solid)` was already `TopExp::MapShapes`-backed and deduplicated before this release, the exact convention #502 generalized elsewhere, not something that changed under it. Ecosystem-wide floor bump; no API or behaviour change here.
+
 ## v1.7.6 — 2026-07-30
 
 **Repin OCCTSwift floor to 1.17.0.** Picks up Pass 1a of OCCTSwift's [#377/#380](https://github.com/SecondMouseAU/OCCTSwift/issues/377) duplication/bug-fix audit: nine duplicated continuity enums consolidated into two (source-compatible via deprecated-alias shims), several dedup cleanups, and edge-case bug fixes (arc-length failure sentinels, `Surface.normal` at singularities, `Curve2D.circle` at radius zero). One real API break — `Surface.drawMesh`/`evaluateGrid` now return a `SurfaceGrid` struct instead of `[[SIMD3<Double>]]` — is unused in this repo (grep-verified). Ecosystem-wide floor bump; no API or behaviour change here.
