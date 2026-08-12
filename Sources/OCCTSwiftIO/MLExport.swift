@@ -4,12 +4,12 @@
 // Consumption-side ML repacking of `BRepGraph` data: flat vertex
 // positions, per-edge boundary/manifold flags, COO-format adjacency for
 // face/edge/vertex incidence. Lifted from OCCTSwift per OCCTSwiftIO#1
-// (supersedes OCCTSwift#71) — fits this package's headless charter.
+// (supersedes OCCTSwift#71); fits this package's headless charter.
 //
 // `FaceGridSample` / `sampleFaceUVGrid` (and `sampleEdgeCurve`) intentionally
 // stay in OCCTSwift: they call `OCCTBRepGraphSampleFaceUVGrid` / `*SampleEdgeCurve`
 // on `BRepGraph.handle`, which is `internal` to the OCCTSwift module.
-// Lifting them would require widening kernel visibility — out of scope per
+// Lifting them would require widening kernel visibility: out of scope per
 // the partial-lift decision recorded on the issue.
 
 import Foundation
@@ -119,18 +119,18 @@ extension BRepGraph {
 
     /// Export graph as JSON data for ML pipelines.
     public func exportJSON() -> Data? {
-        let export_ = exportForML()
+        let exported = exportForML()
         let codable = CodableGraphExport(
-            vertexPositions: export_.vertexPositions,
-            edgeBoundaryFlags: export_.edgeBoundaryFlags,
-            edgeManifoldFlags: export_.edgeManifoldFlags,
-            faceAdjacentFaces: export_.faceAdjacentFaces,
-            faceToEdgeSources: export_.faceToEdge.sources,
-            faceToEdgeTargets: export_.faceToEdge.targets,
-            edgeToVertexSources: export_.edgeToVertex.sources,
-            edgeToVertexTargets: export_.edgeToVertex.targets,
-            faceToFaceSources: export_.faceToFace.sources,
-            faceToFaceTargets: export_.faceToFace.targets
+            vertexPositions: exported.vertexPositions,
+            edgeBoundaryFlags: exported.edgeBoundaryFlags,
+            edgeManifoldFlags: exported.edgeManifoldFlags,
+            faceAdjacentFaces: exported.faceAdjacentFaces,
+            faceToEdgeSources: exported.faceToEdge.sources,
+            faceToEdgeTargets: exported.faceToEdge.targets,
+            edgeToVertexSources: exported.edgeToVertex.sources,
+            edgeToVertexTargets: exported.edgeToVertex.targets,
+            faceToFaceSources: exported.faceToFace.sources,
+            faceToFaceTargets: exported.faceToFace.targets
         )
         return try? JSONEncoder().encode(codable)
     }

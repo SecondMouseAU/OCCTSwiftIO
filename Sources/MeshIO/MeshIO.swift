@@ -9,10 +9,12 @@ public enum MeshError: Error, Equatable, Sendable {
     case unsupported(String)
 }
 
-/// The 3D mesh file formats MeshIO handles. Mesh-only — 2D vector formats (JWW/DXF) and CAD B-Rep
-/// (STEP/IGES/BREP) live in the OCCT-backed `OCCTSwiftIO` target, not here.
+/// The 3D mesh file formats MeshIO handles.
+///
+/// Mesh-only: 2D vector formats (JWW/DXF) and CAD B-Rep (STEP/IGES/BREP) live in the OCCT-backed
+/// `OCCTSwiftIO` target, not here.
 public enum MeshFormat: String, Sendable, CaseIterable {
-    case stl, obj, ply, pmx, x          // x = DirectX .x
+    case stl, obj, ply, pmx, x  // x = DirectX .x
     case threeMF = "3mf"
     case gltf, glb
 
@@ -22,7 +24,7 @@ public enum MeshFormat: String, Sendable, CaseIterable {
         case "obj": self = .obj
         case "ply": self = .ply
         case "pmx": self = .pmx
-        case "x":   self = .x
+        case "x": self = .x
         case "3mf": self = .threeMF
         case "gltf": self = .gltf
         case "glb": self = .glb
@@ -31,11 +33,14 @@ public enum MeshFormat: String, Sendable, CaseIterable {
     }
 
     public var canRead: Bool { true }
-    public var canWrite: Bool { self != .pmx && self != .x }   // pmx/.x are source-only; rest read+write
+    // pmx/.x are source-only; rest read+write
+    public var canWrite: Bool { self != .pmx && self != .x }
 }
 
-/// Pure-Swift mesh file I/O — no OCCT. Reads STL/OBJ/PLY natively and PMX/.x via the standalone
-/// SwiftPMX / SwiftX packages, into a neutral ``Mesh``.
+/// Pure-Swift mesh file I/O, no OCCT.
+///
+/// Reads STL/OBJ/PLY natively and PMX/.x via the standalone SwiftPMX / SwiftX packages, into a
+/// neutral ``Mesh``.
 public enum MeshIO {
 
     /// All formats with a reader.
@@ -53,24 +58,31 @@ public enum MeshIO {
         case .stl: return try STL.read(data: data, weldEpsilon: weldEpsilon)
         case .obj: return try OBJ.read(data: data, weldEpsilon: weldEpsilon)
         case .ply: return try PLY.read(data: data, weldEpsilon: weldEpsilon)
-        case .pmx: return adapt(try SwiftPMX.PMX.read(data: data, options: .init(weldEpsilon: weldEpsilon)))
-        case .x:   return adapt(try SwiftX.X.read(data: data, options: .init(weldEpsilon: weldEpsilon)))
+        case .pmx:
+            return adapt(
+                try SwiftPMX.PMX.read(data: data, options: .init(weldEpsilon: weldEpsilon)))
+        case .x:
+            return adapt(try SwiftX.X.read(data: data, options: .init(weldEpsilon: weldEpsilon)))
         case .threeMF: return try readThreeMF(data: data, weldEpsilon: weldEpsilon)
         case .gltf, .glb: fatalError("handled above")
         }
     }
 
     /// Write a mesh, choosing the writer by `format` (or the file extension if `format` is nil).
-    public static func write(_ mesh: Mesh, to url: URL, format: MeshFormat? = nil, asciiSTL: Bool = false) throws {
+    public static func write(
+        _ mesh: Mesh, to url: URL, format: MeshFormat? = nil, asciiSTL: Bool = false
+    ) throws {
         let fmt = format ?? MeshFormat(fileExtension: url.pathExtension)
         switch fmt {
-        case .stl: try (asciiSTL ? Data(STL.asciiString(mesh).utf8) : STL.binaryData(mesh)).write(to: url)
+        case .stl:
+            try (asciiSTL ? Data(STL.asciiString(mesh).utf8) : STL.binaryData(mesh)).write(to: url)
         case .obj: try Data(OBJ.string(mesh).utf8).write(to: url)
         case .ply: try Data(PLY.string(mesh).utf8).write(to: url)
         case .threeMF: try writeThreeMF(mesh).write(to: url)
         case .gltf: try writeGLTF(mesh).write(to: url)
         case .glb: try writeGLB(mesh).write(to: url)
-        case .pmx, .x, nil: throw MeshError.unsupported("write \(fmt?.rawValue ?? url.pathExtension)")
+        case .pmx, .x, nil:
+            throw MeshError.unsupported("write \(fmt?.rawValue ?? url.pathExtension)")
         }
     }
 
@@ -79,8 +91,14 @@ public enum MeshIO {
         Mesh(
             positions: m.positions,
             indices: m.indices,
-            submeshes: m.submeshes.map { Submesh(indexOffset: $0.indexOffset, indexCount: $0.indexCount, materialIndex: $0.materialIndex) }
+            submeshes: m.submeshes.map {
+                Submesh(
+                    indexOffset: $0.indexOffset, indexCount: $0.indexCount,
+                    materialIndex: $0.materialIndex)
+            }
         )
     }
-    static func adapt(_ m: SwiftX.X.Mesh) -> Mesh { Mesh(positions: m.positions, indices: m.indices) }
+    static func adapt(_ m: SwiftX.X.Mesh) -> Mesh {
+        Mesh(positions: m.positions, indices: m.indices)
+    }
 }

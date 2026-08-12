@@ -1,6 +1,7 @@
-import Testing
 import Foundation
 import OCCTSwift
+import Testing
+
 @testable import OCCTSwiftIO
 
 @Suite("ImportProgress")
@@ -45,8 +46,9 @@ struct ImportProgressTests {
 
     // MARK: - Recorder helper for end-to-end tests
 
-    /// Test-only progress observer. Records every callback so we can assert
-    /// after the import returns.
+    /// Test-only progress observer.
+    ///
+    /// Records every callback so we can assert after the import returns.
     final class Recorder: ImportProgress, @unchecked Sendable {
         let lock = NSLock()
         private var _fractions: [Double] = []
@@ -54,26 +56,31 @@ struct ImportProgressTests {
         var cancelOnFraction: Double? = nil
 
         var fractions: [Double] {
-            lock.lock(); defer { lock.unlock() }
+            lock.lock()
+            defer { lock.unlock() }
             return _fractions
         }
 
         var lastStep: String? {
-            lock.lock(); defer { lock.unlock() }
+            lock.lock()
+            defer { lock.unlock() }
             return _steps.last
         }
 
         func progress(fraction: Double, step: String) {
-            lock.lock(); defer { lock.unlock() }
+            lock.lock()
+            defer { lock.unlock() }
             _fractions.append(fraction)
             _steps.append(step)
         }
 
         func shouldCancel() -> Bool {
-            lock.lock(); defer { lock.unlock() }
+            lock.lock()
+            defer { lock.unlock() }
             if let threshold = cancelOnFraction,
-               let latest = _fractions.last,
-               latest >= threshold {
+                let latest = _fractions.last,
+                latest >= threshold
+            {
                 return true
             }
             return false
@@ -85,7 +92,7 @@ struct ImportProgressTests {
     @Test func t_stepLoadFiresProgressCallback() async throws {
         // Round-trip: build a box, export to STEP, re-import via ShapeLoader
         // with a recorder. We don't assert specific fraction values (OCCT's
-        // progress granularity isn't documented) — just that progress fired.
+        // progress granularity isn't documented), just that progress fired.
         guard let box = Shape.box(width: 10, height: 10, depth: 10) else {
             Issue.record("Shape.box returned nil")
             return
@@ -101,8 +108,9 @@ struct ImportProgressTests {
         #expect(result.shapes.count >= 1, "import produced at least one shape")
         // Even a small box should yield at least one progress call from the
         // OCCT reader; a complete one usually finishes near 1.0.
-        #expect(!recorder.fractions.isEmpty,
-                "progress observer should fire at least once during STEP import")
+        #expect(
+            !recorder.fractions.isEmpty,
+            "progress observer should fire at least once during STEP import")
         if let last = recorder.fractions.last {
             #expect(last <= 1.0 + 1e-6, "fraction stays in [0, 1]")
             #expect(last >= 0.0)
@@ -123,13 +131,13 @@ struct ImportProgressTests {
 
         // Recorder cancels as soon as it sees any progress callback.
         let recorder = Recorder()
-        recorder.cancelOnFraction = 0.0   // fire on the very first callback
+        recorder.cancelOnFraction = 0.0  // fire on the very first callback
 
         do {
             _ = try await ShapeLoader.load(from: url, format: .step, progress: recorder)
             // If the import is so fast it completes before any callback has
             // a chance to flip the cancel flag, the test box was too small.
-            // Accept that — what we're really verifying is "cancellation
+            // Accept that: what we're really verifying is "cancellation
             // path doesn't crash and produces ImportError.cancelled when honored".
         } catch ImportError.cancelled {
             // Expected outcome on cancel.

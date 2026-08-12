@@ -1,6 +1,7 @@
-import Testing
 import Foundation
+import Testing
 import simd
+
 @testable import OCCTSwiftIO
 
 @Suite("ScriptManifest")
@@ -8,23 +9,23 @@ struct ScriptManifestTests {
 
     @Test func t_decodeRoundTripWithColorArray() throws {
         let json = """
-        {
-          "version": 1,
-          "timestamp": "2026-05-03T12:00:00Z",
-          "description": "test",
-          "bodies": [
             {
-              "id": "body0",
-              "file": "body0.brep",
-              "format": "brep",
-              "name": "Box",
-              "color": [0.2, 0.4, 0.6, 1.0],
-              "roughness": 0.5,
-              "metallic": 0.0
+              "version": 1,
+              "timestamp": "2026-05-03T12:00:00Z",
+              "description": "test",
+              "bodies": [
+                {
+                  "id": "body0",
+                  "file": "body0.brep",
+                  "format": "brep",
+                  "name": "Box",
+                  "color": [0.2, 0.4, 0.6, 1.0],
+                  "roughness": 0.5,
+                  "metallic": 0.0
+                }
+              ]
             }
-          ]
-        }
-        """.data(using: .utf8)!
+            """.data(using: .utf8)!
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -49,14 +50,14 @@ struct ScriptManifestTests {
 
     @Test func t_missingColorDecodesAsNil() throws {
         let json = """
-        {
-          "version": 1,
-          "timestamp": "2026-05-03T12:00:00Z",
-          "bodies": [
-            { "file": "x.brep", "format": "brep" }
-          ]
-        }
-        """.data(using: .utf8)!
+            {
+              "version": 1,
+              "timestamp": "2026-05-03T12:00:00Z",
+              "bodies": [
+                { "file": "x.brep", "format": "brep" }
+              ]
+            }
+            """.data(using: .utf8)!
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -67,17 +68,17 @@ struct ScriptManifestTests {
 
     @Test func t_metadataDecodes() throws {
         let json = """
-        {
-          "version": 1,
-          "timestamp": "2026-05-03T12:00:00Z",
-          "bodies": [],
-          "metadata": {
-            "name": "Sample Assembly",
-            "revision": "A",
-            "tags": ["mech", "demo"]
-          }
-        }
-        """.data(using: .utf8)!
+            {
+              "version": 1,
+              "timestamp": "2026-05-03T12:00:00Z",
+              "bodies": [],
+              "metadata": {
+                "name": "Sample Assembly",
+                "revision": "A",
+                "tags": ["mech", "demo"]
+              }
+            }
+            """.data(using: .utf8)!
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601

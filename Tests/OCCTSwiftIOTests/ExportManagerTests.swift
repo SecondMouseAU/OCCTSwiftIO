@@ -1,12 +1,13 @@
-import Testing
 import Foundation
 import OCCTSwift
+import Testing
+
 @testable import OCCTSwiftIO
 
 @Suite("ExportManager")
 struct ExportManagerTests {
 
-    /// Stage temp files under /tmp per OCCTSwift convention — never under Tests/.
+    /// Stage temp files under /tmp per OCCTSwift convention, never under Tests/.
     private static func tempURL(suffix: String) -> URL {
         URL(fileURLWithPath: "/tmp/occtswiftio-\(UUID().uuidString)-\(suffix)")
     }
@@ -92,7 +93,7 @@ struct ExportManagerTests {
 
     @Test func t_exportMultipleShapesGetsNumberedFilenames() async throws {
         guard let a = Shape.box(width: 1, height: 1, depth: 1),
-              let b = Shape.cylinder(radius: 1, height: 2)
+            let b = Shape.cylinder(radius: 1, height: 2)
         else {
             Issue.record("primitive constructors returned nil")
             return
@@ -103,7 +104,8 @@ struct ExportManagerTests {
             let prefix = baseURL.deletingPathExtension().lastPathComponent
             if let entries = try? FileManager.default.contentsOfDirectory(atPath: dir.path) {
                 for entry in entries where entry.hasPrefix(prefix) {
-                    try? FileManager.default.removeItem(atPath: dir.appendingPathComponent(entry).path)
+                    try? FileManager.default.removeItem(
+                        atPath: dir.appendingPathComponent(entry).path)
                 }
             }
         }
@@ -124,7 +126,8 @@ struct ExportManagerTests {
 
         try await ExportManager.export(shapes: [], format: .obj, to: url)
 
-        #expect(!FileManager.default.fileExists(atPath: url.path),
-                "empty input should not write a file")
+        #expect(
+            !FileManager.default.fileExists(atPath: url.path),
+            "empty input should not write a file")
     }
 }
