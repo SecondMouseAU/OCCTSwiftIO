@@ -3,7 +3,7 @@ type: repo
 title: OCCTSwiftIO
 resource: https://github.com/SecondMouseAU/OCCTSwiftIO
 tags: [cad, occt, io, step, gltf, headless, swift, kernel]
-description: Headless CAD file I/O for OCCTSwift — STEP/IGES/STL/OBJ/BREP loaders plus glTF/GLB/OBJ/PLY/STEP/BREP exporters, with no Viewport dependency.
+description: Headless CAD file I/O for OCCTSwift, STEP/IGES/STL/OBJ/BREP loaders plus glTF/GLB/OBJ/PLY/STEP/BREP exporters, with no Viewport dependency.
 timestamp: 2026-06-22
 ---
 
@@ -11,14 +11,14 @@ timestamp: 2026-06-22
 
 > Headless CAD file import/export for the OCCTSwift ecosystem. Loads STEP (with AP242
 > dimensions/datums and per-shape colors), IGES, STL, OBJ, and BREP; exports glTF, GLB, OBJ, PLY,
-> STEP, and BREP. It pulls in **OCCTSwift only** — no Metal renderer — so it is safe to use from
+> STEP, and BREP. It pulls in **OCCTSwift only**, no Metal renderer, so it is safe to use from
 > CLIs, batch pipelines, and server-side workflows. Spun out of OCCTSwiftTools so headless
 > consumers don't drag in OCCTSwiftViewport transitively.
 
 ## Role in the ecosystem
 
 - **Cluster:** kernel
-- **Depends on:** [OCCTSwift](https://github.com/SecondMouseAU/OCCTSwift) — the B-Rep modelling
+- **Depends on:** [OCCTSwift](https://github.com/SecondMouseAU/OCCTSwift), the B-Rep modelling
   kernel (floored at v1.7.1). No transitive Viewport dependency.
 - **Feeds:** [OCCTSwiftTools](https://github.com/SecondMouseAU/OCCTSwiftTools), which wraps this
   package's loaders with the bridge layer to produce viewport-ready bodies + pick metadata.
@@ -46,5 +46,6 @@ OpenCASCADE upstream.
 - [Documentation updates are mandatory](policies/docs-current.md)
 - [No em-dashes, banned words in prose](policies/writing-style.md)
 - [Search before building](policies/search-before-building.md)
+- [Code style](policies/code-style.md)
 - [Code structure](policies/code-structure.md)
 - [Issue labels and project-board tracking](policies/issue-tracking.md)

@@ -1,8 +1,10 @@
 import Foundation
 
-/// One contiguous run of `Mesh.indices` belonging to a single source-format material — the source
+/// One contiguous run of `Mesh.indices` belonging to a single source-format material: the source
 /// format's own segmentation of the face buffer, so a single part can be isolated from a whole-model
-/// mesh. Empty for formats that carry no such grouping (STL, OBJ, PLY, ...).
+/// mesh.
+///
+/// Empty for formats that carry no such grouping (STL, OBJ, PLY, ...).
 public struct Submesh: Equatable, Sendable {
     /// Start of this run in `Mesh.indices`.
     public var indexOffset: Int
@@ -18,12 +20,16 @@ public struct Submesh: Equatable, Sendable {
     }
 }
 
-/// A welded, indexed triangle mesh — the neutral currency of ``MeshIO``. Positions are unique;
-/// `indices` holds three vertex indices per triangle. Pure value type, no OCCT.
+/// A welded, indexed triangle mesh: the neutral currency of ``MeshIO``.
+///
+/// Positions are unique; `indices` holds three vertex indices per triangle. Pure value type, no
+/// OCCT.
 public struct Mesh: Equatable, Sendable {
     public var positions: [SIMD3<Float>]
     public var indices: [UInt32]
-    /// Per-material index ranges, in source file order. Empty for formats/files with no such grouping.
+    /// Per-material index ranges, in source file order.
+    ///
+    /// Empty for formats/files with no such grouping.
     public var submeshes: [Submesh]
 
     public init(positions: [SIMD3<Float>] = [], indices: [UInt32] = [], submeshes: [Submesh] = []) {
@@ -53,17 +59,29 @@ public struct Mesh: Equatable, Sendable {
         return (lo, hi)
     }
 
-    /// Merge coincident vertices by quantizing positions to a grid of size `epsilon`. Used to restore
-    /// connectivity in formats that split vertices at seams (STL has none; OBJ/PLY/source formats may).
+    /// Merge coincident vertices by quantizing positions to a grid of size `epsilon`.
+    ///
+    /// Used to restore connectivity in formats that split vertices at seams (STL has none;
+    /// OBJ/PLY/source formats may).
     public static func welded(_ soup: [SIMD3<Float>], epsilon: Float) -> Mesh {
         let inv = 1.0 / Swift.max(epsilon, .leastNormalMagnitude)
         var map = [SIMD3<Int32>: UInt32](minimumCapacity: soup.count / 2)
-        var positions = [SIMD3<Float>](); positions.reserveCapacity(soup.count / 2)
-        var indices = [UInt32](); indices.reserveCapacity(soup.count)
+        var positions = [SIMD3<Float>]()
+        positions.reserveCapacity(soup.count / 2)
+        var indices = [UInt32]()
+        indices.reserveCapacity(soup.count)
         for v in soup {
-            let key = SIMD3<Int32>(Int32((v.x * inv).rounded()), Int32((v.y * inv).rounded()), Int32((v.z * inv).rounded()))
-            if let i = map[key] { indices.append(i) }
-            else { let i = UInt32(positions.count); map[key] = i; positions.append(v); indices.append(i) }
+            let key = SIMD3<Int32>(
+                Int32((v.x * inv).rounded()), Int32((v.y * inv).rounded()),
+                Int32((v.z * inv).rounded()))
+            if let i = map[key] {
+                indices.append(i)
+            } else {
+                let i = UInt32(positions.count)
+                map[key] = i
+                positions.append(v)
+                indices.append(i)
+            }
         }
         return Mesh(positions: positions, indices: indices)
     }

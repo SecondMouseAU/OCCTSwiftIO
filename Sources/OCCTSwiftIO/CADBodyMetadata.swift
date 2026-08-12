@@ -3,11 +3,11 @@
 //
 // Pure-data record produced by the bridge layer (OCCTSwiftTools) for sub-body
 // selection (face / edge / vertex). Lives here so the type itself doesn't pull
-// in OCCTSwiftViewport — the bridge consumes it, doesn't need Viewport types
+// in OCCTSwiftViewport: the bridge consumes it, doesn't need Viewport types
 // to express it.
 
-import simd
 import OCCTSwift
+import simd
 
 /// Metadata extracted from OCCTSwift for sub-body selection (face, edge, vertex).
 ///
@@ -26,9 +26,10 @@ public struct CADBodyMetadata: Sendable {
     /// Source-shape vertex positions, indexed parallel to `shape.vertices()`.
     public let vertices: [SIMD3<Float>]
 
-    /// Optional per-face area + per-edge length report. Populated only when
-    /// the bridge call passes `includeMeasurements: true`. Used by AIS' dimension
-    /// widget to label picked faces/edges with their scalar measurement.
+    /// Optional per-face area + per-edge length report.
+    ///
+    /// Populated only when the bridge call passes `includeMeasurements: true`. Used by AIS'
+    /// dimension widget to label picked faces/edges with their scalar measurement.
     public let measurements: ShapeMeasurements?
 
     public init(

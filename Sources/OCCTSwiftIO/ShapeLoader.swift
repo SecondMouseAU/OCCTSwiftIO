@@ -1,32 +1,37 @@
 // ShapeLoader.swift
 // OCCTSwiftIO
 //
-// Headless CAD file loader. Returns shapes + colors + AP242 metadata —
+// Headless CAD file loader. Returns shapes + colors + AP242 metadata,
 // no `ViewportBody`, no Viewport dep. The bridge layer (OCCTSwiftTools)
 // wraps this with `ViewportBody` production for renderable consumers.
 
 import Foundation
-import simd
 import OCCTSwift
+import simd
 
-/// Result of loading a CAD file via `ShapeLoader`. Pure shape + document data.
+/// Result of loading a CAD file via `ShapeLoader`.
 ///
-/// Renderable bodies live in `OCCTSwiftTools.CADLoadResult` — this type is
-/// what headless consumers (CLIs, batch tools, server-side pipelines) use
-/// when they don't need a Metal-renderable representation.
+/// Pure shape + document data. Renderable bodies live in `OCCTSwiftTools.CADLoadResult`: this
+/// type is what headless consumers (CLIs, batch tools, server-side pipelines) use when they don't
+/// need a Metal-renderable representation.
 public struct ShapeLoadResult: @unchecked Sendable {
     /// Source shapes paired with their per-shape color (nil when the format
     /// carries no color information, e.g. STL / OBJ / BREP / IGES).
     public var shapesWithColors: [(shape: Shape, color: SIMD4<Float>?)]
 
-    /// AP242 GD&T dimensions extracted from the document. Empty for non-STEP
-    /// formats and for STEP files without GD&T annotations.
+    /// AP242 GD&T dimensions extracted from the document.
+    ///
+    /// Empty for non-STEP formats and for STEP files without GD&T annotations.
     public var dimensions: [DimensionInfo]
 
-    /// AP242 geometric tolerances. Empty for non-STEP formats.
+    /// AP242 geometric tolerances.
+    ///
+    /// Empty for non-STEP formats.
     public var geomTolerances: [GeomToleranceInfo]
 
-    /// AP242 datum references. Empty for non-STEP formats.
+    /// AP242 datum references.
+    ///
+    /// Empty for non-STEP formats.
     public var datums: [DatumInfo]
 
     /// The decoded manifest, when this result came from `loadFromManifest`.
@@ -53,9 +58,11 @@ public struct ShapeLoadResult: @unchecked Sendable {
 /// Loads CAD files via OCCTSwift, returning shapes + document metadata.
 public enum ShapeLoader {
 
-    /// Loads a CAD file. STEP and IGES honor the `progress` observer; STL /
-    /// OBJ / BREP loaders are single-call upstream and don't surface progress.
-    /// If `progress.shouldCancel()` returns `true`, throws `ImportError.cancelled`.
+    /// Loads a CAD file.
+    ///
+    /// STEP and IGES honor the `progress` observer; STL / OBJ / BREP loaders are single-call
+    /// upstream and don't surface progress. If `progress.shouldCancel()` returns `true`, throws
+    /// `ImportError.cancelled`.
     public static func load(
         from url: URL,
         format: CADFileFormat,
@@ -66,9 +73,10 @@ public enum ShapeLoader {
         }.value
     }
 
-    /// Robust variant — uses the sewing/healing path for STL and IGES (which
-    /// commonly ship with gaps OCCT's basic importer can't close). For STEP /
-    /// OBJ / BREP this is identical to `load(from:format:progress:)`.
+    /// Robust variant: uses the sewing/healing path for STL and IGES (which commonly ship with
+    /// gaps OCCT's basic importer can't close).
+    ///
+    /// For STEP / OBJ / BREP this is identical to `load(from:format:progress:)`.
     public static func loadRobust(
         from url: URL,
         format: CADFileFormat,
@@ -80,8 +88,9 @@ public enum ShapeLoader {
     }
 
     /// Loads bodies from a script manifest (manifest.json + sibling BREP files).
-    /// Resolves each `BodyDescriptor.file` relative to the manifest's directory.
-    /// Skips entries whose file is missing.
+    ///
+    /// Resolves each `BodyDescriptor.file` relative to the manifest's directory. Skips entries
+    /// whose file is missing.
     public static func loadFromManifest(at url: URL) throws -> ShapeLoadResult {
         let data = try Data(contentsOf: url)
         let decoder = JSONDecoder()
@@ -125,7 +134,8 @@ public enum ShapeLoader {
         }
     }
 
-    private static func loadSTEP(from url: URL, progress: ImportProgress?) throws -> ShapeLoadResult {
+    private static func loadSTEP(from url: URL, progress: ImportProgress?) throws -> ShapeLoadResult
+    {
         let doc = try Document.load(from: url, progress: progress)
         let pairs = doc.shapesWithColors()
         let shapesWithColors: [(shape: Shape, color: SIMD4<Float>?)] = pairs.map { pair in
@@ -160,8 +170,12 @@ public enum ShapeLoader {
         return ShapeLoadResult(shapesWithColors: bodyEntries(from: shape))
     }
 
-    private static func loadIGES(from url: URL, progress: ImportProgress?, robust: Bool) throws -> ShapeLoadResult {
-        let shape = try (robust
+    private static func loadIGES(from url: URL, progress: ImportProgress?, robust: Bool) throws
+        -> ShapeLoadResult
+    {
+        let shape =
+            try
+            (robust
             ? Shape.loadIGESRobust(from: url, progress: progress)
             : Shape.loadIGES(from: url, progress: progress))
         return ShapeLoadResult(shapesWithColors: bodyEntries(from: shape))
@@ -171,10 +185,10 @@ public enum ShapeLoader {
     /// per-body granularity the STEP path already gives via `Document.shapesWithColors()`.
     ///
     /// Since OCCTSwift v1.11.3 the robust importers return a `Compound` of solids
-    /// for a multibody file (before then they silently dropped all but the first —
+    /// for a multibody file (before then they silently dropped all but the first,
     /// SecondMouseAU/OCCTSwift#302). A plain `Solid`, or a compound that carries no
     /// solids (e.g. a raw-mesh STL that came back as loose faces), stays a single
-    /// entry — the caller still gets the whole shape, just not split. These formats
+    /// entry: the caller still gets the whole shape, just not split. These formats
     /// carry no color, so every entry is `nil`.
     private static func bodyEntries(from shape: Shape) -> [(shape: Shape, color: SIMD4<Float>?)] {
         let bodies = shape.shapeType == .solid ? [shape] : shape.subShapes(ofType: .solid)
