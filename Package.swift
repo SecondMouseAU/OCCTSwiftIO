@@ -7,7 +7,7 @@ import Foundation
 // Local path deps let the whole OCCT ecosystem SHARE the single OCCTSwift/Libraries/OCCT.xcframework
 // (1.3 GB) instead of each repo downloading + extracting its own copy. CI / fresh clones (no sibling)
 // transparently use the URL pin. Detection is `#filePath`-relative so it's independent of build CWD.
-// Use a local sibling checkout (../<name>) ONLY for top-level dev — never when this package is itself a
+// Use a local sibling checkout (../<name>) ONLY for top-level dev, never when this package is itself a
 // resolved dependency (i.e. checked out under a consumer's `.build/`), where `../<name>` would point at a
 // sibling checkout and create a path-vs-version identity conflict for that dependency.
 func siblingOrURL(_ name: String, from version: String) -> Package.Dependency {
@@ -42,18 +42,18 @@ let package = Package(
         ),
     ],
     dependencies: [
-        occtDep("OCCTSwift", from: "2.0.0"),    // ≥2.0.0: correctness release (OCCTSwift#377/#669), OCCT absorbed to 8.0.1. 17 breaking changes (docs/SEMVER.md#v200); audited against every OCCTSwift call site in this repo (OCCTSwiftIO#34) — none touch the changed sub-shape-enumeration/AAG/mass-property/continuity surfaces, so no source change was needed. ≥1.17.0: Pass 1a duplication/bug-fix audit (OCCTSwift#377/#380) — continuity enum consolidation (source-compatible via deprecated aliases), Surface.drawMesh/evaluateGrid now return SurfaceGrid (not used here); ≥1.12.9: OCCT kernel crash/hang fixes through #318 and #323 (patches 0003-0009); multibody importers (#302)
+        occtDep("OCCTSwift", from: "3.0.0"),    // ≥3.0.0: Rule 2 major on a small surface (docs/SEMVER.md#v300); OCCT itself does not move, the kernel stays 8.0.1 rebuilt as v3.0.0-kernel.1 to carry two patches the v2.0.0 asset missed (OCCTSwift#905/#913). Three breaks, all compile errors: Selector.SubShapeType.compsolid renamed .compSolid, and Shape.ShapeFilterType.RawValue moving Int32 to Int as ShapeFilterType becomes a ShapeType typealias (both OCCTSwift#844), have zero hits in this repo; Shape.bounds/size/center, Wire.bounds, Edge.bounds and Face.bounds/exactBounds becoming Optional (OCCTSwift#943) is the one that bit. Audited every call site (OCCTSwiftIO#38): Sources never read those accessors, so the shipped library is unchanged; three test call sites did (DXFLoaderTests, JWWLoaderTests) and now unwrap through the `try #require` they already sat behind, not a default, because a void bounding box has to fail the assertion rather than read as a zero-size shape at the world origin. ≥2.0.0: correctness release (OCCTSwift#377/#669), OCCT absorbed to 8.0.1. 17 breaking changes (docs/SEMVER.md#v200); audited against every OCCTSwift call site in this repo (OCCTSwiftIO#34): none touch the changed sub-shape-enumeration/AAG/mass-property/continuity surfaces, so no source change was needed. ≥1.17.0: Pass 1a duplication/bug-fix audit (OCCTSwift#377/#380): continuity enum consolidation (source-compatible via deprecated aliases), Surface.drawMesh/evaluateGrid now return SurfaceGrid (not used here); ≥1.12.9: OCCT kernel crash/hang fixes through #318 and #323 (patches 0003-0009); multibody importers (#302)
         // Pure-Swift source-format readers (no OCCT), adapted by MeshIO.
-        meshDep("SwiftPMX", from: "1.1.0"),     // PMX (MikuMikuDance) — 1.1.0 adds Mesh.submeshes
+        meshDep("SwiftPMX", from: "1.1.0"),     // PMX (MikuMikuDance): 1.1.0 adds Mesh.submeshes
         meshDep("SwiftX", from: "1.0.0"),       // DirectX .x
-        meshDep("SwiftJWW", from: "1.2.1"),     // JWW (Jw_cad) 2D vector — used by OCCTSwiftIO, not MeshIO
-        meshDep("SwiftDXF", from: "0.2.0"),     // DXF (AutoCAD) 2D vector — used by OCCTSwiftIO, not MeshIO
+        meshDep("SwiftJWW", from: "1.2.1"),     // JWW (Jw_cad) 2D vector: used by OCCTSwiftIO, not MeshIO
+        meshDep("SwiftDXF", from: "0.2.0"),     // DXF (AutoCAD) 2D vector: used by OCCTSwiftIO, not MeshIO
         .package(url: "https://github.com/tomasf/ThreeMF.git", from: "0.2.3"),   // 3MF read+write (MIT)
         .package(url: "https://github.com/schwa/SwiftGLTF.git", from: "1.0.2"),  // glTF/GLB read (BSD-3)
     ],
     targets: [
         // Pure-Swift 3D mesh formats: STL / OBJ / PLY native + PMX / .x via the standalone packages.
-        // ZERO OCCT — importing MeshIO must not pull in the kernel.
+        // ZERO OCCT: importing MeshIO must not pull in the kernel.
         .target(
             name: "MeshIO",
             dependencies: [
@@ -64,7 +64,7 @@ let package = Package(
             ],
             path: "Sources/MeshIO",
             // ThreeMF → Nodal → pugixml is C++; importing it requires C++ interop on this target (and,
-            // virally, on MeshIO's importers — consistent with the ecosystem's existing Manifold C++ dep).
+            // virally, on MeshIO's importers, consistent with the ecosystem's existing Manifold C++ dep).
             swiftSettings: [
                 .swiftLanguageMode(.v6),
                 .interoperabilityMode(.Cxx)

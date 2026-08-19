@@ -4,6 +4,17 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## v1.7.8 (2026-08-19)
+
+**Repin OCCTSwift floor to 3.0.0.** OCCTSwift's v3.0.0 ([`docs/SEMVER.md#v300`](https://github.com/SecondMouseAU/OCCTSwift/blob/v3.0.0/docs/SEMVER.md#v300)) is a Rule 2 major on a much smaller surface than v2.0.0. OCCT itself does not move: the kernel stays at 8.0.1, rebuilt as `v3.0.0-kernel.1` to carry two patches the v2.0.0 asset was missing ([#905](https://github.com/SecondMouseAU/OCCTSwift/issues/905)/[#913](https://github.com/SecondMouseAU/OCCTSwift/issues/913)). Three breaks, all compile errors, audited against every call site here ([#38](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/38)):
+
+- `Selector.SubShapeType.compsolid` renamed `.compSolid`, and `Shape.ShapeFilterType.RawValue` moving from `Int32` to `Int` as `ShapeFilterType` becomes a `ShapeType` typealias (both [#844](https://github.com/SecondMouseAU/OCCTSwift/issues/844)): zero hits in this repo.
+- `Shape.bounds`/`size`/`center`, `Wire.bounds`, `Edge.bounds` and `Face.bounds`/`exactBounds` became Optional ([#943](https://github.com/SecondMouseAU/OCCTSwift/issues/943)), so a void bounding box stops fabricating `(0,0,0)-(0,0,0)`. This one bit, in the **test target only**: `DXFLoaderTests` (two sites) and `JWWLoaderTests` (one) read `shape.bounds` on a loaded compound. Each now unwraps through the `try #require` it already sat behind, deliberately not `?? .zero`, because a void bounding box has to fail the assertion rather than read as a zero-size drawing at the world origin.
+
+Worth recording for the rest of the fanout: `swift build` alone reports this repin clean, because it does not compile test targets. The break only surfaces under `swift build --build-tests` or `swift test`.
+
+`Sources/` never reads any of the six accessors, so the shipped library is unchanged: no public API or behaviour change here, and consumers need no migration.
+
 ## v1.7.7 — 2026-08-10
 
 **Repin OCCTSwift floor to 2.0.0.** OCCTSwift's v2.0.0 ([`docs/SEMVER.md#v200`](https://github.com/SecondMouseAU/OCCTSwift/blob/main/docs/SEMVER.md#v200)) is a correctness major (Pass 1a/1b duplication+bug-fix audit, [#377](https://github.com/SecondMouseAU/OCCTSwift/issues/377)/[#669](https://github.com/SecondMouseAU/OCCTSwift/issues/669); OCCT absorbed to 8.0.1), 17 breaking API changes (12 compile errors, 5 silent value changes). Audited this package's call sites against the full break table, including the sub-shape-enumeration (#541/#568/#613/#502) and AAG (#642/#699) families a first-pass grep at issue-filing time hadn't covered: zero hits anywhere. `Sources/OCCTSwiftIO/ShapeLoader.swift`'s `subShapes(ofType: .solid)` was already `TopExp::MapShapes`-backed and deduplicated before this release, the exact convention #502 generalized elsewhere, not something that changed under it. Ecosystem-wide floor bump; no API or behaviour change here.
