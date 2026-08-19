@@ -20,7 +20,9 @@ struct JWWLoaderTests {
             }
             let result = try JWWLoader.load(from: url)
             let shape = try #require(result.shapes.first)
-            let b = shape.bounds
+            // #require, not a default: since OCCTSwift 3.0.0 a nil here means OCCT reported a void
+            // bounding box, which has to fail the assertion rather than read as a zero-size drawing.
+            let b = try #require(shape.bounds)
             #expect(abs(b.min.x - (-124.59)) < 1.0)  // geometry placed correctly in plane
             #expect(abs(b.max.x - 122.28) < 1.0)
             #expect(b.max.x - b.min.x > 100)  // a real, non-empty drawing

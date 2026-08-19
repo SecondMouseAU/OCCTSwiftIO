@@ -21,7 +21,9 @@ struct DXFLoaderTests {
             }
             let result = try DXFLoader.load(from: url)
             let shape = try #require(result.shapes.first)
-            let b = shape.bounds
+            // #require, not a default: since OCCTSwift 3.0.0 a nil here means OCCT reported a void
+            // bounding box, which has to fail the assertion rather than read as a zero-size drawing.
+            let b = try #require(shape.bounds)
             // Geometry placed correctly in plane (DXF extents ≈ x:[-168, 177], y:[-272, 315]); the OCCT
             // compound's tight bounds sit within those conservative extents.
             #expect(b.min.x > -170 && b.min.x < -100)
@@ -98,7 +100,8 @@ struct DXFLoaderTests {
 
         let result = try DXFLoader.load(from: tmp)
         let shape = try #require(result.shapes.first)
-        let b = shape.bounds
+        // nil = void bounding box (OCCTSwift 3.0.0): fail here rather than default to a zero-size arc.
+        let b = try #require(shape.bounds)
         #expect(abs(b.min.x) < 1e-6 && abs(b.max.x - 2) < 1e-6)  // chord endpoints
         #expect(b.min.y < -0.99 && b.min.y > -1.01)  // semicircle apex at y = −1
         #expect(abs(b.max.y) < 1e-6)  // arc stays on/below the chord
