@@ -20,7 +20,7 @@
         /// Invoked when a relevant change is observed.
         ///
         /// Fires on `queue`.
-        public typealias ChangeHandler = () -> Void
+        public typealias ChangeHandler = @Sendable () -> Void
 
         /// The file or directory being watched.
         public let url: URL
@@ -107,6 +107,15 @@
         ///   the fallback-to-direct promotion, where `path` is known to have just come into
         ///   existence; left `false` for `start()`'s own initial attach, which only establishes a
         ///   baseline and must not fire just because the watched path already had content.
+        ///
+        ///   An empty directory, though, does NOT fire even with `treatCreationAsChange: true`:
+        ///   a bare `mkdir` is deliberately not itself a reportable change here, only content
+        ///   appearing inside it is. This is intentional, not an oversight: every real consumer
+        ///   of this type watches for a FILE landing inside a directory (`selection.json`, a
+        ///   `highlight_requests/<id>.json`), never for the directory's own bare existence, and
+        ///   the subsequent write that adds the first real entry already fires on its own via
+        ///   the ordinary entry-diff path. Revisit if a future consumer genuinely needs "the
+        ///   directory now exists, even empty" as a distinct signal.
         /// - Returns: whether the caller should invoke `onChange` after unlocking.
         private func attemptDirectAttach(treatCreationAsChange: Bool = false) -> Bool {
             fallbackSource?.cancel()
@@ -225,14 +234,22 @@
                     newStamps.count != lastEntryStamps.count
                     || newStamps.contains { name, stamp in lastEntryStamps[name] != stamp }
                 lastEntryStamps = newStamps
-                shouldFire = changed
+                var fired = changed
                 if identityInvalidated {
                     // The watched directory itself was deleted (or deleted and recreated,
                     // e.g. `rm -rf outputDir && mkdir outputDir`); reopen at the same path so
                     // a recreated directory keeps being watched under its new inode, rather
                     // than leaving the stale fd pointing at the unlinked one forever.
-                    _ = attemptDirectAttach()
+                    //
+                    // `treatCreationAsChange: true`, and the result folded into `shouldFire`
+                    // rather than discarded: `changed` above was computed from a snapshot taken
+                    // BEFORE this reattach, so a delete-then-immediate-recreate-with-content
+                    // landing between that snapshot and this call (both happen synchronously
+                    // within this one callback) would otherwise have its content silently
+                    // adopted as the new baseline with no notification ever firing for it.
+                    fired = attemptDirectAttach(treatCreationAsChange: true) || fired
                 }
+                shouldFire = fired
             } else {
                 shouldFire = true
                 if identityInvalidated {
@@ -277,7 +294,7 @@
             guard let names = try? fm.contentsOfDirectory(atPath: path) else { return [:] }
             var result: [String: EntryStamp] = [:]
             for name in names where !name.hasPrefix(".") {
-                let fullPath = (path as NSString).appendingPathComponent(name)
+                let fullPath = URL(fileURLWithPath: path).appendingPathComponent(name).path
                 let attrs = try? fm.attributesOfItem(atPath: fullPath)
                 result[name] = EntryStamp(
                     modificationDate: attrs?[.modificationDate] as? Date,
@@ -289,10 +306,9 @@
 
         private static func nearestExistingAncestor(of path: String) -> String {
             let fm = FileManager.default
-            var candidate = (path as NSString).deletingLastPathComponent
-            if candidate.isEmpty { candidate = "/" }
+            var candidate = URL(fileURLWithPath: path).deletingLastPathComponent().path
             while !fm.fileExists(atPath: candidate) {
-                let parent = (candidate as NSString).deletingLastPathComponent
+                let parent = URL(fileURLWithPath: candidate).deletingLastPathComponent().path
                 if parent.isEmpty || parent == candidate {
                     return "/"
                 }
