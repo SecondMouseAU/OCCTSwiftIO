@@ -115,15 +115,14 @@
             directSource = nil
 
             var isDirectoryRef: ObjCBool = false
-            guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectoryRef) else {
-                attachFallback()
-                return false
+            let exists = FileManager.default.fileExists(atPath: path, isDirectory: &isDirectoryRef)
+            guard exists else {
+                return attachFallback()
             }
 
             let fd = open(path, O_EVTONLY)
             guard fd >= 0 else {
-                attachFallback()
-                return false
+                return attachFallback()
             }
 
             let isDirectory = isDirectoryRef.boolValue
@@ -156,7 +155,12 @@
 
         /// Watches the nearest existing ancestor directory of `path` for a write, so we notice
         /// when `path` itself is created.
-        private func attachFallback() {
+        ///
+        /// - Returns: whether the caller should invoke `onChange` after unlocking, per
+        ///   `attemptDirectAttach`'s own contract. Ordinarily `false` (arming a watch is not
+        ///   itself an observed change), except when the closing re-check below catches up.
+        @discardableResult
+        private func attachFallback() -> Bool {
             let ancestor = Self.nearestExistingAncestor(of: path)
             let fd = open(ancestor, O_EVTONLY)
             guard fd >= 0 else {
@@ -164,12 +168,16 @@
                 // leave unwatched rather than crash. `start()` alone is a no-op once `started`
                 // is already `true`, so recovering from this needs an explicit `stop()` then
                 // `start()` to force a fresh attempt.
-                return
+                return false
             }
 
+            // `.delete`/`.rename` matter here too, not just `.write`: if the ancestor itself is
+            // removed (e.g. `rm -rf out && mkdir -p out/a/b` on a still-missing `out`), a
+            // write-only mask would never tell us, leaving this fd stale forever with no event
+            // to trigger the re-resolution `handleFallbackEvent` already does on every callback.
             let source = DispatchSource.makeFileSystemObjectSource(
                 fileDescriptor: fd,
-                eventMask: [.write],
+                eventMask: [.write, .delete, .rename],
                 queue: queue
             )
             source.setEventHandler { [weak self] in
@@ -180,6 +188,25 @@
             }
             source.resume()
             fallbackSource = source
+
+            // Closes a TOCTOU race, not just tidiness: `path` (or an intermediate ancestor
+            // closer to it) can come into existence in the gap between `nearestExistingAncestor`
+            // resolving `ancestor` above and this kevent filter actually being armed by
+            // `resume()`. kqueue only reports events that occur AFTER a filter is registered,
+            // never ones that already happened, so a change landing in that gap would otherwise
+            // go unobserved forever: nothing is pending on the freshly-armed fd, and nothing else
+            // will prompt this watcher to look again. Re-checking once, synchronously, right
+            // after arming, catches exactly that window; if it did close, this recurses into
+            // `attemptDirectAttach` (which itself may recurse into `attachFallback` again, one
+            // level closer, if only a partial ancestor appeared) rather than leaving the watch
+            // sitting on a target that's already stale the instant it's armed. Bounded by the
+            // number of path components between `ancestor` and `path`, not a loop: each
+            // recursion only happens because the filesystem state genuinely changed since the
+            // prior check.
+            if FileManager.default.fileExists(atPath: path) {
+                return attemptDirectAttach(treatCreationAsChange: true)
+            }
+            return false
         }
 
         // MARK: - Event handling

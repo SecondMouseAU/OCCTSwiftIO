@@ -197,6 +197,39 @@
             )
         }
 
+        @Test func t_recoversWhenAFallbackAncestorIsDeletedAndRecreated() throws {
+            let root = Self.makeTempDirectory()
+            defer { try? FileManager.default.removeItem(at: root) }
+            let level1 = root.appendingPathComponent("a")
+            let level2 = level1.appendingPathComponent("b")
+
+            let recorder = Recorder()
+            let watcher = DirectoryWatcher(url: level2) { recorder.increment() }
+            watcher.start()
+
+            // Cascade the fallback down onto `root/a`.
+            try FileManager.default.createDirectory(at: level1, withIntermediateDirectories: false)
+            #expect(
+                Self.waitUntil(timeout: 1.0) { FileManager.default.fileExists(atPath: level1.path) }
+            )
+            Thread.sleep(forTimeInterval: 1.0)
+
+            // Delete the ancestor the fallback is currently watching entirely, then recreate
+            // both missing levels at once, as `mkdir -p` would.
+            try FileManager.default.removeItem(at: level1)
+            Thread.sleep(forTimeInterval: 1.0)
+            try FileManager.default.createDirectory(
+                at: level2, withIntermediateDirectories: true)
+            let newFile = level2.appendingPathComponent("payload.json")
+            try "{}".write(toFile: newFile.path, atomically: false, encoding: .utf8)
+
+            #expect(
+                Self.waitUntil { recorder.count >= 1 },
+                "expected a notification after the watched fallback ancestor was deleted and both missing levels recreated, not a watcher stuck on a stale, unlinked ancestor fd"
+            )
+            watcher.stop()
+        }
+
         // MARK: - Recovers when the watched directory itself is deleted and recreated
 
         @Test func t_recoversAfterWatchedDirectoryIsDeletedAndRecreated() throws {
