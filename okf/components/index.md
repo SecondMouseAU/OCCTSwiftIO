@@ -11,11 +11,13 @@ timestamp: 2026-06-22
 
 Public product/target from `Package.swift`, plus the key API surfaces from the README.
 
-- **`OCCTSwiftIO`** (library product / target) — the single public module. Headless, no Viewport.
-  - `ShapeLoader.load(from:format:)` — async loader returning shapes, per-shape colors, and AP242
+- **`OCCTSwiftIO`** (library product / target): the single public module. Headless, no Viewport.
+  - `ShapeLoader.load(from:format:)`: async loader returning shapes, per-shape colors, and AP242
     dimensions/datums. Supported input formats: STEP, IGES, STL, OBJ, BREP.
-  - `ExportManager.export(shapes:format:to:)` — async exporter. Supported output formats: glTF,
+  - `ExportManager.export(shapes:format:to:)`: async exporter. Supported output formats: glTF,
     GLB, OBJ, PLY, STEP, BREP.
+  - `DirectoryWatcher`: kqueue-backed file/directory create/modify notifications, macOS-only
+    (`#if os(macOS)`). Ignores dotfile writes; starts cleanly on a not-yet-existing path.
 
 > For body-producing loaders (CPU mesh + interleaved vertex buffer + face/edge/vertex pick data),
 > downstream consumers use [OCCTSwiftTools](https://github.com/SecondMouseAU/OCCTSwiftTools), which
