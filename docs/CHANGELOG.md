@@ -4,6 +4,32 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## v1.8.0 (2026-08-21)
+
+**New public type: `DirectoryWatcher`.** Watches a file or directory for create/modify events
+and invokes a caller-supplied closure, backed by kqueue. Closes [#42](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/42).
+
+The agent-viewport selection bridge (`SecondMouseAU/ecosystem#53`) needs both an interactive
+host and an MCP tool to notice a changed sidecar JSON file without polling on a fixed timer. The
+only existing implementation of this technique in the ecosystem was `ScriptWatcher.swift`
+(kqueue-based, macOS-only), living in `OCCTSwiftViewport`'s demo app rather than as a public
+library component. `DirectoryWatcher` ports that proven approach into a standalone type with no
+Viewport dependency, so `OCCTMCP`, `OCCTSwiftInteraction`, and (transitively) `OCCTSwiftUX` can
+all depend on it without a new dependency edge.
+
+Two behaviors go beyond a bare kqueue wrapper:
+
+- Starting on a path that does not exist yet is not an error: the watcher falls back to
+  watching the nearest existing ancestor directory, then switches to watching the target
+  directly once it is created.
+- When the watched path is a directory, dotfile entries (names starting with `.`) are ignored,
+  so a write-to-hidden-temp-name-then-rename-into-place sequence (`.incoming-x.json` renamed to
+  `x.json`) produces exactly one notification, for the final name.
+
+macOS-only: kqueue is a Darwin primitive, and this package's platform floor also spans
+iOS/visionOS/tvOS, so the whole file is gated `#if os(macOS)`. `Package.swift`'s platform floor
+is unchanged; the type is simply absent on the other three platforms.
+
 ## v1.7.8 (2026-08-19)
 
 **Repin OCCTSwift floor to 3.0.0.** OCCTSwift's v3.0.0 ([`docs/SEMVER.md#v300`](https://github.com/SecondMouseAU/OCCTSwift/blob/v3.0.0/docs/SEMVER.md#v300)) is a Rule 2 major on a much smaller surface than v2.0.0. OCCT itself does not move: the kernel stays at 8.0.1, rebuilt as `v3.0.0-kernel.1` to carry two patches the v2.0.0 asset was missing ([#905](https://github.com/SecondMouseAU/OCCTSwift/issues/905)/[#913](https://github.com/SecondMouseAU/OCCTSwift/issues/913)). Three breaks, all compile errors, audited against every call site here ([#38](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/38)):

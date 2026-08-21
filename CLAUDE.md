@@ -8,18 +8,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Load-bearing types in `Sources/OCCTSwiftIO/`:
 
-- `ShapeLoader` — STEP / IGES / STL / OBJ / BREP / manifest → `ShapeLoadResult` (shapes + colors + AP242 metadata, **no bodies**).
-- `ExportManager` — OBJ / PLY / STEP / BREP / glTF / GLB writers.
-- `CADBodyMetadata` — pure-data type (face/edge/vertex pick indices). Produced by `OCCTSwiftTools.CADFileLoader.shapeToBodyAndMetadata` on the bridge side; lives here so the type itself doesn't carry a Viewport dep.
-- `ScriptManifest` — Codable manifest format for the script harness.
-- `ImportProgressClosure` — closure-backed `OCCTSwift.ImportProgress` for one-shot use.
+- `ShapeLoader`: STEP / IGES / STL / OBJ / BREP / manifest → `ShapeLoadResult` (shapes + colors + AP242 metadata, **no bodies**).
+- `ExportManager`: OBJ / PLY / STEP / BREP / glTF / GLB writers.
+- `CADBodyMetadata`: pure-data type (face/edge/vertex pick indices). Produced by `OCCTSwiftTools.CADFileLoader.shapeToBodyAndMetadata` on the bridge side; lives here so the type itself doesn't carry a Viewport dep.
+- `ScriptManifest`: Codable manifest format for the script harness.
+- `ImportProgressClosure`: closure-backed `OCCTSwift.ImportProgress` for one-shot use.
+- `DirectoryWatcher`: kqueue-backed file/directory change notifications, macOS-only
+  (`#if os(macOS)`, per the platform floor below). Ported from `OCCTSwiftViewport`'s demo-app
+  `ScriptWatcher.swift` into a public, dependency-free type ([#42](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/42)).
 
 ## Architectural position
 
 ```
 OCCTSwiftAIS          (depends on Tools)
        ↑
-OCCTSwiftTools        (bridge: Shape ↔ ViewportBody — depends on IO + Viewport)
+OCCTSwiftTools        (bridge: Shape ↔ ViewportBody, depends on IO + Viewport)
    ↑       ↑
    |   OCCTSwiftViewport  (Metal renderer)
    |
@@ -39,7 +42,7 @@ OCCT_SERIAL=1 swift test --parallel --num-workers 1 \
     --filter ShapeLoaderTests/t_stepRoundTripProducesShapes             # single test
 ```
 
-`OCCT_SERIAL=1` + serial workers is **required** — known NCollection container-overflow race in OCCT on arm64 macOS. Inherited from OCCTSwift; do not "fix".
+`OCCT_SERIAL=1` + serial workers is **required**: known NCollection container-overflow race in OCCT on arm64 macOS. Inherited from OCCTSwift; do not "fix".
 
 `--filter` takes a regex over the test ID; use the Swift type name of the `@Suite` (e.g. `ShapeLoaderTests`), not the suite's display string.
 
@@ -47,33 +50,34 @@ OCCT_SERIAL=1 swift test --parallel --num-workers 1 \
 
 These are non-obvious from type signatures and easy to get wrong:
 
-- **AP242 metadata is STEP-only.** `ShapeLoadResult.dimensions / geomTolerances / datums` are populated only when loading STEP files via `Document.load`. Non-STEP formats (STL / OBJ / BREP / IGES) always return empty arrays — that's not a bug to fix, it's the format limitation.
+- **AP242 metadata is STEP-only.** `ShapeLoadResult.dimensions / geomTolerances / datums` are populated only when loading STEP files via `Document.load`. Non-STEP formats (STL / OBJ / BREP / IGES) always return empty arrays; that's not a bug to fix, it's the format limitation.
 - **`loadRobust` only differs for STL and IGES.** Those formats often ship with gaps that the basic importer can't close, so the robust path runs sewing/healing. For STEP / OBJ / BREP, `loadRobust` is identical to `load`.
 - **Multi-shape export auto-numbers files.** `ExportManager.export(shapes:format:to:)` writes one file per shape when given >1 shape, inserting an index before the extension (`out.glb` → `out.0.glb`, `out.1.glb`, ...). Callers that expected a single combined file will be surprised.
-- **Color is only carried by STEP.** STL / OBJ / BREP / IGES all return `color: nil` per shape — `shapesWithColors` still pairs them, but the color slot is empty.
+- **Color is only carried by STEP.** STL / OBJ / BREP / IGES all return `color: nil` per shape; `shapesWithColors` still pairs them, but the color slot is empty.
 - **Progress callbacks fire off the main thread.** `ImportProgressClosure` runs on whatever thread the importer used (usually a background thread under the async API). UI updates must hop to `@MainActor` explicitly.
+- **`DirectoryWatcher` is macOS-only.** kqueue is a Darwin primitive; the whole file is gated `#if os(macOS)` so the package still builds for iOS/visionOS/tvOS with the type simply absent there.
 
 ## Platform floor
 
-`Package.swift` pins `.iOS(.v18)`, `.macOS(.v15)`, `.visionOS(.v1)`, `.tvOS(.v18)` — matches OCCTSwiftTools so consumers using both don't have to reconcile. Could in principle relax to OCCTSwift's (15.0/12.0) since IO has no Viewport dep, but the practical consumer set lives at the Tools floor.
+`Package.swift` pins `.iOS(.v18)`, `.macOS(.v15)`, `.visionOS(.v1)`, `.tvOS(.v18)`, matching OCCTSwiftTools so consumers using both don't have to reconcile. Could in principle relax to OCCTSwift's (15.0/12.0) since IO has no Viewport dep, but the practical consumer set lives at the Tools floor. One type, `DirectoryWatcher`, is narrower than the package floor: macOS-only, since kqueue has no equivalent wired up here for the other three platforms.
 
 ## Conventions cribbed from OCCTSwift
 
 - **License**: LGPL 2.1 (matches OCCT / OCCTSwift / OCCTSwiftTools).
 - **Swift**: tools-version 6.1, language mode `.v6`.
-- **Tests**: Swift Testing (`@Suite` / `@Test` / `#expect`). Swift Testing **does not short-circuit** — never `#expect(x != nil); #expect(x!.isValid)`. Always `if let x { #expect(x.isValid) }`.
-- **Test names must not shadow API method names** used inside the body — runner gets confused. Prefix `t_` or use descriptive English.
-- **Versioning (pre-1.0)**: tiny additive features = patch bump. Minor for new public API surface. Free to break — document in `docs/CHANGELOG.md`.
+- **Tests**: Swift Testing (`@Suite` / `@Test` / `#expect`). Swift Testing **does not short-circuit**: never `#expect(x != nil); #expect(x!.isValid)`. Always `if let x { #expect(x.isValid) }`.
+- **Test names must not shadow API method names** used inside the body; runner gets confused. Prefix `t_` or use descriptive English.
+- **Versioning (pre-1.0)**: tiny additive features = patch bump. Minor for new public API surface. Free to break; document in `docs/CHANGELOG.md`.
 - **Release pattern**: every shipped version commits + pushes + tags + creates a GitHub release with notes from CHANGELOG.
 
 ## What is explicitly out of scope
 
 - Anything that produces `ViewportBody`. That's `OCCTSwiftTools`.
 - Selection / picking / dimension widgets. That's `OCCTSwiftAIS` (two layers up).
-- Headless ray tracing — use CADRays separately.
+- Headless ray tracing: use CADRays separately.
 - Linux / Windows / Android / watchOS.
 
 ## Ecosystem context
 
-- `~/Projects/OCCTSwift/CLAUDE.md` — kernel project conventions (this repo follows them).
-- `~/Projects/OCCTSwiftTools/CLAUDE.md` — sibling that wraps this package with the bridge layer.
+- `~/Projects/OCCTSwift/CLAUDE.md`: kernel project conventions (this repo follows them).
+- `~/Projects/OCCTSwiftTools/CLAUDE.md`: sibling that wraps this package with the bridge layer.
