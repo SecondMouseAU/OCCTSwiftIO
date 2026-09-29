@@ -4,6 +4,16 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## v2.0.0-beta.2 (2026-09-30)
+
+**Pre-release. Same code as v2.0.0-beta.1; use this tag instead.** v2.0.0-beta.1 was cut at `ccf49c3`, then
+deleted and recreated at `39abfc9` to fix the OCCTSwift pin (see below). Moving a published tag changes the commit
+a version resolves to, so a consumer who had already resolved beta.1 gets a SwiftPM fingerprint mismatch
+("does not match previously recorded value") on their next resolve
+([#46](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/46)). beta.2 carries the exact same tree as the
+current beta.1 (`39abfc9`) under a tag that has only ever pointed at one commit. Published tags, pre-releases
+included, are not moved or deleted from here on; a fix ships as the next number.
+
 ## v2.0.0-beta.1 (2026-09-29)
 
 **Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.4.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
