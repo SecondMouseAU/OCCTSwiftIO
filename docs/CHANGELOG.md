@@ -17,7 +17,7 @@ its bounds through `.bounds`, so code that read the old flat fields needs to swi
 
 **Dep bump:** `OCCTSwift from: "3.0.0"` to `from: "4.0.0-beta.4"`. The other OCCTSwift 4.0.0 breaks
 (`docs/SEMVER.md#v400`) have no call sites in this repo. Verified: `swift build --build-tests` clean and the
-full suite (49 tests) passes against the real beta.4 checkout.
+full suite passes against the real beta.4 checkout.
 
 ## v1.8.0 (2026-08-21)
 
