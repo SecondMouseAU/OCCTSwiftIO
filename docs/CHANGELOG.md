@@ -6,7 +6,7 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 ## v2.0.0-beta.1 (2026-09-29)
 
-**Pre-release, on OCCTSwift 4.0.0-beta.4.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
+**Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.4.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
 
 **`ShapeLoadResult`'s GD&T element types change (breaking).** OCCTSwift 4.0.0 replaces the untyped
 `DimensionInfo`, `GeomToleranceInfo` and `DatumInfo` with the typed `Document.Dimension`,
@@ -15,7 +15,7 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 new types, so the major version moves. `Document.Dimension.value` is `Double?` and a range dimension reports
 its bounds through `.bounds`, so code that read the old flat fields needs to switch on `bounds`.
 
-**Dep bump:** `OCCTSwift from: "3.0.0"` to `from: "4.0.0-beta.4"`. The other OCCTSwift 4.0.0 breaks
+**Dep bump:** `OCCTSwift from: "3.0.0"` to `exact: "4.0.0-beta.4"`. Exact, not `from:`, because `v4.0.0-kernel.N` tags are pre-releases of the same package that sort above every beta, so `from: "4.0.0-beta.4"` resolves to the newest kernel tag (main's source) rather than the beta. The other OCCTSwift 4.0.0 breaks
 (`docs/SEMVER.md#v400`) have no call sites in this repo. Verified: `swift build --build-tests` clean and the
 full suite passes against the real beta.4 checkout.
 
