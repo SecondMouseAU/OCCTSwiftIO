@@ -22,16 +22,16 @@ The value returned by every `ShapeLoader` entry point: pure shape + document dat
 ```swift
 public struct ShapeLoadResult: @unchecked Sendable {
     public var shapesWithColors: [(shape: Shape, color: SIMD4<Float>?)]
-    public var dimensions: [DimensionInfo]
-    public var geomTolerances: [GeomToleranceInfo]
-    public var datums: [DatumInfo]
+    public var dimensions: [Document.Dimension]
+    public var geomTolerances: [Document.GeomTolerance]
+    public var datums: [Document.Datum]
     public var manifest: ScriptManifest?
 
     public init(
         shapesWithColors: [(shape: Shape, color: SIMD4<Float>?)] = [],
-        dimensions: [DimensionInfo] = [],
-        geomTolerances: [GeomToleranceInfo] = [],
-        datums: [DatumInfo] = [],
+        dimensions: [Document.Dimension] = [],
+        geomTolerances: [Document.GeomTolerance] = [],
+        datums: [Document.Datum] = [],
         manifest: ScriptManifest? = nil
     )
 
@@ -47,7 +47,7 @@ public struct ShapeLoadResult: @unchecked Sendable {
   This requires OCCTSwift ≥ 1.11.3, where the robust importers return a compound of solids for
   multibody files instead of dropping all but the first ([OCCTSwift#302](https://github.com/SecondMouseAU/OCCTSwift/issues/302)).
 - `dimensions` / `geomTolerances` / `datums` — AP242 GD&T extracted from the document (STEP only;
-  empty otherwise). The element types (`DimensionInfo`, `GeomToleranceInfo`, `DatumInfo`) come from
+  empty otherwise). The element types (`Document.Dimension`, `Document.GeomTolerance`, `Document.Datum`) come from
   OCCTSwift.
 - `manifest` — the decoded manifest, populated only by `loadFromManifest`.
 - `shapes` — convenience accessor returning just the shapes.

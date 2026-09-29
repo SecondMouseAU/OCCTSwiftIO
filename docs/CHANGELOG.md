@@ -4,6 +4,21 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## v2.0.0-beta.1 (2026-09-29)
+
+**Pre-release, on OCCTSwift 4.0.0-beta.4.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
+
+**`ShapeLoadResult`'s GD&T element types change (breaking).** OCCTSwift 4.0.0 replaces the untyped
+`DimensionInfo`, `GeomToleranceInfo` and `DatumInfo` with the typed `Document.Dimension`,
+`Document.GeomTolerance` and `Document.Datum` ([OCCTSwift#996](https://github.com/SecondMouseAU/OCCTSwift/issues/996)).
+`ShapeLoadResult.dimensions`, `.geomTolerances` and `.datums`, and their initializer parameters, now use the
+new types, so the major version moves. `Document.Dimension.value` is `Double?` and a range dimension reports
+its bounds through `.bounds`, so code that read the old flat fields needs to switch on `bounds`.
+
+**Dep bump:** `OCCTSwift from: "3.0.0"` to `from: "4.0.0-beta.4"`. The other OCCTSwift 4.0.0 breaks
+(`docs/SEMVER.md#v400`) have no call sites in this repo. Verified: `swift build --build-tests` clean and the
+full suite (49 tests) passes against the real beta.4 checkout.
+
 ## v1.8.0 (2026-08-21)
 
 **New public type: `DirectoryWatcher`.** Watches a file or directory for create/modify events
