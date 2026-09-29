@@ -22,26 +22,26 @@ public struct ShapeLoadResult: @unchecked Sendable {
     /// AP242 GD&T dimensions extracted from the document.
     ///
     /// Empty for non-STEP formats and for STEP files without GD&T annotations.
-    public var dimensions: [DimensionInfo]
+    public var dimensions: [Document.Dimension]
 
     /// AP242 geometric tolerances.
     ///
     /// Empty for non-STEP formats.
-    public var geomTolerances: [GeomToleranceInfo]
+    public var geomTolerances: [Document.GeomTolerance]
 
     /// AP242 datum references.
     ///
     /// Empty for non-STEP formats.
-    public var datums: [DatumInfo]
+    public var datums: [Document.Datum]
 
     /// The decoded manifest, when this result came from `loadFromManifest`.
     public var manifest: ScriptManifest?
 
     public init(
         shapesWithColors: [(shape: Shape, color: SIMD4<Float>?)] = [],
-        dimensions: [DimensionInfo] = [],
-        geomTolerances: [GeomToleranceInfo] = [],
-        datums: [DatumInfo] = [],
+        dimensions: [Document.Dimension] = [],
+        geomTolerances: [Document.GeomTolerance] = [],
+        datums: [Document.Datum] = [],
         manifest: ScriptManifest? = nil
     ) {
         self.shapesWithColors = shapesWithColors
