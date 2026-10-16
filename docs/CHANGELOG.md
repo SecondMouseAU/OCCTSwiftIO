@@ -4,6 +4,12 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## v2.0.0-beta.4 (2026-10-17)
+
+**Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
+
+Moves the OCCTSwift dependency from `exact: "4.0.0-beta.5"` to `exact: "4.0.0-beta.6"`. No source change: the package builds and all tests pass unmodified against beta.6. Nothing in beta.6's breaks (`simd` removed from the public surface, `offsetWire` sign, `circularPattern` partial-angle stepping) reaches this package's call sites.
+
 ## v2.0.0-beta.3 (2026-10-10)
 
 **Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.5.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
