@@ -25,7 +25,11 @@ extension DXFLoader {
         let contours = drawing.contours(options)
         var faces: [DXFContourFace] = []
         var unbuilt: [DXF.Contour.Shape] = []
-        for shape in contours.shapes {
+        // Largest outer area first, ties in SwiftDXF's order, whatever order it returns.
+        let ordered = contours.shapes.enumerated().sorted {
+            ($0.element.outer.area, $1.offset) > ($1.element.outer.area, $0.offset)
+        }.map(\.element)
+        for shape in ordered {
             if let built = face(for: shape) {
                 faces.append(built)
             } else {

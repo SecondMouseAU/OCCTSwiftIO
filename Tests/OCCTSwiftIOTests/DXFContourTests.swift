@@ -47,8 +47,11 @@ struct DXFContourTests {
     @Test func nestedIslandsBecomeSeparateFaces() throws {
         let r = try DXFLoader.loadContours(from: Self.fixture("nested"))
         #expect(r.faces.count == 2)
-        #expect(Self.near(try Self.area(r.faces[0]), 3600))
-        #expect(Self.near(try Self.area(r.faces[1]), 2000))
+        let first = try #require(r.faces.first)
+        let last = try #require(r.faces.last)
+        #expect(Self.near(try Self.area(first), 3600))
+        #expect(Self.near(try Self.area(last), 2000))
+        #expect(first.contour.outer.area >= last.contour.outer.area)
         #expect(r.faces.allSatisfy { $0.holeWires.count == 1 })
     }
 
