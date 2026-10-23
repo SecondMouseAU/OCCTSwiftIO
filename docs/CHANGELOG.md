@@ -4,6 +4,14 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## Unreleased
+
+**DXF closed regions as planar faces, on SwiftDXF 0.3.0.** The SwiftDXF dependency moves from `from: "0.2.0"` to `from: "0.3.0"`, which adds `DXF.Entity.spline` (source-breaking for any exhaustive `switch` over `DXF.Entity`; this package's loader is updated) and the OCCT-free contour layer (`drawing.contours`). The OCCTSwift pin is unchanged.
+
+- New `DXFLoader.loadContours(from:options:)` and `DXFLoader.contourFaces(of:options:)` return a `DXFContourResult`: one `DXFContourFace` (face, outer wire, hole wires, analytic area, source contour) per closed region, plus SwiftDXF's `warnings`, `openChains`, `unit`, `unitScale` and `maxFitDeviation` as data, and `shapeLoadResult` for `ShapeLoader` consumers. Chaining, nesting, unit conversion and ellipse/spline fitting stay in SwiftDXF; this package only builds OCCT edges, wires and faces. Arcs are true circular arcs, lines are lines.
+- `DXFLoader.load(from:)` and `ShapeLoader` behave as before (one compound of edges). `SPLINE` now loads in that path, flattened to straight edges at one ten-thousandth of the drawing diagonal; ellipses are still polylined. Bulged polyline arcs now share the contour segment geometry.
+- Tests copy ezdxf-generated fixtures from SwiftDXF's test suite into `Tests/OCCTSwiftIOTests/Fixtures/DXF`.
+
 ## v2.0.0-beta.4 (2026-10-17)
 
 **Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.

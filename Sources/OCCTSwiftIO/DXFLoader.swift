@@ -93,9 +93,14 @@ public enum DXFLoader {
                             shapes.append(s)
                         }
                     } else {
-                        emitBulgeArc(a.point, b.point, bulge: a.bulge, axis: axis, into: &shapes)
+                        emitBulgeArc(a.point, b.point, bulge: a.bulge, into: &shapes)
                     }
                 }
+
+            case .spline(let spline):
+                // Flattened to a chain of straight edges. The tolerance is relative to the drawing
+                // so it holds in any unit. Use `loadContours` for lines and arcs fitted to 0.01 mm.
+                emitSplinePolyline(spline, tolerance: splineTolerance(drawing), into: &shapes)
 
             case .text:
                 break  // text → no geometry
@@ -112,29 +117,35 @@ public enum DXFLoader {
         return ShapeLoadResult(shapesWithColors: [(shape: compound, color: nil)])
     }
 
-    /// Emit one circular-arc edge for a bulged polyline segment.
-    ///
-    /// `bulge = tan(θ/4)` where θ is the included angle, swept CCW from `a` to `b` (the
-    /// AutoCAD/ezdxf convention). Center derived as `h = (1/b − b)/2`; the arc is added over its
-    /// angular interval.
+    /// Emit one circular-arc edge for a bulged polyline segment, through the contour layer's
+    /// segment geometry (`bulge = tan(sweep / 4)`, positive counter-clockwise).
     private static func emitBulgeArc(
-        _ a: DXF.Point, _ b: DXF.Point, bulge: Double,
-        axis: SIMD3<Double>, into shapes: inout [Shape]
+        _ a: DXF.Point, _ b: DXF.Point, bulge: Double, into shapes: inout [Shape]
     ) {
-        let h = (1 / bulge - bulge) / 2
-        let cx = (a.x + b.x) / 2 + h * (a.y - b.y) / 2
-        let cy = (a.y + b.y) / 2 + h * (b.x - a.x) / 2
-        let r = (pow(a.x - cx, 2) + pow(a.y - cy, 2)).squareRoot()
-        guard r > 0 else { return }
-        let phi1 = atan2(a.y - cy, a.x - cx)
-        let theta = 4 * atan(bulge)
-        let lo = min(phi1, phi1 + theta)
-        let hi = max(phi1, phi1 + theta)
-        if let s = Shape.edgeFromCircle(
-            center: SIMD3(cx, cy, 0), axis: axis, radius: r, p1: lo, p2: hi)
-        {
-            shapes.append(s)
+        let segment = DXF.Contour.Segment(
+            start: DXF.Point2(a.x, a.y), end: DXF.Point2(b.x, b.y), bulge: bulge)
+        if let s = edge(for: segment) { shapes.append(s) }
+    }
+
+    /// Flatten a spline into straight edges.
+    private static func emitSplinePolyline(
+        _ spline: DXF.Spline, tolerance: Double, into shapes: inout [Shape]
+    ) {
+        let points = spline.flattened(tolerance: tolerance)
+        for (p, q) in zip(points, points.dropFirst()) {
+            if let s = Shape.edgeFromPoints(SIMD3(p.x, p.y, 0), SIMD3(q.x, q.y, 0)) {
+                shapes.append(s)
+            }
         }
+    }
+
+    /// One ten-thousandth of the drawing's diagonal, so flattening is unit-independent.
+    private static func splineTolerance(_ drawing: DXF.Drawing) -> Double {
+        guard let b = drawing.bounds else { return 1e-6 }
+        let diagonal =
+            ((b.max.x - b.min.x) * (b.max.x - b.min.x)
+            + (b.max.y - b.min.y) * (b.max.y - b.min.y)).squareRoot()
+        return max(diagonal * 1e-4, 1e-9)
     }
 
     /// Sample an elliptical arc into edges.
