@@ -32,6 +32,7 @@ kernel; `OCCTSwiftIO` builds on top of `MeshIO` and adds the kernel-backed forma
 | DirectX `.x` | ✅ | — | MeshIO |
 | STEP / IGES / BREP | ✅ | ✅* | OCCTSwiftIO |
 | JWW (Jw_cad, 2D vector) | ✅ | — | OCCTSwiftIO |
+| DXF (AutoCAD, 2D vector) | ✅ | — | OCCTSwiftIO |
 
 <sub>*OCCTSwiftIO `ExportManager` exports OCCT `Shape`s to STEP / BREP / OBJ / PLY / glTF / GLB.</sub>
 
@@ -68,7 +69,7 @@ are read via the standalone [SwiftPMX](https://github.com/SecondMouseAU/SwiftPMX
 [ThreeMF](https://github.com/tomasf/ThreeMF); glTF read via
 [SwiftGLTF](https://github.com/schwa/SwiftGLTF) (write is native).
 
-## OCCTSwiftIO — CAD + JWW
+## OCCTSwiftIO — CAD + JWW + DXF
 
 ```swift
 import OCCTSwift
@@ -80,9 +81,37 @@ let result = try await ShapeLoader.load(from: stepURL, format: .step)
 // JWW (Jw_cad 2D drawing) → a compound of OCCT edges (lines, arcs/circles, points).
 let drawing = try await ShapeLoader.load(from: jwwURL, format: .jww)
 
+// DXF → the same: one compound of curve edges (lines, arcs, circles, ellipses, splines).
+let dxf = try await ShapeLoader.load(from: dxfURL, format: .dxf)
+
 // Export shapes to STEP / BREP / OBJ / PLY / glTF / GLB.
 try await ExportManager.export(shapes: result.shapes, format: .glb, to: outURL)
 ```
+
+### DXF closed regions as faces
+
+`DXFLoader.loadContours(from:options:)` builds one planar face per closed region, with islands and
+holes nested and subtracted, in millimetres. Chaining, nesting, unit conversion and the fitting of
+ellipses and splines are done by [SwiftDXF](https://github.com/SecondMouseAU/SwiftDXF) (0.3.0 or
+later, OCCT-free); this package turns the result into OCCT edges, wires and faces. Arcs stay true
+circular arcs and lines stay lines.
+
+```swift
+let result = try DXFLoader.loadContours(from: dxfURL, options: .init(layers: ["CUT"]))
+for item in result.faces {
+    item.face        // Shape: planar face in Z=0, holes subtracted
+    item.outerWire   // Wire, counter-clockwise
+    item.holeWires   // [Wire]
+    item.area        // analytic area, mm^2
+}
+result.openChains    // segments that never closed (data, not an error)
+result.warnings      // SwiftDXF warnings: units assumed, curves fitted, text ignored, ...
+result.unbuilt       // contour shapes OCCT could not build (normally empty)
+```
+
+`load(from:)` and `ShapeLoader` keep returning a single compound of edges. Within it, `SPLINE` is
+flattened to straight edges (tolerance one ten-thousandth of the drawing diagonal) and ellipses are
+polylined; use `loadContours` when you want arcs and lines fitted to a tolerance in millimetres.
 
 For body-producing loaders (CPU mesh + pick data for AIS), use
 [OCCTSwiftTools](https://github.com/SecondMouseAU/OCCTSwiftTools), which wraps this package.

@@ -16,6 +16,10 @@ Public product/target from `Package.swift`, plus the key API surfaces from the R
     dimensions/datums. Supported input formats: STEP, IGES, STL, OBJ, BREP.
   - `ExportManager.export(shapes:format:to:)`: async exporter. Supported output formats: glTF,
     GLB, OBJ, PLY, STEP, BREP.
+  - `DXFLoader.loadContours(from:options:)`: planar faces with holes from a DXF drawing, as a
+    `DXFContourResult` (faces, wires, SwiftDXF warnings and open chains). Needs SwiftDXF 0.3.0 or
+    later, which owns chaining, nesting, units and curve fitting; this repo only builds OCCT
+    geometry from its segments. `DXFLoader.load(from:)` is the older compound-of-edges path.
   - `DirectoryWatcher`: kqueue-backed file/directory create/modify notifications, macOS-only
     (`#if os(macOS)`). Ignores dotfile writes; starts cleanly on a not-yet-existing path.
 
