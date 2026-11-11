@@ -16,6 +16,7 @@ nav_order: 4
 | **DirectX `.x`** | ✅ | — | MeshIO | [SwiftX](https://github.com/SecondMouseAU/SwiftX) |
 | **STEP** / **IGES** / **BREP** | ✅ | ✅ | OCCTSwiftIO | OCCT |
 | **JWW** (Jw_cad, 2D vector) | ✅ | — | OCCTSwiftIO | [SwiftJWW](https://github.com/SecondMouseAU/SwiftJWW) → OCCT edges |
+| **DWG** (AutoCAD native, 2D entities) | ✅ macOS, needs the `dwg2dxf` tool | — | OCCTSwiftIO | `Tools/dwg2dxf` ([acadrust](https://github.com/hakanaktt/acadrust), MPL-2.0) → SwiftDXF entity model |
 
 ## Notes
 
