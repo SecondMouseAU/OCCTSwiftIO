@@ -6,6 +6,8 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 ## Unreleased
 
+**DWG read, through an external converter.** New `DWGLoader.readEntities(from:converter:)` returns a `DWGLoader.Conversion`: the drawing in the same SwiftDXF entity model `DXFLoader.readEntities` returns, plus the record of the conversion (the source's SHA-256 and DWG version code, the converter's version line, and warnings such as an empty result). The reading is done by `Tools/dwg2dxf`, a small Rust tool on the acadrust library (MPL-2.0, pinned exactly to 0.6.8), which the loader runs as a subprocess; the Swift package gains no dependency. The tool is found from an explicit URL, the `OCCTSWIFTIO_DWG2DXF` environment variable, or `PATH`. macOS only. `CADFileFormat` and `ShapeLoader` are unchanged: DWG is an entity-level read for now.
+
 **DXF closed regions as planar faces, on SwiftDXF 0.3.0.** The SwiftDXF dependency moves from `from: "0.2.0"` to `from: "0.3.0"`, which adds `DXF.Entity.spline` (source-breaking for any exhaustive `switch` over `DXF.Entity`; this package's loader is updated) and the OCCT-free contour layer (`drawing.contours`). The OCCTSwift pin is unchanged.
 
 - New `DXFLoader.loadContours(from:options:)` and `DXFLoader.contourFaces(of:options:)` return a `DXFContourResult`: one `DXFContourFace` (face, outer wire, hole wires, analytic area, source contour) per closed region, plus SwiftDXF's `warnings`, `openChains`, `unit`, `unitScale` and `maxFitDeviation` as data, and `shapeLoadResult` for `ShapeLoader` consumers. Chaining, nesting, unit conversion and ellipse/spline fitting stay in SwiftDXF; this package only builds OCCT edges, wires and faces. Arcs are true circular arcs, lines are lines.

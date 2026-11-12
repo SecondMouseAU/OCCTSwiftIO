@@ -20,6 +20,10 @@ Public product/target from `Package.swift`, plus the key API surfaces from the R
     `DXFContourResult` (faces, wires, SwiftDXF warnings and open chains). Needs SwiftDXF 0.3.0 or
     later, which owns chaining, nesting, units and curve fitting; this repo only builds OCCT
     geometry from its segments. `DXFLoader.load(from:)` is the older compound-of-edges path.
+  - `DWGLoader.readEntities(from:converter:)`: DWG into the SwiftDXF entity model, by running the
+    `dwg2dxf` tool in `Tools/dwg2dxf` (Rust, on acadrust, MPL-2.0) and parsing its DXF output. Each
+    read records the source hash, DWG version and converter version. macOS-only; needs the tool
+    built and on `PATH` or named by `OCCTSWIFTIO_DWG2DXF`.
   - `DirectoryWatcher`: kqueue-backed file/directory create/modify notifications, macOS-only
     (`#if os(macOS)`). Ignores dotfile writes; starts cleanly on a not-yet-existing path.
 
