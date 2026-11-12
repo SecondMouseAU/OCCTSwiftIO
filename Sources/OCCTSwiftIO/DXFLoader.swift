@@ -21,8 +21,10 @@ public enum DXFLoader {
     ///
     /// This is the entity-level surface; use ``load(from:)`` (or `ShapeLoader`) for the OCCT
     /// compound.
-    public static func readEntities(from url: URL) throws -> DXF.Drawing {
-        try DXF.read(contentsOf: url)
+    public static func readEntities(
+        from url: URL, options: DXF.ReadOptions = .init()
+    ) throws -> DXF.Drawing {
+        try DXF.read(contentsOf: url, options: options)
     }
 
     static func load(from url: URL) throws -> ShapeLoadResult {

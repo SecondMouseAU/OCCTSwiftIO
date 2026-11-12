@@ -16,11 +16,17 @@ Public product/target from `Package.swift`, plus the key API surfaces from the R
     dimensions/datums. Supported input formats: STEP, IGES, STL, OBJ, BREP.
   - `ExportManager.export(shapes:format:to:)`: async exporter. Supported output formats: glTF,
     GLB, OBJ, PLY, STEP, BREP.
+  - `DrawingLoader.read(from:options:)`: one call and one `DrawingResult` for DXF, DWG and JWW:
+    the SwiftDXF `DXF.Drawing`, a `DrawingSource` (file name, SHA-256, format, version, converter)
+    and `DrawingWarning`s (skipped entities by type and layer, paper space, missing blocks,
+    undeclared units). The format is sniffed from the bytes (`DrawingFormat.sniff`). JWW is read by
+    SwiftJWW and passed through its DXF writer. Block references are expanded by default. Needs
+    SwiftDXF 0.4.0 or later.
   - `DXFLoader.loadContours(from:options:)`: planar faces with holes from a DXF drawing, as a
     `DXFContourResult` (faces, wires, SwiftDXF warnings and open chains). Needs SwiftDXF 0.3.0 or
     later, which owns chaining, nesting, units and curve fitting; this repo only builds OCCT
     geometry from its segments. `DXFLoader.load(from:)` is the older compound-of-edges path.
-  - `DWGLoader.readEntities(from:converter:)`: DWG into the SwiftDXF entity model, by running the
+  - `DWGLoader.readEntities(from:converter:options:)`: DWG into the SwiftDXF entity model, by running the
     `dwg2dxf` tool in `Tools/dwg2dxf` (Rust, on acadrust, MPL-2.0) and parsing its DXF output. Each
     read records the source hash, DWG version and converter version. macOS-only; needs the tool
     built and on `PATH` or named by `OCCTSWIFTIO_DWG2DXF`.

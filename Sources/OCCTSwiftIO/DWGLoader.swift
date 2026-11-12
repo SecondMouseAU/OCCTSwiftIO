@@ -15,10 +15,6 @@
 import Foundation
 import SwiftDXF
 
-#if canImport(CryptoKit)
-    import CryptoKit
-#endif
-
 public enum DWGLoader {
 
     /// The environment variable naming the `dwg2dxf` executable.
@@ -83,7 +79,9 @@ public enum DWGLoader {
     }
 
     /// Read a DWG file into the SwiftDXF entity model, with the record of the conversion.
-    public static func readEntities(from url: URL, converter: URL? = nil) throws -> Conversion {
+    public static func readEntities(
+        from url: URL, converter: URL? = nil, options: DXF.ReadOptions = .init()
+    ) throws -> Conversion {
         #if os(macOS)
             guard let executable = locateConverter(explicit: converter) else {
                 throw DWGError.converterNotFound
@@ -100,7 +98,7 @@ public enum DWGLoader {
             guard converted.status == 0 else {
                 throw DWGError.conversionFailed(status: converted.status, message: converted.error)
             }
-            let drawing = try DXF.read(data: converted.output)
+            let drawing = try DXF.read(data: converted.output, options: options)
 
             var warnings: [String] = []
             if drawing.entities.isEmpty {
@@ -110,7 +108,8 @@ public enum DWGLoader {
                 drawing: drawing,
                 converter: String(decoding: version.output, as: UTF8.self)
                     .trimmingCharacters(in: .whitespacesAndNewlines),
-                sourceSHA256: sha256(source), sourceVersion: header, warnings: warnings)
+                sourceSHA256: FileDigest.sha256Hex(source), sourceVersion: header,
+                warnings: warnings)
         #else
             throw DWGError.unsupportedPlatform
         #endif
@@ -139,12 +138,4 @@ public enum DWGLoader {
             )
         }
     #endif
-
-    private static func sha256(_ data: Data) -> String {
-        #if canImport(CryptoKit)
-            return SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-        #else
-            return ""
-        #endif
-    }
 }
