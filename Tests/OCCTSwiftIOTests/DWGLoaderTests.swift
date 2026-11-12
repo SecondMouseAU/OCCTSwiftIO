@@ -6,15 +6,19 @@ import Testing
 @Suite("DWG loader")
 struct DWGLoaderTests {
 
-    /// `plate.dwg`: a 100 x 60 plate with one hole and three DIMENSION entities, written as AC1032
-    /// by acadrust from a hand-written DXF. Synthetic, so it carries no third-party drawing.
+    /// `plate.dwg`: a 100 x 60 plate with one hole and three DIMENSION entities.
+    ///
+    /// Written as AC1032 by acadrust from a hand-written DXF. Synthetic, so it carries no
+    /// third-party drawing.
     private var plate: URL {
         URL(fileURLWithPath: #filePath).deletingLastPathComponent()
             .appendingPathComponent("Fixtures/DWG/plate.dwg")
     }
 
-    /// The converter is a separately built tool. Tests that need it are skipped when it is not
-    /// installed, and say so, so "passed" never means "did not run".
+    /// The converter is a separately built tool.
+    ///
+    /// Tests that need it are skipped when it is not installed, and say so, so "passed" never means
+    /// "did not run".
     private func converter() -> URL? { DWGLoader.locateConverter() }
 
     @Test func readsGeometryAndDimensions() throws {
