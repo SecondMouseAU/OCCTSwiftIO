@@ -49,17 +49,24 @@ extension DrawingLoader {
 
     /// What the reader found in the file and could not read, one warning per type.
     ///
-    /// The count covers model space and the blocks that were expanded into it, once for each
+    /// The count covers model space (paper space too, whether or not it was left out) and the
+    /// blocks that were expanded into it, once for each
     /// reference that expanded the block. The block definitions are counted when they were not
     /// expanded; with expansion on, one that nothing inserts is not part of the drawing, and is
     /// not counted.
     static func unreadableWarnings(
-        for drawing: DXF.Drawing, expandedBlocks: Bool
+        for drawing: DXF.Drawing, expandedBlocks: Bool, leftOutPaperSpace: Bool = false
     ) -> [DrawingWarning] {
         var drawn: [String: Int] = [:]
         var inBlocks: [String: Int] = [:]
         for (type, byLayer) in drawing.skippedByLayer where type.hasPrefix(unreadablePrefix) {
             drawn[type, default: 0] += byLayer.values.reduce(0, +)
+        }
+        if leftOutPaperSpace {
+            // Left out before they were counted as skipped, but still tallied as paper space.
+            for (type, count) in drawing.paperSpace where type.hasPrefix(unreadablePrefix) {
+                drawn[type, default: 0] += count
+            }
         }
         if !expandedBlocks {
             for block in drawing.blocks {

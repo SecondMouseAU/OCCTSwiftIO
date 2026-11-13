@@ -17,8 +17,10 @@ public static func read(from url: URL, options: Options = .init()) throws -> Dra
 - **Parameters:** `url`, the file. `options`, see below.
 - **Returns:** a `DrawingResult`.
 - **Throws:** `DrawingLoader.LoadError.unrecognizedFormat` when the file is none of the three;
-  `DWG.Error` for a DWG that cannot be read (`.notADWG`, `.unsupportedVersion`, `.truncated`,
-  `.invalid`); the reader's own error for a DXF or a JWW.
+  `DWG.Error` for a DWG that cannot be read (`.unsupportedVersion`, `.truncated`, `.invalid`, and
+  `.notADWG` for a file named `.dwg` whose bytes are not one); the reader's own error for a DXF or a
+  JWW. Some damage makes SwiftDWG 0.1.0 trap or stall instead of throw, in this process (see
+  [DWGLoader](DWGLoader.md)).
 
 The format is told from the file's bytes (`DrawingFormat.sniff`): JWW, then a DWG (`AC` and four
 digits, whatever the release), then a DXF. The file extension is consulted only when the bytes say

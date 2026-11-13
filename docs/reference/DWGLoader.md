@@ -53,8 +53,9 @@ public struct Conversion: Sendable {
 
 Each read records the bytes it came from, so a drawing can be traced back to them. `warnings` has one
 line for each type of entity or record the reader could not read, and one for a result with no
-entities. `DrawingLoader` reports the same things as data, in `DrawingWarning` (`.unreadable`,
-`.skippedEntities`, `.emptyDrawing`).
+entities. `DrawingLoader` reports those two as data, in `DrawingWarning` (`.unreadable`,
+`.emptyDrawing`), and the entities with no entity form as `.skippedEntities`; here they are in
+`drawing.skipped`.
 
 ## Supported DWG versions
 

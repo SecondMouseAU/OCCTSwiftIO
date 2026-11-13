@@ -41,7 +41,8 @@ public enum DWGLoader {
         let source = try Data(contentsOf: url)
         let parsed = try read(data: source, options: options)
         var lines = DrawingLoader.unreadableWarnings(
-            for: parsed.drawing, expandedBlocks: options.expandBlocks
+            for: parsed.drawing, expandedBlocks: options.expandBlocks,
+            leftOutPaperSpace: options.skipPaperSpace
         ).map(\.message)
         if parsed.drawing.entities.isEmpty { lines.append(DrawingLoader.emptyDrawingMessage) }
         return Conversion(

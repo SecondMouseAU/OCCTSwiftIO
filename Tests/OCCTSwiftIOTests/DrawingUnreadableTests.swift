@@ -89,6 +89,18 @@ struct DrawingUnreadableTests {
         #expect(!warnings.contains { $0.type?.hasPrefix("UNREADABLE_") == true })
     }
 
+    @Test("an unreadable record in paper space is reported whether or not paper space is left out")
+    func paperSpace() throws {
+        let kept = try Self.warnings(.init(skipPaperSpace: false))
+        let leftOut = try Self.warnings(.init(skipPaperSpace: true))
+        // The paper-space LINE is one of the three, either way.
+        #expect(Self.unreadable(kept, "LINE")?.count == 3)
+        #expect(Self.unreadable(leftOut, "LINE")?.count == 3)
+        #expect(
+            kept.filter { $0.kind == .unreadable } == leftOut.filter { $0.kind == .unreadable })
+        #expect(!leftOut.contains { $0.type?.hasPrefix("UNREADABLE_") == true })
+    }
+
     @Test("with blocks expanded, an unreadable record of an inserted block counts for each insert")
     func expandedBlocks() throws {
         let warnings = try Self.warnings(.init(expandBlocks: true))

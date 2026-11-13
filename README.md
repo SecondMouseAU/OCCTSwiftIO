@@ -123,8 +123,10 @@ entities, R14; R12 and earlier throw `DWG.Error.unsupportedVersion`. Its README 
 AutoCAD's sample drawings it matches AutoCAD's own DXF export of the same drawing, handles included,
 and lists its limits. The ones that matter to a caller:
 
-- A file that is damaged in its structure, or is not a DWG, throws `DWG.Error` (`.notADWG`,
-  `.unsupportedVersion`, `.truncated`, `.invalid`) from `DWGLoader` and `DrawingLoader`.
+- A file that is damaged in its structure, is of a release it does not read, or (for `DWGLoader`, or
+  a file named `.dwg`) is not a DWG, throws `DWG.Error` (`.notADWG`, `.unsupportedVersion`,
+  `.truncated`, `.invalid`). `DrawingLoader` tells a DWG from its bytes, so any other file with no
+  `.dwg` name is `LoadError.unrecognizedFormat`.
 - An entity, table record or block it cannot read is left out and counted. `DrawingLoader` reports
   it as a `DrawingWarning` of kind `.unreadable`, by type, so it is not lost.
 - Entities it does not model, and the ones it cannot read, are counted without their layer:
@@ -174,7 +176,7 @@ OCCTSwiftTools     (bridge: Shape ↔ ViewportBody)
        ↑
 OCCTSwiftIO        ← this repo (headless file I/O)        MeshIO  ← pure-Swift mesh (no OCCT)
        ↑                                                     ↑
-OCCTSwift          (B-Rep kernel)              SwiftPMX / SwiftX / ThreeMF / SwiftGLTF / SwiftJWW
+OCCTSwift          (B-Rep kernel)              SwiftPMX / SwiftX / ThreeMF / SwiftGLTF / SwiftJWW / SwiftDXF / SwiftDWG
 ```
 
 **Hard rule: no Viewport dependency in this package.** Produce `ViewportBody`s in OCCTSwiftTools.

@@ -77,18 +77,22 @@ public enum DrawingLoader {
         }
 
         let warnings = self.warnings(
-            for: drawing, expandedBlocks: options.expandBlocks, layersKnown: format != .dwg)
+            for: drawing, expandedBlocks: options.expandBlocks, layersKnown: format != .dwg,
+            leftOutPaperSpace: options.skipPaperSpace)
         return DrawingResult(drawing: drawing, source: source, warnings: warnings)
     }
 
     /// The warnings a drawing carries: what was skipped, could not be read, or assumed.
     ///
     /// `layersKnown` is `false` for a format that counts skipped entities without their layer.
+    /// `leftOutPaperSpace` is whether paper-space entities were asked to be left out.
     static func warnings(
-        for drawing: DXF.Drawing, expandedBlocks: Bool, layersKnown: Bool = true
+        for drawing: DXF.Drawing, expandedBlocks: Bool, layersKnown: Bool = true,
+        leftOutPaperSpace: Bool = false
     ) -> [DrawingWarning] {
         var out = skippedWarnings(for: drawing, layersKnown: layersKnown)
-        out += unreadableWarnings(for: drawing, expandedBlocks: expandedBlocks)
+        out += unreadableWarnings(
+            for: drawing, expandedBlocks: expandedBlocks, leftOutPaperSpace: leftOutPaperSpace)
         for (type, count) in drawing.paperSpace.sorted(by: { $0.key < $1.key })
         where !type.hasPrefix(unreadablePrefix) {
             out.append(
