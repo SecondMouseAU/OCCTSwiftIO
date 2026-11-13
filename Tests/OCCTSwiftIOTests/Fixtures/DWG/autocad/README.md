@@ -1,7 +1,8 @@
 # DWG files written by AutoCAD
 
-Small drawings saved by AutoCAD, so the reader is tested on files it did not write
-itself (`plate.dwg` in the folder above is written by acadrust, the library that reads it).
+Small drawings saved by AutoCAD, so the reader (SwiftDWG) is tested on files made by a program
+that is not the one that wrote `plate.dwg` in the folder above (acadrust, a library that is
+not used for reading any more).
 
 | File | Version | Contents |
 |---|---|---|
@@ -22,11 +23,9 @@ repository is LGPL-2.1.
 The contents the tests assert (line end points, the dimension's points, the handles and the block
 names) are the ones that author documents for the files, not values read back from this reader.
 
-## A difference between the pair
+## The pair
 
-Reading `point_object_id.dwg` through `dwg2dxf` and reading AutoCAD's own `point_object_id.dxf`
-agree on the linetype, text style, dimension style and block record tables, names and handles. They
-differ in two places the tests do not pin: the layer `Defpoints` has handle `82` in AutoCAD's DXF
-and `85` in the converted one, and the converted DXF has two more application ids
-(`AcAecLayerStandard`, `AcCmTransparency`). Both come from the converter's library (acadrust 0.6.8),
-not from this package.
+`point_object_id.dwg`, read through SwiftDWG, and AutoCAD's own `point_object_id.dxf` agree on the
+layer, line type and dimension style tables (names and handles), the block names, the units and the
+extents, and neither holds an entity. Both give the same kinds of warning (no length unit declared,
+empty drawing). `DrawingLoaderTests` pins this.

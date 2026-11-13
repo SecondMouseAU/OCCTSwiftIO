@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Load-bearing types in `Sources/OCCTSwiftIO/`:
 
 - `DrawingLoader`: DXF / DWG / JWW → one `DrawingResult` (SwiftDXF `DXF.Drawing`, `DrawingSource`, `DrawingWarning`s). The one entry point for 2D drawing import; format sniffed from the bytes, blocks expanded by default.
+- `DWGLoader`: DWG → `DXF.Drawing`, read in process by [SwiftDWG](https://github.com/SecondMouseAU/SwiftDWG) (no subprocess, no tool to build). Re-exports SwiftDWG's `DWG` namespace; a bad file throws `DWG.Error`.
 - `ShapeLoader`: STEP / IGES / STL / OBJ / BREP / manifest → `ShapeLoadResult` (shapes + colors + AP242 metadata, **no bodies**).
 - `ExportManager`: OBJ / PLY / STEP / BREP / glTF / GLB writers.
 - `CADBodyMetadata`: pure-data type (face/edge/vertex pick indices). Produced by `OCCTSwiftTools.CADFileLoader.shapeToBodyAndMetadata` on the bridge side; lives here so the type itself doesn't carry a Viewport dep.
@@ -56,6 +57,7 @@ These are non-obvious from type signatures and easy to get wrong:
 - **Multi-shape export auto-numbers files.** `ExportManager.export(shapes:format:to:)` writes one file per shape when given >1 shape, inserting an index before the extension (`out.glb` → `out.0.glb`, `out.1.glb`, ...). Callers that expected a single combined file will be surprised.
 - **Color is only carried by STEP.** STL / OBJ / BREP / IGES all return `color: nil` per shape; `shapesWithColors` still pairs them, but the color slot is empty.
 - **Progress callbacks fire off the main thread.** `ImportProgressClosure` runs on whatever thread the importer used (usually a background thread under the async API). UI updates must hop to `@MainActor` explicitly.
+- **A DWG's warnings differ from a DXF's.** SwiftDWG counts the entities it does not model, and the ones it cannot read, as bare records with no layer, so `DrawingWarning.layer` is `nil` for a DWG. An `UNREADABLE_<type>` entry in `skipped` surfaces as a `.unreadable` warning (type without the prefix), never as `.skippedEntities`. A damaged control object, a release SwiftDWG does not read (R12 and earlier) or a non-DWG throws `DWG.Error` from `DWGLoader` and `DrawingLoader`; it is not wrapped.
 - **`DirectoryWatcher` is macOS-only.** kqueue is a Darwin primitive; the whole file is gated `#if os(macOS)` so the package still builds for iOS/visionOS/tvOS with the type simply absent there.
 
 ## Platform floor

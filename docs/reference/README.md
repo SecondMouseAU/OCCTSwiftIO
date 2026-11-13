@@ -26,7 +26,7 @@ The package spans two products:
 - [ImportProgressClosure](ImportProgressClosure.md): closure-backed `ImportProgress` + cancellation.
 - [GraphExport (ML)](GraphExport.md): `BRepGraph.exportForML()` / `exportJSON()` and the `GraphExport` struct.
 - [CADBodyMetadata](CADBodyMetadata.md): sub-body selection metadata produced by the bridge layer.
-- [DWGLoader](DWGLoader.md): DWG into the SwiftDXF entity model through the `dwg2dxf` converter, with a record of each conversion (macOS-only).
+- [DWGLoader](DWGLoader.md): DWG into the SwiftDXF entity model, read in process by SwiftDWG, with a record of each read.
 - [DirectoryWatcher](DirectoryWatcher.md): kqueue-backed file/directory change notifications (macOS-only).
 
 ### MeshIO (mesh)
