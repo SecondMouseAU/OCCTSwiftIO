@@ -47,7 +47,8 @@ public enum DrawingLoader {
     ///
     /// - Throws: ``LoadError`` for a file that is none of the three, ``DWG/Error`` for a DWG that
     ///   cannot be read (not a DWG, a release that is not read, or damage to its structure), and
-    ///   the reader's own error for a DXF or a JWW.
+    ///   the reader's own error for a DXF or a JWW. Some damage makes SwiftDWG 0.1.0 trap or stall
+    ///   instead of throw, and the reader runs in this process.
     public static func read(from url: URL, options: Options = .init()) throws -> DrawingResult {
         let data = try Data(contentsOf: url)
         let fileName = url.lastPathComponent
@@ -135,7 +136,7 @@ public enum DrawingLoader {
         }
         if drawing.entities.isEmpty {
             out.append(
-                DrawingWarning(kind: .emptyDrawing, message: "the drawing has no entities"))
+                DrawingWarning(kind: .emptyDrawing, message: emptyDrawingMessage))
         }
         return out
     }

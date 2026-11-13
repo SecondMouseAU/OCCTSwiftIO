@@ -74,8 +74,8 @@ as skipped.
   and entities on a lost layer read as layer `0`. `DrawingLoader` reports each as a
   `DrawingWarning` of kind `.unreadable`.
 - **Skipped entities carry no layer.** SwiftDWG writes the entities it does not model, and the ones it
-  could not read, as bare records, so their layer is not known. `DrawingWarning.layer` is `nil` for a
-  DWG.
+  could not read, as bare records, so SwiftDXF counts them on layer `0` (on the layer of the `INSERT`
+  in a block that was expanded), whatever their layer was. `DrawingWarning.layer` is `nil` for a DWG.
 - **Some damage crashes or stalls the reader instead of throwing.** A truncated file, a wrong
   version and a file that is not a DWG throw `DWG.Error`. But in SwiftDWG 0.1.0 a changed byte
   inside the compressed data of the AC1027 and AC1032 files tried can trap (a negative range in its

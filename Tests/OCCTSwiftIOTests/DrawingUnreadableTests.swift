@@ -11,7 +11,7 @@ import Testing
 struct DrawingUnreadableTests {
 
     /// A drawing with unreadable records in model space (one of them flagged as paper space), in a
-    /// block that an `INSERT` places, and in a block nothing inserts.
+    /// block that two `INSERT`s place, and in a block nothing inserts.
     static let dxf: String = [
         "0", "SECTION", "2", "BLOCKS",
         "0", "BLOCK", "2", "TAG", "10", "0", "20", "0",
@@ -28,6 +28,7 @@ struct DrawingUnreadableTests {
         "0", "UNREADABLE_LAYER", "5", "54",
         "0", "UNREADABLE_LINE", "5", "A3", "67", "1",
         "0", "INSERT", "5", "A4", "8", "0", "2", "TAG", "10", "0", "20", "0",
+        "0", "INSERT", "5", "A5", "8", "0", "2", "TAG", "10", "5", "20", "0",
         "0", "ENDSEC", "0", "EOF",
     ].joined(separator: "\n")
 
@@ -61,6 +62,25 @@ struct DrawingUnreadableTests {
         }
     }
 
+    @Test(
+        "the message names what kind of record it was",
+        arguments: [
+            ("LTYPE", "LTYPE table records: 1 could not be read"),
+            ("STYLE", "STYLE table records: 1 could not be read"),
+            ("DIMSTYLE", "DIMSTYLE table records: 1 could not be read"),
+            ("BLOCK_RECORD", "BLOCK_RECORD table records: 1 could not be read"),
+            ("LWPOLYLINE", "LWPOLYLINE entities: 1 could not be read"),
+        ])
+    func messages(type: String, message: String) throws {
+        let text = [
+            "0", "SECTION", "2", "ENTITIES", "0", "UNREADABLE_\(type)", "5", "A1",
+            "0", "ENDSEC", "0", "EOF",
+        ].joined(separator: "\n")
+        let url = try DrawingLoaderTests.temporaryFile("one.dxf", Data(text.utf8))
+        let warnings = try DrawingLoader.read(from: url).warnings
+        #expect(Self.unreadable(warnings, type)?.message == message)
+    }
+
     @Test("an unreadable record is reported once: not as skipped, and not as paper space")
     func reportedOnce() throws {
         let warnings = try Self.warnings()
@@ -72,10 +92,10 @@ struct DrawingUnreadableTests {
     @Test("with blocks expanded, an unreadable record of an inserted block counts for each insert")
     func expandedBlocks() throws {
         let warnings = try Self.warnings(.init(expandBlocks: true))
-        // One in paper space, one in the block TAG that the INSERT expands. The block nothing
-        // inserts is not part of the drawing, and its POLYLINE is not counted.
+        // One in paper space, and one in the block TAG for each of the two INSERTs that expand it.
+        // The block nothing inserts is not part of the drawing, and its POLYLINE is not counted.
         if let line = Self.unreadable(warnings, "LINE") {
-            #expect(line.count == 2)
+            #expect(line.count == 3)
             #expect(!line.message.contains("block definitions"))
         } else {
             Issue.record("no warning for the unreadable lines")

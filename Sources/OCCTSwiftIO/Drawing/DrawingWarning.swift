@@ -34,7 +34,8 @@ public struct DrawingWarning: Sendable, Equatable, CustomStringConvertible {
         /// drawing: an entity, a table record or a block, by type.
         ///
         /// Of a DWG only. ``type`` is the DXF type name (`LINE`, `POLYLINE`, `LAYER`,
-        /// `BLOCK_RECORD`), or `OBJECT` for one whose type is itself unreadable.
+        /// `BLOCK_RECORD`), or `OBJECT` for one whose type is itself unreadable. An entity of a
+        /// block that was expanded counts once for each reference.
         case unreadable
     }
 

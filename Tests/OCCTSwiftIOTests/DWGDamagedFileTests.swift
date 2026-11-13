@@ -83,14 +83,17 @@ struct DWGDamagedFileTests {
     /// These pin what that release does with this damage. If a later one reads more of it, pick
     /// another byte; do not look for one inside the test process, because some bytes make
     /// SwiftDWG trap instead of throw.
-    static let invertedBytes: [(offset: Int, type: String, entities: Int)] = [
-        (18328, "LINE", 7), (17992, "DIMSTYLE", 8),
+    static let invertedBytes: [(offset: Int, type: String, entities: Int, message: String)] = [
+        (18328, "LINE", 7, "LINE entities: 1 could not be read"),
+        (17992, "DIMSTYLE", 8, "DIMSTYLE table records: 1 could not be read"),
     ]
 
     @Test(
         "a DWG damaged in one entity or record is read without it, and the loaders say so",
         arguments: invertedBytes)
-    func lostRecordIsReported(damage: (offset: Int, type: String, entities: Int)) throws {
+    func lostRecordIsReported(
+        damage: (offset: Int, type: String, entities: Int, message: String)
+    ) throws {
         let url = try Self.plateWithByteInverted(at: damage.offset)
 
         let result = try DrawingLoader.read(from: url)
@@ -98,13 +101,40 @@ struct DWGDamagedFileTests {
         let unreadable = result.warnings.filter { $0.kind == .unreadable }
         #expect(unreadable.map(\.type) == [damage.type])
         #expect(unreadable.first?.count == 1)
+        #expect(unreadable.first?.message == damage.message)
         #expect(unreadable.first?.layer == nil)
         #expect(!result.warnings.contains { $0.kind == .skippedEntities })
 
         // `DWGLoader` says the same, as text.
         let conversion = try DWGLoader.readEntities(from: url)
-        #expect(conversion.warnings == unreadable.map(\.message))
+        #expect(conversion.warnings == [damage.message])
         #expect(conversion.drawing.skipped["UNREADABLE_\(damage.type)"] == 1)
+    }
+
+    /// One inverted byte of `dimassoc-perpendicular.dwg`, which AutoCAD wrote: it loses an
+    /// arrowhead (a `SOLID`) of the dimension's own block, `*D1`, which no `INSERT` places.
+    ///
+    /// The same caution applies as for `invertedBytes`.
+    @Test("an entity lost in a block definition is counted when blocks are not expanded")
+    func lostInBlockDefinition() throws {
+        var bytes = try Data(contentsOf: DrawingLoaderTests.autocad("dimassoc-perpendicular.dwg"))
+        bytes[10662] ^= 0xFF
+        let url = try DrawingLoaderTests.temporaryFile("inverted.dwg", bytes)
+
+        // Expanded, the drawing is its three entities, and the block is not part of it.
+        let expanded = try DWGLoader.readEntities(from: url, options: .init(expandBlocks: true))
+        #expect(expanded.drawing.entities.count == 3)
+        #expect(expanded.warnings.isEmpty)
+        let expandedResult = try DrawingLoader.read(from: url, options: .init(expandBlocks: true))
+        #expect(!expandedResult.warnings.contains { $0.kind == .unreadable })
+
+        // Left alone, the blocks are the caller's to walk, so the loss is reported.
+        let kept = try DWGLoader.readEntities(from: url, options: .init(expandBlocks: false))
+        #expect(kept.warnings == ["SOLID entities: 1 could not be read (1 in block definitions)"])
+        let keptResult = try DrawingLoader.read(from: url, options: .init(expandBlocks: false))
+        let unreadable = keptResult.warnings.filter { $0.kind == .unreadable }
+        #expect(unreadable.map(\.type) == ["SOLID"])
+        #expect(unreadable.first?.count == 1)
     }
 
     // MARK: DrawingLoader

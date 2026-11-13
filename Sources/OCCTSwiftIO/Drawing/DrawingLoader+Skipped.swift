@@ -9,7 +9,13 @@ import SwiftDXF
 
 extension DrawingLoader {
 
+    static let emptyDrawingMessage = "the drawing has no entities"
+
     /// What SwiftDWG puts before the type of something it could not read, in `skipped`.
+    ///
+    /// SwiftDWG's README documents the prefix and the table names below but does not export them,
+    /// so a release that renames them would turn `.unreadable` into `.skippedEntities`; the tests
+    /// that damage a DWG would show it.
     static let unreadablePrefix = "UNREADABLE_"
 
     /// The tables whose records SwiftDWG counts when it cannot read one.
@@ -43,9 +49,10 @@ extension DrawingLoader {
 
     /// What the reader found in the file and could not read, one warning per type.
     ///
-    /// The count covers model space and the blocks that were expanded into it. The block
-    /// definitions are counted when they were not expanded; with expansion on, one that nothing
-    /// inserts is not part of the drawing, and is not counted.
+    /// The count covers model space and the blocks that were expanded into it, once for each
+    /// reference that expanded the block. The block definitions are counted when they were not
+    /// expanded; with expansion on, one that nothing inserts is not part of the drawing, and is
+    /// not counted.
     static func unreadableWarnings(
         for drawing: DXF.Drawing, expandedBlocks: Bool
     ) -> [DrawingWarning] {

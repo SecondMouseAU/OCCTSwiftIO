@@ -33,19 +33,20 @@ public enum DWGLoader {
     ///
     /// - Throws: ``DWG/Error`` when the file is not a DWG, is of a release that is not read, or is
     ///   damaged in its structure. An entity or table record that cannot be read does not throw:
-    ///   it is left out and reported in ``Conversion/warnings``.
+    ///   it is left out and reported in ``Conversion/warnings``. Some damage makes SwiftDWG 0.1.0
+    ///   trap or stall instead of throw, and the reader runs in this process.
     public static func readEntities(
         from url: URL, options: DXF.ReadOptions = .init()
     ) throws -> Conversion {
         let source = try Data(contentsOf: url)
         let parsed = try read(data: source, options: options)
-        let reported = DrawingLoader.warnings(
-            for: parsed.drawing, expandedBlocks: options.expandBlocks, layersKnown: false)
+        var lines = DrawingLoader.unreadableWarnings(
+            for: parsed.drawing, expandedBlocks: options.expandBlocks
+        ).map(\.message)
+        if parsed.drawing.entities.isEmpty { lines.append(DrawingLoader.emptyDrawingMessage) }
         return Conversion(
             drawing: parsed.drawing, sourceSHA256: FileDigest.sha256Hex(source),
-            sourceVersion: parsed.version,
-            warnings: reported.filter { $0.kind == .unreadable || $0.kind == .emptyDrawing }
-                .map(\.message))
+            sourceVersion: parsed.version, warnings: lines)
     }
 
     /// The drawing in a DWG's bytes, and the version code the file starts with.

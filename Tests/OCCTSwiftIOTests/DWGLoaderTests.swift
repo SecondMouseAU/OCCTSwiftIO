@@ -42,20 +42,16 @@ struct DWGLoaderTests {
         #expect(conversion.warnings.isEmpty)
     }
 
-    private func autocad(_ name: String) -> URL {
-        URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-            .appendingPathComponent("Fixtures/DWG/autocad/\(name)")
-    }
-
     @Test func anEmptyDrawingIsSaidToBeEmpty() throws {
-        let conversion = try DWGLoader.readEntities(from: autocad("point_object_id.dwg"))
+        let conversion = try DWGLoader.readEntities(
+            from: DrawingLoaderTests.autocad("point_object_id.dwg"))
         #expect(conversion.drawing.entities.isEmpty)
         #expect(conversion.warnings == ["the drawing has no entities"])
     }
 
     @Test func theReadOptionsReachTheDrawing() throws {
         // Five INSERTs, each of a block that holds one attribute definition.
-        let url = autocad("anonymous-names.dwg")
+        let url = DrawingLoaderTests.autocad("anonymous-names.dwg")
         let expanded = try DWGLoader.readEntities(from: url, options: .init(expandBlocks: true))
         #expect(expanded.drawing.skipped["ATTDEF"] == 5)
         #expect(expanded.drawing.skipped["INSERT"] == nil)
