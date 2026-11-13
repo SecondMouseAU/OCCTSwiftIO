@@ -22,6 +22,10 @@ public struct DrawingWarning: Sendable, Equatable, CustomStringConvertible {
         case notTransformed
         /// References with an extrusion not along z were expanded flat.
         case unsupportedExtrusion
+        /// Entities of a type, with an extrusion not along z, were read as if it were.
+        case extrusionNotApplied
+        /// Block expansion stopped at its size limit, so some references are not expanded.
+        case expansionTruncated
         /// The file declares no length unit.
         case unitsNotDeclared
         /// Nothing was read.

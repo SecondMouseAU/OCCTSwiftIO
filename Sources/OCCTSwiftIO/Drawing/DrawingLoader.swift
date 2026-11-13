@@ -89,10 +89,7 @@ public enum DrawingLoader {
     /// The warnings a drawing carries: what was skipped, assumed, or reported by the reader.
     static func warnings(for drawing: DXF.Drawing, expandedBlocks: Bool) -> [DrawingWarning] {
         var out: [DrawingWarning] = []
-        // HATCH and LEADER stay in `skipped` because they have no entity case, but they are read
-        // into `hatches` and `leaders`, so they are not lost.
-        let modelledElsewhere: Set<String> = ["HATCH", "LEADER"]
-        for type in drawing.skippedByLayer.keys.sorted() where !modelledElsewhere.contains(type) {
+        for type in drawing.skippedByLayer.keys.sorted() {
             for (layer, count) in (drawing.skippedByLayer[type] ?? [:]).sorted(by: {
                 $0.key < $1.key
             }) {
@@ -131,6 +128,14 @@ public enum DrawingLoader {
                 out.append(
                     DrawingWarning(
                         kind: .unsupportedExtrusion, count: count, message: warning.description))
+            case .extrusionNotApplied(let type, let count):
+                out.append(
+                    DrawingWarning(
+                        kind: .extrusionNotApplied, type: type, count: count,
+                        message: warning.description))
+            case .expansionTruncated:
+                out.append(
+                    DrawingWarning(kind: .expansionTruncated, message: warning.description))
             }
         }
         if drawing.insUnits == nil || drawing.insUnits == 0 {
@@ -138,7 +143,7 @@ public enum DrawingLoader {
                 DrawingWarning(
                     kind: .unitsNotDeclared, message: "the file declares no length unit"))
         }
-        if drawing.entities.isEmpty && drawing.hatches.isEmpty && drawing.leaders.isEmpty {
+        if drawing.entities.isEmpty {
             out.append(
                 DrawingWarning(kind: .emptyDrawing, message: "the drawing has no entities"))
         }

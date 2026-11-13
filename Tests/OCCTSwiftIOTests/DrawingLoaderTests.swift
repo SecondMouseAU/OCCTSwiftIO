@@ -83,7 +83,7 @@ struct DrawingLoaderTests {
         #endif
         #expect(result.drawing.entities.count == 5)
         #expect(result.drawing.insUnits == 4)
-        #expect(result.drawing.identities.map(\.id) == ["#31", "#32", "#33", "#34", "#35"])
+        #expect(result.drawing.identities.map(\.id) == ["31", "32", "33", "34", "35"])
         #expect(result.warnings.isEmpty)
     }
 
@@ -210,9 +210,32 @@ struct DrawingLoaderTests {
         #expect(skipped.count == 1)
         #expect(skipped.first?.type == "SOLID" && skipped.first?.layer == "FILL")
         #expect(skipped.first?.count == 2)
-        #expect(result.drawing.hatches.count == 1)
+        let hatchCount = result.drawing.entities.filter {
+            if case .hatch = $0 { return true } else { return false }
+        }.count
+        #expect(hatchCount == 1)
         #expect(!result.warnings.contains { $0.type == "HATCH" })
         #expect(!result.warnings.contains { $0.kind == .unitsNotDeclared })
+    }
+
+    @Test("an extrusion not along z and a truncated expansion come through as warnings")
+    func extrusionAndTruncationWarnings() throws {
+        let lines = [
+            "0", "SECTION", "2", "ENTITIES",
+            "0", "CIRCLE", "8", "0", "10", "0", "20", "0", "40", "1",
+            "210", "1", "220", "0", "230", "0",
+            "0", "ENDSEC", "0", "EOF",
+        ]
+        let url = try Self.temporaryFile(
+            "tilted.dxf", Data(lines.joined(separator: "\n").utf8))
+        let result = try DrawingLoader.read(from: url)
+        let tilted = result.warnings.filter { $0.kind == .extrusionNotApplied }
+        #expect(tilted.count == 1)
+        #expect(tilted.first?.type == "CIRCLE" && tilted.first?.count == 1)
+
+        let truncated = DrawingLoader.warnings(
+            for: DXF.Drawing(warnings: [.expansionTruncated(limit: 10)]), expandedBlocks: true)
+        #expect(truncated.contains { $0.kind == .expansionTruncated })
     }
 
     @Test("block references are expanded by default, with the reference in each identity")
@@ -294,7 +317,7 @@ struct DrawingLoaderTests {
         let url = try Self.temporaryFile("blocks.dxf", Data(dxf.utf8))
         let expanded = try DrawingLoader.read(from: url)
         #expect(expanded.drawing.entities.count == 1)
-        #expect(expanded.drawing.identities.first?.id == "#A1/#C1")
+        #expect(expanded.drawing.identities.first?.id == "A1/C1")
         #expect(expanded.drawing.identities.first?.blocks == ["TAG"])
         #expect(expanded.warnings.contains { $0.kind == .missingBlock && $0.type == "MISSING" })
 

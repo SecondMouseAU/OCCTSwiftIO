@@ -110,6 +110,9 @@ public enum DXFLoader {
             case .dimension:
                 // dimension → annotation (extent/extension lines, text, arrows), not drawable curve geometry
                 break
+
+            case .hatch, .leader:
+                break  // fill and annotation, not edges
             }
         }
 
