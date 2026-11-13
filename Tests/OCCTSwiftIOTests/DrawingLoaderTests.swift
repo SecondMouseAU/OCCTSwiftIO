@@ -75,7 +75,6 @@ struct DrawingLoaderTests {
         #expect(result.source.fileName == "plate.dxf")
         #expect(result.source.format == .dxf)
         #expect(result.source.version == "AC1032")
-        #expect(result.source.converter == nil)
         #if canImport(CryptoKit)
             let expected = SHA256.hash(data: try Data(contentsOf: Self.plateDXF))
                 .map { String(format: "%02x", $0) }.joined()
@@ -94,7 +93,6 @@ struct DrawingLoaderTests {
         let url = try Self.temporaryFile("plate.jww", JWWFixture.plate())
         let result = try DrawingLoader.read(from: url)
         #expect(result.source.format == .jww && result.source.version == "700")
-        #expect(result.source.converter == nil)
         #expect(result.drawing.entities.count == 5)
         #expect(result.drawing.counts.line == 4 && result.drawing.counts.circle == 1)
         // JWW declares no length unit, which a consumer must be told rather than assume.
@@ -114,32 +112,25 @@ struct DrawingLoaderTests {
 
     @Test("the same plate from a DXF, a DWG and a JWW has the same entities")
     func dxfDWGAndJWW() throws {
-        try withKnownIssue("dwg2dxf not installed (build Tools/dwg2dxf)", isIntermittent: true) {
-            guard DWGLoader.locateConverter() != nil else { throw CancellationError() }
-            let dxf = try DrawingLoader.read(from: Self.plateDXF)
-            let dwg = try DrawingLoader.read(from: Self.plateDWG)
-            let jww = try DrawingLoader.read(
-                from: try Self.temporaryFile("plate.jww", JWWFixture.plate()))
-            #expect(dwg.source.format == .dwg && dwg.source.version == "AC1032")
-            #expect(dwg.source.converter?.hasPrefix("dwg2dxf") == true)
-            #expect(Self.geometry(dwg.drawing) == Self.geometry(dxf.drawing))
-            #expect(Self.geometry(jww.drawing) == Self.geometry(dwg.drawing))
-            // The DWG also carries the three dimensions the JWW cannot.
-            #expect(dwg.drawing.counts.dimension == 3)
-        }
+        let dxf = try DrawingLoader.read(from: Self.plateDXF)
+        let dwg = try DrawingLoader.read(from: Self.plateDWG)
+        let jww = try DrawingLoader.read(
+            from: try Self.temporaryFile("plate.jww", JWWFixture.plate()))
+        #expect(dwg.source.format == .dwg && dwg.source.version == "AC1032")
+        #expect(Self.geometry(dwg.drawing) == Self.geometry(dxf.drawing))
+        #expect(Self.geometry(jww.drawing) == Self.geometry(dwg.drawing))
+        // The DWG also carries the three dimensions the JWW cannot.
+        #expect(dwg.drawing.counts.dimension == 3)
     }
 
     @Test("a DWG keeps its handles, so the same entity has the same identity")
     func dwgHandles() throws {
-        try withKnownIssue("dwg2dxf not installed (build Tools/dwg2dxf)", isIntermittent: true) {
-            guard DWGLoader.locateConverter() != nil else { throw CancellationError() }
-            let first = try DrawingLoader.read(from: Self.plateDWG)
-            let second = try DrawingLoader.read(from: Self.plateDWG)
-            #expect(first.drawing.identities == second.drawing.identities)
-            #expect(first.drawing.identities.allSatisfy { $0.handle != nil })
-            let dxf = try DrawingLoader.read(from: Self.plateDXF)
-            #expect(first.drawing.identities.prefix(5) == dxf.drawing.identities.prefix(5))
-        }
+        let first = try DrawingLoader.read(from: Self.plateDWG)
+        let second = try DrawingLoader.read(from: Self.plateDWG)
+        #expect(first.drawing.identities == second.drawing.identities)
+        #expect(first.drawing.identities.allSatisfy { $0.handle != nil })
+        let dxf = try DrawingLoader.read(from: Self.plateDXF)
+        #expect(first.drawing.identities.prefix(5) == dxf.drawing.identities.prefix(5))
     }
 
     // MARK: DWG written by AutoCAD
@@ -150,86 +141,85 @@ struct DrawingLoaderTests {
 
     @Test("a DWG written by AutoCAD 2025 (AC1027) reads with its handles and its dimension")
     func autocadLinesAndDimension() throws {
-        try withKnownIssue("dwg2dxf not installed (build Tools/dwg2dxf)", isIntermittent: true) {
-            guard DWGLoader.locateConverter() != nil else { throw CancellationError() }
-            let result = try DrawingLoader.read(
-                from: Self.autocad("dimassoc-perpendicular.dwg"))
-            #expect(result.source.format == .dwg && result.source.version == "AC1027")
+        let result = try DrawingLoader.read(
+            from: Self.autocad("dimassoc-perpendicular.dwg"))
+        #expect(result.source.format == .dwg && result.source.version == "AC1027")
 
-            // Two lines and a linear dimension, with the handles AutoCAD gave them.
-            let drawing = result.drawing
-            #expect(drawing.entities.count == 3)
-            #expect(drawing.identities.map(\.id) == ["2C1", "2C2", "2C3"])
-            if case .line(let a, let b, _, _) = drawing.entities[0] {
-                #expect(a == DXF.Point(0, 0) && b == DXF.Point(100, 0))
+        // Two lines and a linear dimension, with the handles AutoCAD gave them.
+        let drawing = result.drawing
+        #expect(drawing.entities.count == 3)
+        #expect(drawing.identities.map(\.id) == ["2C1", "2C2", "2C3"])
+        if case .line(let a, let b, _, _) = drawing.entities[0] {
+            #expect(a == DXF.Point(0, 0) && b == DXF.Point(100, 0))
+        } else {
+            Issue.record("entity 0 is not a line")
+        }
+        if case .line(let a, let b, _, _) = drawing.entities[1] {
+            #expect(a == DXF.Point(0, 50) && b == DXF.Point(100, 80))
+        } else {
+            Issue.record("entity 1 is not a line")
+        }
+        if case .dimension(let dimension) = drawing.entities[2] {
+            #expect(dimension.kind == .linear)
+            // Written from 100,0 to 91.74,77.52 with the dimension line at x = 150, so
+            // vertical: the value is the difference in y.
+            #expect(dimension.defPoint2 == DXF.Point(100, 0))
+            if let p = dimension.defPoint3 {
+                #expect(abs(p.x - 91.74) < 1e-9 && abs(p.y - 77.52) < 1e-9)
             } else {
-                Issue.record("entity 0 is not a line")
+                Issue.record("the dimension has no third definition point")
             }
-            if case .line(let a, let b, _, _) = drawing.entities[1] {
-                #expect(a == DXF.Point(0, 50) && b == DXF.Point(100, 80))
+            #expect(dimension.rotation == 90)
+            if let value = dimension.computedMeasurement {
+                #expect(abs(value - 77.52) < 1e-9)
             } else {
-                Issue.record("entity 1 is not a line")
+                Issue.record("the dimension has no computed measurement")
             }
-            if case .dimension(let dimension) = drawing.entities[2] {
-                #expect(dimension.kind == .linear)
-                // Written from 100,0 to 91.74,77.52 with the dimension line at x = 150, so
-                // vertical: the value is the difference in y.
-                #expect(dimension.defPoint2 == DXF.Point(100, 0))
-                if let p = dimension.defPoint3 {
-                    #expect(abs(p.x - 91.74) < 1e-9 && abs(p.y - 77.52) < 1e-9)
-                } else {
-                    Issue.record("the dimension has no third definition point")
-                }
-                #expect(dimension.rotation == 90)
-                if let value = dimension.computedMeasurement {
-                    #expect(abs(value - 77.52) < 1e-9)
-                } else {
-                    Issue.record("the dimension has no computed measurement")
-                }
-            } else {
-                Issue.record("entity 2 is not a dimension")
-            }
+        } else {
+            Issue.record("entity 2 is not a dimension")
         }
     }
 
     @Test("a DWG written by AutoCAD 2025 (AC1032) keeps its anonymous block names")
     func autocadAnonymousBlocks() throws {
-        try withKnownIssue("dwg2dxf not installed (build Tools/dwg2dxf)", isIntermittent: true) {
-            guard DWGLoader.locateConverter() != nil else { throw CancellationError() }
-            let result = try DrawingLoader.read(from: Self.autocad("anonymous-names.dwg"))
-            #expect(result.source.format == .dwg && result.source.version == "AC1032")
-            #expect(
-                result.drawing.references.map(\.name)
-                    == ["NamedBefore", "*U2", "NamedBetween", "*U4", "*U5"])
-            #expect(!result.warnings.contains { $0.kind == .missingBlock })
-            #expect(!result.warnings.contains { $0.kind == .blockCycle })
-        }
+        let result = try DrawingLoader.read(from: Self.autocad("anonymous-names.dwg"))
+        #expect(result.source.format == .dwg && result.source.version == "AC1032")
+        #expect(
+            result.drawing.references.map(\.name)
+                == ["NamedBefore", "*U2", "NamedBetween", "*U4", "*U5"])
+        #expect(!result.warnings.contains { $0.kind == .missingBlock })
+        #expect(!result.warnings.contains { $0.kind == .blockCycle })
     }
 
     @Test("a DWG and the DXF AutoCAD wrote from the same drawing agree on the tables")
     func autocadDWGAgreesWithItsDXF() throws {
-        try withKnownIssue("dwg2dxf not installed (build Tools/dwg2dxf)", isIntermittent: true) {
-            guard DWGLoader.locateConverter() != nil else { throw CancellationError() }
-            let dwg = try DrawingLoader.read(from: Self.autocad("point_object_id.dwg"))
-            let dxf = try DrawingLoader.read(from: Self.autocad("point_object_id.dxf"))
-            #expect(dwg.source.version == "AC1032" && dxf.source.version == "AC1032")
-            #expect(dwg.drawing.entities.isEmpty && dxf.drawing.entities.isEmpty)
+        let dwg = try DrawingLoader.read(from: Self.autocad("point_object_id.dwg"))
+        let dxf = try DrawingLoader.read(from: Self.autocad("point_object_id.dxf"))
+        #expect(dwg.source.version == "AC1032" && dxf.source.version == "AC1032")
+        #expect(dwg.drawing.entities.isEmpty && dxf.drawing.entities.isEmpty)
 
-            func lineTypes(_ drawing: DXF.Drawing) -> [String] {
-                drawing.lineTypes.map { "\($0.name)#\($0.handle ?? "-")" }.sorted()
-            }
-            func dimensionStyles(_ drawing: DXF.Drawing) -> [String] {
-                drawing.dimensionStyles.map { "\($0.name)#\($0.handle ?? "-")" }.sorted()
-            }
-            #expect(!lineTypes(dxf.drawing).isEmpty)
-            #expect(lineTypes(dwg.drawing) == lineTypes(dxf.drawing))
-            #expect(!dimensionStyles(dxf.drawing).isEmpty)
-            #expect(dimensionStyles(dwg.drawing) == dimensionStyles(dxf.drawing))
-            // Layer names agree. The handle of `Defpoints` does not (see the README beside the
-            // fixtures), so handles are not compared for layers.
-            #expect(
-                dwg.drawing.layers.map(\.name).sorted() == dxf.drawing.layers.map(\.name).sorted())
+        func lineTypes(_ drawing: DXF.Drawing) -> [String] {
+            drawing.lineTypes.map { "\($0.name)#\($0.handle ?? "-")" }.sorted()
         }
+        func dimensionStyles(_ drawing: DXF.Drawing) -> [String] {
+            drawing.dimensionStyles.map { "\($0.name)#\($0.handle ?? "-")" }.sorted()
+        }
+        #expect(!lineTypes(dxf.drawing).isEmpty)
+        #expect(lineTypes(dwg.drawing) == lineTypes(dxf.drawing))
+        #expect(!dimensionStyles(dxf.drawing).isEmpty)
+        #expect(dimensionStyles(dwg.drawing) == dimensionStyles(dxf.drawing))
+        func layers(_ drawing: DXF.Drawing) -> [String] {
+            drawing.layers.map { "\($0.name)#\($0.handle ?? "-")" }.sorted()
+        }
+        #expect(!layers(dxf.drawing).isEmpty)
+        #expect(layers(dwg.drawing) == layers(dxf.drawing))
+        #expect(
+            dwg.drawing.blocks.map(\.name).sorted() == dxf.drawing.blocks.map(\.name).sorted())
+        #expect(dwg.drawing.insUnits == dxf.drawing.insUnits)
+        #expect(dwg.drawing.extMin == dxf.drawing.extMin)
+        #expect(dwg.drawing.extMax == dxf.drawing.extMax)
+        // Nothing was lost in reading the DWG that the DXF did not also lack.
+        #expect(dwg.warnings.map(\.kind) == dxf.warnings.map(\.kind))
     }
 
     // MARK: warnings

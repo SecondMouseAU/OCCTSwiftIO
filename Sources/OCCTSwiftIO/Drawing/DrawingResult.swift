@@ -15,7 +15,7 @@ public struct DrawingResult: Sendable {
     /// `drawing.identities[i]` identifies `drawing.entities[i]`.
     public var drawing: DXF.Drawing
     public var source: DrawingSource
-    /// What was skipped by type and layer, assumed or reported by a converter.
+    /// What was skipped by type and layer, could not be read, or was assumed.
     public var warnings: [DrawingWarning]
 
     public init(drawing: DXF.Drawing, source: DrawingSource, warnings: [DrawingWarning]) {

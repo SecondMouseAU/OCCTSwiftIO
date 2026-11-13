@@ -3,4 +3,3 @@
 .swiftpm/
 *.xcodeproj/
 Package.resolved
-Tools/dwg2dxf/target/

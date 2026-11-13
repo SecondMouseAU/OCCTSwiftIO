@@ -28,14 +28,12 @@ on:
       - 'Sources/**'
       - 'Tests/**'
       - 'Package.*'
-      - 'Tools/**'
       - '.github/workflows/tests.yml'
   pull_request:
     paths:
       - 'Sources/**'
       - 'Tests/**'
       - 'Package.*'
-      - 'Tools/**'
       - '.github/workflows/tests.yml'
   workflow_dispatch:
 
@@ -52,25 +50,8 @@ jobs:
           key: spm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
           restore-keys: spm-${{ runner.os }}-
 
-      # The DWG tests need the dwg2dxf converter (Tools/dwg2dxf, Rust on acadrust). Without it
-      # they take their known-issue path and the conversion is never exercised on a clean
-      # machine (OCCTSwiftIO#58). The binary is cached on the Cargo inputs, so the Rust build
-      # runs only when the tool changes.
-      - name: Cache dwg2dxf
-        id: dwg2dxf-cache
-        uses: actions/cache@v4
-        with:
-          path: Tools/dwg2dxf/target/release/dwg2dxf
-          key: dwg2dxf-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Tools/dwg2dxf/Cargo.toml', 'Tools/dwg2dxf/Cargo.lock', 'Tools/dwg2dxf/src/**') }}
-
-      - name: Build dwg2dxf
-        if: steps.dwg2dxf-cache.outputs.cache-hit != 'true'
-        run: cargo build --release --locked --manifest-path Tools/dwg2dxf/Cargo.toml
-
       - name: swift build
         run: swift build
 
       - name: swift test
-        env:
-          OCCTSWIFTIO_DWG2DXF: ${{ github.workspace }}/Tools/dwg2dxf/target/release/dwg2dxf
         run: swift test

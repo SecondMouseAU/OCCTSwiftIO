@@ -1,9 +1,9 @@
 // DrawingLoader.swift
 // OCCTSwiftIO
 //
-// One entry point for 2D drawing import. DXF is read directly, DWG through the `dwg2dxf`
-// converter, and JWW through SwiftJWW's DXF writer, and all three come back as the same
-// `DXF.Drawing`, so a consumer neither picks a reader nor branches on the file extension.
+// One entry point for 2D drawing import. DXF is read directly, DWG by SwiftDWG, and JWW through
+// SwiftJWW's DXF writer, and all three come back as the same `DXF.Drawing`, so a consumer neither
+// picks a reader nor branches on the file extension.
 
 import Foundation
 import SwiftJWW
@@ -22,15 +22,10 @@ public enum DrawingLoader {
         public var expandBlocks: Bool
         /// Leave paper-space entities out, as a model-space read does.
         public var skipPaperSpace: Bool
-        /// The `dwg2dxf` executable for DWG; `nil` finds it through `OCCTSWIFTIO_DWG2DXF` or
-        /// `PATH`.
-        public var converter: URL?
 
-        public init(expandBlocks: Bool = true, skipPaperSpace: Bool = false, converter: URL? = nil)
-        {
+        public init(expandBlocks: Bool = true, skipPaperSpace: Bool = false) {
             self.expandBlocks = expandBlocks
             self.skipPaperSpace = skipPaperSpace
-            self.converter = converter
         }
     }
 
@@ -49,6 +44,10 @@ public enum DrawingLoader {
     /// Read a DXF, DWG or JWW file into one drawing model.
     ///
     /// The format comes from the file's bytes, not its extension.
+    ///
+    /// - Throws: ``LoadError`` for a file that is none of the three, ``DWG/Error`` for a DWG that
+    ///   cannot be read (not a DWG, a release that is not read, or damage to its structure), and
+    ///   the reader's own error for a DXF or a JWW.
     public static func read(from url: URL, options: Options = .init()) throws -> DrawingResult {
         let data = try Data(contentsOf: url)
         let fileName = url.lastPathComponent
@@ -61,45 +60,36 @@ public enum DrawingLoader {
         let drawing: DXF.Drawing
         var source = DrawingSource(
             fileName: fileName, sha256: FileDigest.sha256Hex(data), format: format, version: "")
-        var warnings: [DrawingWarning] = []
 
         switch format {
         case .dxf:
             drawing = try DXF.read(data: data, options: readOptions)
             source.version = drawing.version
         case .dwg:
-            let conversion = try DWGLoader.readEntities(
-                from: url, converter: options.converter, options: readOptions)
-            drawing = conversion.drawing
-            source.version = conversion.sourceVersion
-            source.converter = conversion.converter
-            warnings += conversion.warnings.map {
-                DrawingWarning(kind: .converter, message: $0)
-            }
+            let dwg = try DWGLoader.read(data: data, options: readOptions)
+            drawing = dwg.drawing
+            source.version = dwg.version
         case .jww:
             let jww = try JWW.read(data: data)
             drawing = try DXF.read(text: DXFWriter.string(jww), options: readOptions)
             source.version = String(jww.version)
         }
 
-        warnings += self.warnings(for: drawing, expandedBlocks: options.expandBlocks)
+        let warnings = self.warnings(
+            for: drawing, expandedBlocks: options.expandBlocks, layersKnown: format != .dwg)
         return DrawingResult(drawing: drawing, source: source, warnings: warnings)
     }
 
-    /// The warnings a drawing carries: what was skipped, assumed, or reported by the reader.
-    static func warnings(for drawing: DXF.Drawing, expandedBlocks: Bool) -> [DrawingWarning] {
-        var out: [DrawingWarning] = []
-        for type in drawing.skippedByLayer.keys.sorted() {
-            for (layer, count) in (drawing.skippedByLayer[type] ?? [:]).sorted(by: {
-                $0.key < $1.key
-            }) {
-                out.append(
-                    DrawingWarning(
-                        kind: .skippedEntities, type: type, layer: layer, count: count,
-                        message: "\(count) \(type) entities on layer \(layer) were not read"))
-            }
-        }
-        for (type, count) in drawing.paperSpace.sorted(by: { $0.key < $1.key }) {
+    /// The warnings a drawing carries: what was skipped, could not be read, or assumed.
+    ///
+    /// `layersKnown` is `false` for a format that counts skipped entities without their layer.
+    static func warnings(
+        for drawing: DXF.Drawing, expandedBlocks: Bool, layersKnown: Bool = true
+    ) -> [DrawingWarning] {
+        var out = skippedWarnings(for: drawing, layersKnown: layersKnown)
+        out += unreadableWarnings(for: drawing, expandedBlocks: expandedBlocks)
+        for (type, count) in drawing.paperSpace.sorted(by: { $0.key < $1.key })
+        where !type.hasPrefix(unreadablePrefix) {
             out.append(
                 DrawingWarning(
                     kind: .paperSpaceEntities, type: type, count: count,
