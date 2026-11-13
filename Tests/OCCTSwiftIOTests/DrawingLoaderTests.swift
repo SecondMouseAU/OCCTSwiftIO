@@ -142,6 +142,70 @@ struct DrawingLoaderTests {
         }
     }
 
+    // MARK: DWG written by AutoCAD
+
+    static func autocad(_ name: String) -> URL {
+        fixtures.appendingPathComponent("DWG/autocad/\(name)")
+    }
+
+    @Test("a DWG written by AutoCAD 2025 (AC1027) reads with its handles and its dimension")
+    func autocadLinesAndDimension() throws {
+        try withKnownIssue("dwg2dxf not installed (build Tools/dwg2dxf)", isIntermittent: true) {
+            guard DWGLoader.locateConverter() != nil else { throw CancellationError() }
+            let result = try DrawingLoader.read(
+                from: Self.autocad("dimassoc-perpendicular.dwg"))
+            #expect(result.source.format == .dwg && result.source.version == "AC1027")
+
+            // Two lines and a linear dimension, with the handles AutoCAD gave them.
+            let drawing = result.drawing
+            #expect(drawing.entities.count == 3)
+            #expect(drawing.identities.map(\.id) == ["2C1", "2C2", "2C3"])
+            if case .line(let a, let b, _, _) = drawing.entities[0] {
+                #expect(a == DXF.Point(0, 0) && b == DXF.Point(100, 0))
+            } else {
+                Issue.record("entity 0 is not a line")
+            }
+            if case .line(let a, let b, _, _) = drawing.entities[1] {
+                #expect(a == DXF.Point(0, 50) && b == DXF.Point(100, 80))
+            } else {
+                Issue.record("entity 1 is not a line")
+            }
+            if case .dimension(let dimension) = drawing.entities[2] {
+                #expect(dimension.kind == .linear)
+                // Written from 100,0 to 91.74,77.52 with the dimension line at x = 150, so
+                // vertical: the value is the difference in y.
+                #expect(dimension.defPoint2 == DXF.Point(100, 0))
+                if let p = dimension.defPoint3 {
+                    #expect(abs(p.x - 91.74) < 1e-9 && abs(p.y - 77.52) < 1e-9)
+                } else {
+                    Issue.record("the dimension has no third definition point")
+                }
+                #expect(dimension.rotation == 90)
+                if let value = dimension.computedMeasurement {
+                    #expect(abs(value - 77.52) < 1e-9)
+                } else {
+                    Issue.record("the dimension has no computed measurement")
+                }
+            } else {
+                Issue.record("entity 2 is not a dimension")
+            }
+        }
+    }
+
+    @Test("a DWG written by AutoCAD 2025 (AC1032) keeps its anonymous block names")
+    func autocadAnonymousBlocks() throws {
+        try withKnownIssue("dwg2dxf not installed (build Tools/dwg2dxf)", isIntermittent: true) {
+            guard DWGLoader.locateConverter() != nil else { throw CancellationError() }
+            let result = try DrawingLoader.read(from: Self.autocad("anonymous-names.dwg"))
+            #expect(result.source.format == .dwg && result.source.version == "AC1032")
+            #expect(
+                result.drawing.references.map(\.name)
+                    == ["NamedBefore", "*U2", "NamedBetween", "*U4", "*U5"])
+            #expect(!result.warnings.contains { $0.kind == .missingBlock })
+            #expect(!result.warnings.contains { $0.kind == .blockCycle })
+        }
+    }
+
     // MARK: warnings
 
     @Test("skipped entities are reported by type and layer, and hatches and leaders are not lost")
