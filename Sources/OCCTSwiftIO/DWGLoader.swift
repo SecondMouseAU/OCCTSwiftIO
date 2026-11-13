@@ -40,14 +40,20 @@ public enum DWGLoader {
     ) throws -> Conversion {
         let source = try Data(contentsOf: url)
         let parsed = try read(data: source, options: options)
-        var lines = DrawingLoader.unreadableWarnings(
-            for: parsed.drawing, expandedBlocks: options.expandBlocks,
-            leftOutPaperSpace: options.skipPaperSpace
-        ).map(\.message)
-        if parsed.drawing.entities.isEmpty { lines.append(DrawingLoader.emptyDrawingMessage) }
         return Conversion(
             drawing: parsed.drawing, sourceSHA256: FileDigest.sha256Hex(source),
-            sourceVersion: parsed.version, warnings: lines)
+            sourceVersion: parsed.version,
+            warnings: warningLines(for: parsed.drawing, options: options))
+    }
+
+    /// The lines of ``Conversion/warnings`` for a drawing read with `options`.
+    static func warningLines(for drawing: DXF.Drawing, options: DXF.ReadOptions) -> [String] {
+        var lines = DrawingLoader.unreadableWarnings(
+            for: drawing, expandedBlocks: options.expandBlocks,
+            leftOutPaperSpace: options.skipPaperSpace
+        ).map(\.message)
+        if drawing.entities.isEmpty { lines.append(DrawingLoader.emptyDrawingMessage) }
+        return lines
     }
 
     /// The drawing in a DWG's bytes, and the version code the file starts with.

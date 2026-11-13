@@ -89,6 +89,27 @@ struct DrawingUnreadableTests {
         #expect(!warnings.contains { $0.type?.hasPrefix("UNREADABLE_") == true })
     }
 
+    @Test("DWGLoader's warning lines follow the read options")
+    func warningLines() throws {
+        func lines(_ options: DXF.ReadOptions) throws -> [String] {
+            DWGLoader.warningLines(
+                for: try DXF.read(text: Self.dxf, options: options), options: options)
+        }
+        // Paper space left out or kept makes no difference to what could not be read.
+        for skip in [false, true] {
+            #expect(
+                try lines(.init(expandBlocks: true, skipPaperSpace: skip)) == [
+                    "LAYER table records: 1 could not be read",
+                    "LINE entities: 3 could not be read",
+                    "objects: 2 could not be read",
+                ])
+        }
+        // Left alone, the block definitions count too.
+        let kept = try lines(.init(expandBlocks: false))
+        #expect(kept.contains("LINE entities: 2 could not be read (1 in block definitions)"))
+        #expect(kept.contains("POLYLINE entities: 1 could not be read (1 in block definitions)"))
+    }
+
     @Test("an unreadable record in paper space is reported whether or not paper space is left out")
     func paperSpace() throws {
         let kept = try Self.warnings(.init(skipPaperSpace: false))
