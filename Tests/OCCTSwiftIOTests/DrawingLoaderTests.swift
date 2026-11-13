@@ -206,6 +206,32 @@ struct DrawingLoaderTests {
         }
     }
 
+    @Test("a DWG and the DXF AutoCAD wrote from the same drawing agree on the tables")
+    func autocadDWGAgreesWithItsDXF() throws {
+        try withKnownIssue("dwg2dxf not installed (build Tools/dwg2dxf)", isIntermittent: true) {
+            guard DWGLoader.locateConverter() != nil else { throw CancellationError() }
+            let dwg = try DrawingLoader.read(from: Self.autocad("point_object_id.dwg"))
+            let dxf = try DrawingLoader.read(from: Self.autocad("point_object_id.dxf"))
+            #expect(dwg.source.version == "AC1032" && dxf.source.version == "AC1032")
+            #expect(dwg.drawing.entities.isEmpty && dxf.drawing.entities.isEmpty)
+
+            func lineTypes(_ drawing: DXF.Drawing) -> [String] {
+                drawing.lineTypes.map { "\($0.name)#\($0.handle ?? "-")" }.sorted()
+            }
+            func dimensionStyles(_ drawing: DXF.Drawing) -> [String] {
+                drawing.dimensionStyles.map { "\($0.name)#\($0.handle ?? "-")" }.sorted()
+            }
+            #expect(!lineTypes(dxf.drawing).isEmpty)
+            #expect(lineTypes(dwg.drawing) == lineTypes(dxf.drawing))
+            #expect(!dimensionStyles(dxf.drawing).isEmpty)
+            #expect(dimensionStyles(dwg.drawing) == dimensionStyles(dxf.drawing))
+            // Layer names agree. The handle of `Defpoints` does not (see the README beside the
+            // fixtures), so handles are not compared for layers.
+            #expect(
+                dwg.drawing.layers.map(\.name).sorted() == dxf.drawing.layers.map(\.name).sorted())
+        }
+    }
+
     // MARK: warnings
 
     @Test("skipped entities are reported by type and layer, and hatches and leaders are not lost")
