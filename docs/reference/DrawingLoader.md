@@ -64,3 +64,9 @@ a `layer` and a `count`, and a `message`.
 | `expansionTruncated` | Block expansion stopped at its size limit. |
 | `unitsNotDeclared` | The file declares no length unit. |
 | `emptyDrawing` | Nothing was read. |
+
+The `unreadable` kind reads the names SwiftDWG documents in its README: the `UNREADABLE_` prefix, and
+`LAYER`, `LTYPE`, `STYLE`, `DIMSTYLE` and `BLOCK_RECORD` as the tables whose records it counts.
+SwiftDWG does not export them, so `Sources/OCCTSwiftIO/Drawing/DrawingLoader+Skipped.swift` holds a
+copy: check it against SwiftDWG's README when moving to a new release. A table it does not know is
+worded as entities.
