@@ -145,6 +145,7 @@ struct DWGDamagedFileTests {
     /// one that the damaged-entity tests read past.
     @Test(
         "a byte inverted anywhere in a sample gives a drawing or a DWG.Error, not a crash",
+        .timeLimit(.minutes(1)),
         arguments: [
             ("DWG/plate.dwg", 401, [219, 840]),
             ("DWG/autocad/dimassoc-perpendicular.dwg", 601, [10662]),
@@ -161,12 +162,13 @@ struct DWGDamagedFileTests {
                 _ = try DWGLoader.read(data: bytes, options: .init())
                 drawings += 1
             } catch is DWG.Error {
-                errors += 1
+                // The first bytes are the version code, which any change refuses.
+                if offset >= 6 { errors += 1 }
             } catch {
                 Issue.record("\(path) byte \(offset): expected a DWG.Error, got \(error)")
             }
         }
-        // The sample is worth something only if it reaches both outcomes.
+        // The sample is worth something only if it reaches both outcomes past the version code.
         #expect(drawings > 0 && errors > 0, "\(path): \(drawings) read, \(errors) refused")
     }
 

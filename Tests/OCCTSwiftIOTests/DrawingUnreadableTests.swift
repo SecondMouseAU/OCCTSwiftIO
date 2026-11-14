@@ -90,7 +90,7 @@ struct DrawingUnreadableTests {
     }
 
     @Test("DWGLoader's warning lines follow the read options")
-    func warningLines() throws {
+    func warningLinesFollowTheReadOptions() throws {
         func lines(_ options: DXF.ReadOptions) throws -> [String] {
             DWGLoader.warningLines(
                 for: try DXF.read(text: Self.dxf, options: options), options: options)

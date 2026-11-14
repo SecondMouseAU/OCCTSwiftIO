@@ -49,11 +49,7 @@ extension DrawingLoader {
 
     /// What the reader found in the file and could not read, one warning per type.
     ///
-    /// The count covers model space (paper space too, whether or not it was left out) and the
-    /// blocks that were expanded into it, once for each
-    /// reference that expanded the block. The block definitions are counted when they were not
-    /// expanded; with expansion on, one that nothing inserts is not part of the drawing, and is
-    /// not counted.
+    /// The rules for what is counted are in `docs/reference/DrawingLoader.md`.
     static func unreadableWarnings(
         for drawing: DXF.Drawing, expandedBlocks: Bool, leftOutPaperSpace: Bool = false
     ) -> [DrawingWarning] {
