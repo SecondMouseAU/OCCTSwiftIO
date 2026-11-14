@@ -4,7 +4,9 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
-## Unreleased
+## v2.0.0-beta.7 (2026-11-15)
+
+**Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
 
 **A STEP assembly loads as its leaves, not as its root as well ([#41](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/41)).** `ShapeLoader` read a STEP file through `Document.shapesWithColors()`, which returns every node that has a shape. An assembly's root holds the compound of everything below it, so it came back beside the children that make it up: a three-solid assembly gave four bodies, one of them a compound of all three, and every triangle was drawn twice, picked twice and counted twice. The loader now walks the assembly tree and returns one entry per leaf, with the leaf's colour and its placement in the assembly. A component that is itself an assembly is split into its solids (the XCAF reference reports no children of its own, only the compound of its parts), and each takes the component's colour. An assembly whose children give no shape, and a compound that is the only thing in the file, are still loaded, as the model. The change affects STEP only; STL, OBJ, BREP and IGES were not affected. A caller that read the root as a body, to get the whole assembly as one shape, now gets its leaves.
 
