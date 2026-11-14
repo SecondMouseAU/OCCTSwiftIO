@@ -77,16 +77,18 @@ as skipped.
 - **Skipped entities carry no layer.** SwiftDWG writes the entities it does not model, and the ones it
   could not read, as bare records, so SwiftDXF counts them on layer `0` (on the layer of the `INSERT`
   in a block that was expanded), whatever their layer was. `DrawingWarning.layer` is `nil` for a DWG.
-- **Some damage crashes or stalls the reader instead of throwing.** A truncated file, a wrong
-  version and a file that is not a DWG throw `DWG.Error`. But in SwiftDWG 0.1.0 a changed byte
-  inside the compressed data of the AC1027 and AC1032 files tried can trap (a negative range in its
-  decompression), and a changed byte in the section map at the end of the file can keep it running
-  for more than 20 seconds with memory growing. Do not read DWGs you do not trust in a process you
-  cannot afford to lose.
+- **A corrupt file** ends in a `DWG.Error`, or in a drawing that counts what it lost. SwiftDWG's
+  README says it is not meant to stop the process with a trap or to never return, and that memory is
+  bounded by the sizes the file declares. That is checked by inverting single bytes of sampled files,
+  and is not proved for every byte of every file, so a file found to trap or hang is a SwiftDWG bug
+  to report. The reader runs in this process, unlike the converter it replaces; a pipeline that
+  reads DWGs it does not trust may want to run it out of process.
 - **Splines** that AutoCAD stored as fit points only come back with fit points and no control points.
 - **Leader hook lines** have the vertices the DWG holds, not the extra vertex AutoCAD adds in its DXF.
-- **Entities after an unreadable one, before R2004.** Each names the next, so those after one that
-  cannot be read are lost with it and counted as one.
+- **Three or more unreadable entities in one block, before R2004.** The ones that cannot be read are
+  counted and the others kept, but what lies between two unreadable ones is found by its owner, in
+  handle order, so a block's drawing order can be lost there. An entity whose own header cannot be
+  read, between two other unreadable ones, is neither kept nor counted.
 - **Text before R2007** is decoded from the code pages SwiftDWG has a table for and read as
   Windows-1252 otherwise, so text in another code page can come out wrong.
 - Anonymous block names keep their DWG numbers; AutoCAD's DXF renumbers them. Performance has not

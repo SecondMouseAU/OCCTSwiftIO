@@ -33,8 +33,9 @@ public enum DWGLoader {
     ///
     /// - Throws: ``DWG/Error`` when the file is not a DWG, is of a release that is not read, or is
     ///   damaged in its structure. An entity or table record that cannot be read does not throw:
-    ///   it is left out and reported in ``Conversion/warnings``. Some damage makes SwiftDWG 0.1.0
-    ///   trap or stall instead of throw, and the reader runs in this process.
+    ///   it is left out and reported in ``Conversion/warnings``. The reader runs in this process;
+    ///   SwiftDWG checks by sampled byte inversions, not for every byte, that a corrupt file does
+    ///   not trap or hang.
     public static func readEntities(
         from url: URL, options: DXF.ReadOptions = .init()
     ) throws -> Conversion {

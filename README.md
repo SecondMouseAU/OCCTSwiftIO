@@ -133,9 +133,11 @@ and lists its limits. The ones that matter to a caller:
   `DrawingWarning.layer` is `nil` for a DWG.
 - Polyface and polygon meshes and the attributes of an insert are not decoded; a spline AutoCAD kept
   as fit points has no control points.
-- Not every damaged file throws: in SwiftDWG 0.1.0 some bytes changed inside a file's compressed data
-  make the reader trap, and some stall it (see [DWGLoader](docs/reference/DWGLoader.md)). Do not read
-  DWGs you do not trust in a process you cannot afford to lose.
+- A corrupt file ends in a `DWG.Error` or in a drawing that counts what it lost; SwiftDWG's README says
+  it is not meant to trap or never return, and that this is checked by inverting sampled bytes, not
+  proved for every byte. The reader runs in your process, so a file found to trap or hang is a
+  SwiftDWG bug to report, and a pipeline that reads DWGs it does not trust may want to run it out of
+  process.
 
 SwiftDWG is a Swift port of the DWG reader in [ACadSharp](https://github.com/DomCR/ACadSharp) (MIT),
 together with the Open Design Alliance's published specification of the format. It is not a

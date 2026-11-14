@@ -81,8 +81,7 @@ struct DWGDamagedFileTests {
     /// dimension style.
     ///
     /// These pin what that release does with this damage. If a later one reads more of it, pick
-    /// another byte; do not look for one inside the test process, because some bytes make
-    /// SwiftDWG trap instead of throw.
+    /// another byte.
     static let invertedBytes: [(offset: Int, type: String, entities: Int, message: String)] = [
         (18328, "LINE", 7, "LINE entities: 1 could not be read"),
         (17992, "DIMSTYLE", 8, "DIMSTYLE table records: 1 could not be read"),
@@ -135,6 +134,40 @@ struct DWGDamagedFileTests {
         let unreadable = keptResult.warnings.filter { $0.kind == .unreadable }
         #expect(unreadable.map(\.type) == ["SOLID"])
         #expect(unreadable.first?.count == 1)
+    }
+
+    /// A sample of the bytes of a DWG: every `stride`th, and `extra`.
+    ///
+    /// Inverting each in turn must give a drawing or a `DWG.Error`. This is a sample, as it is in
+    /// SwiftDWG's own checks, not a proof for every byte. In `plate.dwg`, byte 840 made SwiftDWG
+    /// trap before its 0.1.0 release, and byte 219 is in the 64-bit address of the page map, which
+    /// that release refuses when it is too large. In `dimassoc-perpendicular.dwg`, byte 10662 is
+    /// one that the damaged-entity tests read past.
+    @Test(
+        "a byte inverted anywhere in a sample gives a drawing or a DWG.Error, not a crash",
+        arguments: [
+            ("DWG/plate.dwg", 401, [219, 840]),
+            ("DWG/autocad/dimassoc-perpendicular.dwg", 601, [10662]),
+        ] as [(String, Int, [Int])])
+    func invertedByteSample(path: String, stride step: Int, extra: [Int]) throws {
+        let original = try Data(
+            contentsOf: DrawingLoaderTests.fixtures.appendingPathComponent(path))
+        var drawings = 0
+        var errors = 0
+        for offset in Set(stride(from: 0, to: original.count, by: step)).union(extra).sorted() {
+            var bytes = original
+            bytes[offset] ^= 0xFF
+            do {
+                _ = try DWGLoader.read(data: bytes, options: .init())
+                drawings += 1
+            } catch is DWG.Error {
+                errors += 1
+            } catch {
+                Issue.record("\(path) byte \(offset): expected a DWG.Error, got \(error)")
+            }
+        }
+        // The sample is worth something only if it reaches both outcomes.
+        #expect(drawings > 0 && errors > 0, "\(path): \(drawings) read, \(errors) refused")
     }
 
     // MARK: DrawingLoader
