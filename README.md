@@ -88,6 +88,30 @@ let dxf = try await ShapeLoader.load(from: dxfURL, format: .dxf)
 try await ExportManager.export(shapes: result.shapes, format: .glb, to: outURL)
 ```
 
+### One call for 2D drawings
+
+`DrawingLoader.read(from:)` reads a DXF, a DWG or a JWW and returns one `DrawingResult`, so a
+consumer neither picks a reader nor branches on the extension. The format comes from the file's
+bytes.
+
+```swift
+let result = try DrawingLoader.read(from: url)
+result.drawing   // DXF.Drawing: entities (including hatches and leaders), layers, units, extents, block references
+result.source    // file name, SHA-256, format, version, and the converter (DWG) that produced it
+result.warnings  // what was skipped by type and layer, assumed or reported, as data
+result.drawing.identities[i]   // a stable identity for entity i: its DXF handle, else its position
+```
+
+DWG goes through the `dwg2dxf` converter (see `DWGLoader`), JWW through SwiftJWW, DXF directly.
+Block references are expanded by default, each expanded entity's identity listing the references
+it came through, so a title block can be kept or dropped by name; pass
+`.init(expandBlocks: false)` to leave them. `.hatch` and `.leader` are entity cases (boundary loops,
+and vertices with the annotation handle), `layers` and `lineTypes` are the file's tables, and a
+spline or ellipse can be turned into lines and arcs within a tolerance with
+`entity.fitted(tolerance:)`. A `DIMENSION` carries `rotation`, a `computedMeasurement`
+(`measurement` is `nil` when the file stored none), its style's precision, and its text split into
+parts. These come from [SwiftDXF](https://github.com/SecondMouseAU/SwiftDXF) 0.4.0 or later.
+
 ### DXF closed regions as faces
 
 `DXFLoader.loadContours(from:options:)` builds one planar face per closed region, with islands and

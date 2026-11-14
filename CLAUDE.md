@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Load-bearing types in `Sources/OCCTSwiftIO/`:
 
+- `DrawingLoader`: DXF / DWG / JWW → one `DrawingResult` (SwiftDXF `DXF.Drawing`, `DrawingSource`, `DrawingWarning`s). The one entry point for 2D drawing import; format sniffed from the bytes, blocks expanded by default.
 - `ShapeLoader`: STEP / IGES / STL / OBJ / BREP / manifest → `ShapeLoadResult` (shapes + colors + AP242 metadata, **no bodies**).
 - `ExportManager`: OBJ / PLY / STEP / BREP / glTF / GLB writers.
 - `CADBodyMetadata`: pure-data type (face/edge/vertex pick indices). Produced by `OCCTSwiftTools.CADFileLoader.shapeToBodyAndMetadata` on the bridge side; lives here so the type itself doesn't carry a Viewport dep.
