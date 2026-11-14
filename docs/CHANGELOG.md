@@ -4,7 +4,11 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
-## Unreleased
+## v2.0.0-beta.6 (2026-11-14)
+
+**Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
+
+**Builds on a fresh resolve again ([#60](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/60)).** v2.0.0-beta.5 asked for SwiftDXF `from: "0.3.0"`, which SwiftPM resolves to the newest 0.x, and SwiftDXF 0.4.0's new `DXF.Entity` cases (`.hatch`, `.leader`) made `DXFLoader`'s `switch` non-exhaustive, so beta.5 did not compile for a consumer that did not constrain SwiftDXF. The floor is now `from: "0.4.0"` and the loader handles the new cases. This release also adds `DrawingLoader` (DXF, DWG and JWW through one entry point) and reads DWG in process through the new SwiftDWG dependency, with no converter to build or find.
 
 **One entry point for 2D drawing import: `DrawingLoader.read(from:options:)` ([#54](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/54)).** DXF, DWG and JWW come back as one `DrawingResult`: the SwiftDXF `DXF.Drawing`, a `DrawingSource` (file name, SHA-256, format and the format's own version) and `DrawingWarning`s as data (skipped entities by type and layer, entities and records a DWG could not read, paper space, missing or cyclic blocks, entities a non-uniform scale could not carry, undeclared units, an empty drawing). The format is told from the file's bytes (`DrawingFormat.sniff`), with the extension consulted only when the bytes say nothing. JWW is read by SwiftJWW and passed through its DXF writer, so a JWW insert expands like a DXF one. Block references are expanded by default (`Options.expandBlocks`), with the references recorded in each entity's identity. `DXFLoader.readEntities(from:options:)` and `DWGLoader.readEntities(from:options:)` take SwiftDXF's `DXF.ReadOptions`. The hash helper is shared (`FileDigest`).
 
@@ -24,6 +28,10 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 - **Changed: releases read.** SwiftDWG reads R2000 to R2018, and R14 for simple entities. R12 and earlier throw `DWG.Error.unsupportedVersion`; the converter's documentation said AC1009 and later, though no fixture of those releases was ever tested.
 - **Unchanged: `CADFileFormat` has no `.dwg` case** and `ShapeLoader` does not load DWG: it is an entity-level read through `DrawingLoader` and `DWGLoader`. Adding the case is source-breaking for an exhaustive `switch` and needs a shapes path for DWG (the DXF one reads a file, not a drawing); it is left to the maintainer ([#58](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/58), "also worth deciding").
 - **Tests.** The two AutoCAD-written DWGs and the pair (`point_object_id.dwg` and the DXF AutoCAD wrote from it) from the previous entry now read through SwiftDWG, and the pair agrees on the layer, line type and dimension style tables, handles included. A truncated, damaged or newer-release file throws `DWG.Error` from both loaders, and a non-DWG does from `DWGLoader` (from `DrawingLoader` when the file is named `.dwg`), a sample of single inverted bytes of two DWGs ends in a drawing or a `DWG.Error` and never in a crash, and what SwiftDWG cannot read comes through as `.unreadable`.
+
+## v2.0.0-beta.5 (2026-10-24)
+
+**Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** Shipped without an entry here; this one is written afterwards from the tag (`0695776`). It does not compile on a fresh resolve, because of SwiftDXF 0.4.0 ([#60](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/60)); use v2.0.0-beta.6.
 
 **DXF closed regions as planar faces, on SwiftDXF 0.3.0.** The SwiftDXF dependency moves from `from: "0.2.0"` to `from: "0.3.0"`, which adds `DXF.Entity.spline` (source-breaking for any exhaustive `switch` over `DXF.Entity`; this package's loader is updated) and the OCCT-free contour layer (`drawing.contours`). The OCCTSwift pin is unchanged.
 
