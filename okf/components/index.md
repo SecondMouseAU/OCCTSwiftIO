@@ -13,7 +13,8 @@ Public product/target from `Package.swift`, plus the key API surfaces from the R
 
 - **`OCCTSwiftIO`** (library product / target): the single public module. Headless, no Viewport.
   - `ShapeLoader.load(from:format:)`: async loader returning shapes, per-shape colors, and AP242
-    dimensions/datums. Supported input formats: STEP, IGES, STL, OBJ, BREP.
+    dimensions/datums. Supported input formats: STEP, IGES, STL, OBJ, BREP. A STEP assembly loads
+    as one entry per leaf, not as its root compound too.
   - `ExportManager.export(shapes:format:to:)`: async exporter. Supported output formats: glTF,
     GLB, OBJ, PLY, STEP, BREP.
   - `DrawingLoader.read(from:options:)`: one call and one `DrawingResult` for DXF, DWG and JWW:

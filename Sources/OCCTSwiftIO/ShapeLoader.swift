@@ -137,7 +137,7 @@ public enum ShapeLoader {
     private static func loadSTEP(from url: URL, progress: ImportProgress?) throws -> ShapeLoadResult
     {
         let doc = try Document.load(from: url, progress: progress)
-        let pairs = doc.shapesWithColors()
+        let pairs = leafShapesWithColors(of: doc)
         let shapesWithColors: [(shape: Shape, color: SIMD4<Float>?)] = pairs.map { pair in
             let rgba: SIMD4<Float>?
             if let c = pair.color {
@@ -153,6 +153,40 @@ public enum ShapeLoader {
             geomTolerances: doc.geomTolerances,
             datums: doc.datums
         )
+    }
+
+    /// The shapes of a document that are geometry: one per leaf, with its colour.
+    ///
+    /// `Document.shapesWithColors()` returns every node that has a shape, so an assembly's root,
+    /// which holds the compound of everything below it, comes back beside the children that make
+    /// it up, and every triangle in the file is drawn twice (#41). An assembly that merely groups
+    /// is structure, not geometry, so it is left out when its children give shapes of their own.
+    /// One whose children give none, and a compound that is the only thing in the file, is the
+    /// model and is kept.
+    ///
+    /// A component that is itself an assembly reports no children of its own (the XCAF reference
+    /// has none), only the compound of its parts placed in the parent. That compound is split into
+    /// its solids, which keeps the placement, and takes the component's colour.
+    private static func leafShapesWithColors(of doc: Document) -> [(shape: Shape, color: Color?)] {
+        var results: [(shape: Shape, color: Color?)] = []
+        func collect(_ nodes: [AssemblyNode]) {
+            for node in nodes {
+                let before = results.count
+                let children = node.children
+                collect(children)
+                guard results.count == before, let shape = node.shape else { continue }
+                if children.isEmpty, node.referredNode?.isAssembly == true {
+                    let solids = shape.subShapes(ofType: .solid)
+                    for solid in solids.isEmpty ? [shape] : solids {
+                        results.append((shape: solid, color: node.color))
+                    }
+                } else {
+                    results.append((shape: shape, color: node.color))
+                }
+            }
+        }
+        collect(doc.rootNodes)
+        return results
     }
 
     private static func loadSTL(from url: URL, robust: Bool) throws -> ShapeLoadResult {
