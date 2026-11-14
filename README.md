@@ -85,6 +85,9 @@ let drawing = try await ShapeLoader.load(from: jwwURL, format: .jww)
 // DXF → the same: one compound of curve edges (lines, arcs, circles, ellipses, splines).
 let dxf = try await ShapeLoader.load(from: dxfURL, format: .dxf)
 
+// DWG → the same compound of edges, read in process (no tool to install).
+let dwg = try await ShapeLoader.load(from: dwgURL, format: .dwg)
+
 // Export shapes to STEP / BREP / OBJ / PLY / glTF / GLB.
 try await ExportManager.export(shapes: result.shapes, format: .glb, to: outURL)
 ```

@@ -47,6 +47,19 @@ public enum DWGLoader {
             warnings: warningLines(for: parsed.drawing, options: options))
     }
 
+    /// A DWG file as one compound of OCCT edges, the way ``DXFLoader`` gives a DXF.
+    ///
+    /// This is `ShapeLoader`'s path for ``CADFileFormat/dwg``. Lines, arcs, circles, ellipses,
+    /// polylines and splines become edges in the z = 0 plane; text, dimensions, hatches and leaders
+    /// have no edges. Block references are not expanded, and what the reader could not read is not
+    /// reported, because a ``ShapeLoadResult`` has nowhere to put either: use ``readEntities(from:options:)``
+    /// or ``DrawingLoader`` for the entities and the warnings.
+    ///
+    /// - Throws: ``DWG/Error``, as ``readEntities(from:options:)`` does.
+    static func load(from url: URL) throws -> ShapeLoadResult {
+        DXFLoader.shapes(of: try read(data: Data(contentsOf: url), options: .init()).drawing)
+    }
+
     /// The lines of ``Conversion/warnings`` for a drawing read with `options`.
     static func warningLines(for drawing: DXF.Drawing, options: DXF.ReadOptions) -> [String] {
         var lines = DrawingLoader.unreadableWarnings(

@@ -131,6 +131,8 @@ public enum ShapeLoader {
             return try JWWLoader.load(from: url)
         case .dxf:
             return try DXFLoader.load(from: url)
+        case .dwg:
+            return try DWGLoader.load(from: url)
         }
     }
 

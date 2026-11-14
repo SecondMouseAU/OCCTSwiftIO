@@ -18,6 +18,9 @@ public enum CADFileFormat: String, Sendable {
     /// DXF (AutoCAD Drawing Interchange Format) — a 2D vector drawing; loaded as a compound of OCCT
     /// edges (no B-Rep solid). ASCII DXF only.
     case dxf
+    /// DWG (AutoCAD's native drawing format), read in process by SwiftDWG — a 2D vector drawing;
+    /// loaded as a compound of OCCT edges (no B-Rep solid), the same as ``dxf``.
+    case dwg
 
     public init?(fileExtension ext: String) {
         switch ext.lowercased() {
@@ -35,6 +38,8 @@ public enum CADFileFormat: String, Sendable {
             self = .jww
         case "dxf":
             self = .dxf
+        case "dwg":
+            self = .dwg
         default:
             return nil
         }

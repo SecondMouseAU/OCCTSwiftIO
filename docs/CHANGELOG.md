@@ -4,6 +4,13 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## Unreleased
+
+**`CADFileFormat.dwg`: `ShapeLoader` loads a DWG as one compound of edges ([#58](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/58), "also worth deciding").** `ShapeLoader.load(from:format: .dwg)` reads the DWG in process through SwiftDWG and builds the same compound of curve edges `DXFLoader` builds for a DXF (lines, arcs, circles, ellipses, polylines and splines in the z = 0 plane; text, dimensions, hatches and leaders have no edges). `CADFileFormat(fileExtension: "dwg")` now gives `.dwg`. The drawing-to-shapes step is shared with DXF (`DXFLoader.shapes(of:)`), so the two formats cannot drift apart, and the same plate read from a DWG and from a DXF gives the same edges and bounds. A bad file throws `DWG.Error`, as `DWGLoader` does.
+
+- **Breaking, as the beta.6 entry said it would be: `CADFileFormat` gains a case**, so an exhaustive `switch` over it needs `.dwg`. This package has none outside `ShapeLoader`; a consumer's (OCCTSwiftTools, for one) needs the case. The OCCTSwift pin does not move, so this stays a pre-release.
+- **Limit, the same as DXF's: block references are not expanded, and nothing is reported.** A `ShapeLoadResult` has nowhere for warnings, so an entity SwiftDWG could not read, or an `INSERT` left unexpanded, is not said anywhere on this path. A DWG whose geometry sits in blocks (the mechanical sheet in #56 has 132 references) loads close to empty. `DrawingLoader`, which expands blocks by default and reports what it left out, is the call for those. Expanding blocks on the shapes path, for DXF as well as DWG, would change DXF's behaviour and is not done here.
+
 ## v2.0.0-beta.7 (2026-11-15)
 
 **Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
