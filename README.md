@@ -8,7 +8,7 @@
 📖 **Documentation:** <https://secondmouseau.github.io/OCCTSwiftIO/>
 
 Headless file I/O for the [OCCTSwift](https://github.com/SecondMouseAU/OCCTSwift) ecosystem. **No
-Viewport dependency** — safe for CLIs, batch pipelines, and server-side workflows. The package ships
+Viewport dependency**: safe for CLIs, batch pipelines, and server-side workflows. The package ships
 **two products** so consumers take only what they need:
 
 | Product | Depends on OCCT? | What it's for |
@@ -33,6 +33,7 @@ kernel; `OCCTSwiftIO` builds on top of `MeshIO` and adds the kernel-backed forma
 | STEP / IGES / BREP | ✅ | ✅* | OCCTSwiftIO |
 | JWW (Jw_cad, 2D vector) | ✅ | — | OCCTSwiftIO |
 | DXF (AutoCAD, 2D vector) | ✅ | — | OCCTSwiftIO |
+| DWG (AutoCAD native, 2D vector, R2000 to R2018) | ✅ | — | OCCTSwiftIO |
 
 <sub>*OCCTSwiftIO `ExportManager` exports OCCT `Shape`s to STEP / BREP / OBJ / PLY / glTF / GLB.</sub>
 
@@ -49,7 +50,7 @@ dependencies: [
 ]),
 ```
 
-## MeshIO — pure-Swift mesh I/O
+## MeshIO: pure-Swift mesh I/O
 
 ```swift
 import MeshIO
@@ -62,14 +63,14 @@ try MeshIO.write(mesh, to: stlURL, format: .stl, asciiSTL: true)
 ```
 
 `Mesh` is a value type (`positions: [SIMD3<Float>]`, `indices: [UInt32]`, `submeshes: [Submesh]`). PMX
-carries its material sections through as `submeshes` (empty for every other format, including `.x`) —
+carries its material sections through as `submeshes` (empty for every other format, including `.x`):
 isolate one part of a whole-model PMX with `sub.indexOffset ..< sub.indexOffset + sub.indexCount`. PMX/`.x`
 are read via the standalone [SwiftPMX](https://github.com/SecondMouseAU/SwiftPMX) /
 [SwiftX](https://github.com/SecondMouseAU/SwiftX) packages; 3MF via
 [ThreeMF](https://github.com/tomasf/ThreeMF); glTF read via
 [SwiftGLTF](https://github.com/schwa/SwiftGLTF) (write is native).
 
-## OCCTSwiftIO — CAD + JWW + DXF
+## OCCTSwiftIO: CAD + JWW + DXF + DWG
 
 ```swift
 import OCCTSwift
@@ -97,12 +98,13 @@ bytes.
 ```swift
 let result = try DrawingLoader.read(from: url)
 result.drawing   // DXF.Drawing: entities (including hatches and leaders), layers, units, extents, block references
-result.source    // file name, SHA-256, format, version, and the converter (DWG) that produced it
-result.warnings  // what was skipped by type and layer, assumed or reported, as data
+result.source    // file name, SHA-256, format, and the format's own version
+result.warnings  // what was skipped by type and layer, could not be read, or assumed, as data
 result.drawing.identities[i]   // a stable identity for entity i: its DXF handle, else its position
 ```
 
-DWG goes through the `dwg2dxf` converter (see `DWGLoader`), JWW through SwiftJWW, DXF directly.
+DWG is read by [SwiftDWG](https://github.com/SecondMouseAU/SwiftDWG) in process, with no tool to
+install, JWW through SwiftJWW, DXF directly.
 Block references are expanded by default, each expanded entity's identity listing the references
 it came through, so a title block can be kept or dropped by name; pass
 `.init(expandBlocks: false)` to leave them. `.hatch` and `.leader` are entity cases (boundary loops,
@@ -111,6 +113,35 @@ spline or ellipse can be turned into lines and arcs within a tolerance with
 `entity.fitted(tolerance:)`. A `DIMENSION` carries `rotation`, a `computedMeasurement`
 (`measurement` is `nil` when the file stored none), its style's precision, and its text split into
 parts. These come from [SwiftDXF](https://github.com/SecondMouseAU/SwiftDXF) 0.4.0 or later.
+
+### DWG
+
+[SwiftDWG](https://github.com/SecondMouseAU/SwiftDWG) (MIT) reads a DWG in process: there is no tool
+to build or install, and nothing to find at run time. `import OCCTSwiftIO` brings its `DWG`
+namespace into scope, so a `DWG.Error` can be caught by name. It reads R2000 to R2018 and, for simple
+entities, R14; R12 and earlier throw `DWG.Error.unsupportedVersion`. Its README reports that on
+AutoCAD's sample drawings it matches AutoCAD's own DXF export of the same drawing, handles included,
+and lists its limits. The ones that matter to a caller:
+
+- A file that is damaged in its structure, is of a release it does not read, or (for `DWGLoader`, or
+  a file named `.dwg`) is not a DWG, throws `DWG.Error` (`.notADWG`, `.unsupportedVersion`,
+  `.truncated`, `.invalid`). `DrawingLoader` tells a DWG from its bytes, so any other file with no
+  `.dwg` name is `LoadError.unrecognizedFormat`.
+- An entity, table record or block it cannot read is left out and counted. `DrawingLoader` reports
+  it as a `DrawingWarning` of kind `.unreadable`, by type, so it is not lost.
+- Entities it does not model, and the ones it cannot read, are counted without their layer:
+  `DrawingWarning.layer` is `nil` for a DWG.
+- Polyface and polygon meshes and the attributes of an insert are not decoded; a spline AutoCAD kept
+  as fit points has no control points.
+- A corrupt file ends in a `DWG.Error` or in a drawing that counts what it lost; SwiftDWG's README says
+  it is not meant to trap or never return, and that this is checked by inverting sampled bytes, not
+  proved for every byte. The reader runs in your process, so a file found to trap or hang is a
+  SwiftDWG bug to report, and a pipeline that reads DWGs it does not trust may want to run it out of
+  process.
+
+SwiftDWG is a Swift port of the DWG reader in [ACadSharp](https://github.com/DomCR/ACadSharp) (MIT),
+together with the Open Design Alliance's published specification of the format. It is not a
+clean-room implementation, and says so in its README and `NOTICE.md`.
 
 ### DXF closed regions as faces
 
@@ -143,11 +174,11 @@ For body-producing loaders (CPU mesh + pick data for AIS), use
 ## Architecture position
 
 ```
-OCCTSwiftTools     (bridge — Shape ↔ ViewportBody)
+OCCTSwiftTools     (bridge: Shape ↔ ViewportBody)
        ↑
 OCCTSwiftIO        ← this repo (headless file I/O)        MeshIO  ← pure-Swift mesh (no OCCT)
        ↑                                                     ↑
-OCCTSwift          (B-Rep kernel)              SwiftPMX / SwiftX / ThreeMF / SwiftGLTF / SwiftJWW
+OCCTSwift          (B-Rep kernel)              SwiftPMX / SwiftX / ThreeMF / SwiftGLTF / SwiftJWW / SwiftDXF / SwiftDWG
 ```
 
 **Hard rule: no Viewport dependency in this package.** Produce `ViewportBody`s in OCCTSwiftTools.

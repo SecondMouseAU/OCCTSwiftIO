@@ -60,6 +60,7 @@ let package = Package(
         meshDep("SwiftX", from: "1.0.0"),       // DirectX .x
         meshDep("SwiftJWW", from: "1.2.1"),     // JWW (Jw_cad) 2D vector: used by OCCTSwiftIO, not MeshIO
         meshDep("SwiftDXF", from: "0.4.0"),     // DXF (AutoCAD) 2D vector: used by OCCTSwiftIO, not MeshIO. 0.4.0 adds DIMENSION rotation/computed value/style/text parts (measurement is now nil when not stored), Drawing.identities, block references with expansion (ReadOptions), layer and line type tables, Entity.fitted, and the extrusion of arcs/circles/polylines; DXF.Entity gains .hatch and .leader (source-breaking for exhaustive switches). 0.3.0 adds DXF.Entity.spline (source-breaking for exhaustive switches) and drawing.contours, which DXFLoader.loadContours needs
+        .package(url: "https://github.com/SecondMouseAU/SwiftDWG.git", from: "0.1.0"),   // DWG (AutoCAD native) 2D vector, read in process into SwiftDXF's DXF.Drawing: used by OCCTSwiftIO, not MeshIO. Replaces the dwg2dxf subprocess
         .package(url: "https://github.com/tomasf/ThreeMF.git", from: "0.2.3"),   // 3MF read+write (MIT)
         .package(url: "https://github.com/schwa/SwiftGLTF.git", from: "1.0.2"),  // glTF/GLB read (BSD-3)
     ],
@@ -88,6 +89,7 @@ let package = Package(
                 .product(name: "OCCTSwift", package: "OCCTSwift"),
                 .product(name: "SwiftJWW", package: "SwiftJWW"),
                 .product(name: "SwiftDXF", package: "SwiftDXF"),
+                .product(name: "SwiftDWG", package: "SwiftDWG"),
                 "MeshIO",
             ],
             path: "Sources/OCCTSwiftIO",

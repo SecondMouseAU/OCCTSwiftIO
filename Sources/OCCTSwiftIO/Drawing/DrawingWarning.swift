@@ -30,14 +30,21 @@ public struct DrawingWarning: Sendable, Equatable, CustomStringConvertible {
         case unitsNotDeclared
         /// Nothing was read.
         case emptyDrawing
-        /// A converter reported a problem.
-        case converter
+        /// The reader found something in the file that it could not read, so it is not in the
+        /// drawing: an entity, a table record or a block, by type.
+        ///
+        /// Of a DWG only. ``type`` is the DXF type name (`LINE`, `POLYLINE`, `LAYER`,
+        /// `BLOCK_RECORD`), or `OBJECT` for one whose type is itself unreadable. An entity of a
+        /// block that was expanded counts once for each reference.
+        case unreadable
     }
 
     public var kind: Kind
     /// The entity type, for the kinds that concern one.
     public var type: String?
-    /// The layer, for ``Kind/skippedEntities``.
+    /// The layer, for ``Kind/skippedEntities``; `nil` when the format does not say.
+    ///
+    /// A DWG's skipped entities are counted without their layer, so it is `nil` for them.
     public var layer: String?
     public var count: Int
     public var message: String

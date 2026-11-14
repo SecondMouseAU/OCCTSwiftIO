@@ -6,13 +6,13 @@ nav_order: 1
 # OCCTSwiftIO
 
 Headless, multi-format CAD + mesh file I/O for the [OCCTSwift](https://github.com/SecondMouseAU/OCCTSwift)
-family — **no Viewport dependency**, so it is safe for CLIs, batch pipelines, and server-side workflows.
+family: **no Viewport dependency**, so it is safe for CLIs, batch pipelines, and server-side workflows.
 
 The package ships **two products** so consumers take only what they need:
 
-- **`MeshIO`** — pure Swift, **no OCCT**. 3D mesh formats (STL / OBJ / PLY / glTF / GLB / 3MF / PMX / `.x`)
+- **`MeshIO`**: pure Swift, **no OCCT**. 3D mesh formats (STL / OBJ / PLY / glTF / GLB / 3MF / PMX / `.x`)
   load and write into a neutral value-type `Mesh` (positions + indices).
-- **`OCCTSwiftIO`** — OCCT-backed. CAD B-Rep load/export as `Shape`s (STEP / IGES / BREP), plus **JWW**
+- **`OCCTSwiftIO`**: OCCT-backed. CAD B-Rep load/export as `Shape`s (STEP / IGES / BREP), plus **JWW**
   (Jw_cad 2D vector) load, a `ScriptManifest` round-trip, and a `BRepGraph` → ML export layer.
 
 The split lets OCCT-free consumers (e.g. a raw-mesh ingest) read meshes without pulling in the 1.3 GB
@@ -51,12 +51,12 @@ try MeshIO.write(mesh, to: objURL)                 // writer chosen by extension
 
 Task-oriented, example-rich recipes:
 
-- [Importing a CAD file](guides/cookbook/importing-cad.md) — `ShapeLoader`, format auto-detection, robust loading.
-- [Exporting shapes](guides/cookbook/exporting-shapes.md) — `ExportManager` to STEP / BREP / OBJ / PLY / glTF / GLB.
-- [Reading & writing meshes](guides/cookbook/mesh-roundtrip.md) — `MeshIO` across STL / OBJ / PLY / glTF / 3MF.
-- [The ScriptManifest format](guides/cookbook/script-manifest.md) — load a manifest + sibling BREP bodies.
-- [Progress reporting](guides/cookbook/progress-reporting.md) — `ImportProgressClosure` and cancellation.
-- [ML graph export](guides/cookbook/ml-export.md) — `BRepGraph.exportForML()` / `exportJSON()`.
+- [Importing a CAD file](guides/cookbook/importing-cad.md): `ShapeLoader`, format auto-detection, robust loading.
+- [Exporting shapes](guides/cookbook/exporting-shapes.md): `ExportManager` to STEP / BREP / OBJ / PLY / glTF / GLB.
+- [Reading & writing meshes](guides/cookbook/mesh-roundtrip.md): `MeshIO` across STL / OBJ / PLY / glTF / 3MF.
+- [The ScriptManifest format](guides/cookbook/script-manifest.md): load a manifest + sibling BREP bodies.
+- [Progress reporting](guides/cookbook/progress-reporting.md): `ImportProgressClosure` and cancellation.
+- [ML graph export](guides/cookbook/ml-export.md): `BRepGraph.exportForML()` / `exportJSON()`.
 
 ---
 
@@ -87,11 +87,11 @@ GitHub: <https://github.com/SecondMouseAU/OCCTSwiftIO>
 ## Architecture position
 
 ```
-OCCTSwiftTools     (bridge — Shape ↔ ViewportBody)
+OCCTSwiftTools     (bridge: Shape ↔ ViewportBody)
        ↑
 OCCTSwiftIO        ← this repo (headless file I/O)        MeshIO  ← pure-Swift mesh (no OCCT)
        ↑                                                     ↑
-OCCTSwift          (B-Rep kernel)              SwiftPMX / SwiftX / ThreeMF / SwiftGLTF / SwiftJWW
+OCCTSwift          (B-Rep kernel)              SwiftPMX / SwiftX / ThreeMF / SwiftGLTF / SwiftJWW / SwiftDXF / SwiftDWG
 ```
 
 **Hard rule: no Viewport dependency in this package.** Produce `ViewportBody`s in OCCTSwiftTools.

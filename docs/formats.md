@@ -16,7 +16,7 @@ nav_order: 4
 | **DirectX `.x`** | ✅ | — | MeshIO | [SwiftX](https://github.com/SecondMouseAU/SwiftX) |
 | **STEP** / **IGES** / **BREP** | ✅ | ✅ | OCCTSwiftIO | OCCT |
 | **JWW** (Jw_cad, 2D vector) | ✅ | — | OCCTSwiftIO | [SwiftJWW](https://github.com/SecondMouseAU/SwiftJWW) → OCCT edges |
-| **DWG** (AutoCAD native, 2D entities) | ✅ macOS, needs the `dwg2dxf` tool | — | OCCTSwiftIO | `Tools/dwg2dxf` ([acadrust](https://github.com/hakanaktt/acadrust), MPL-2.0) → SwiftDXF entity model |
+| **DWG** (AutoCAD native, 2D entities) | ✅ R2000 to R2018 | — | OCCTSwiftIO | [SwiftDWG](https://github.com/SecondMouseAU/SwiftDWG) (MIT, in process, no tool to install) → SwiftDXF entity model |
 
 ## Notes
 
@@ -24,7 +24,7 @@ nav_order: 4
 
 - **Welding.** Readers weld coincident vertices (`weldEpsilon`, default `1e-4`) so connectivity is
   restored in formats that split vertices at seams.
-- **PMX / `.x`** are *source* formats (game / 3D-model assets) — read-only. They carry no canonical
+- **PMX / `.x`** are *source* formats (game / 3D-model assets), read-only. They carry no canonical
   units; consumers may need to scale.
 - **glTF / GLB read** delegates the hard decode (JSON/GLB container, buffers, external `.bin`,
   accessors) to SwiftGLTF; node transforms are baked. **Write** is a native minimal glTF/GLB
