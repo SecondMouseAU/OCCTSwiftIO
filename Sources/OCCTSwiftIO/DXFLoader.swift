@@ -28,7 +28,14 @@ public enum DXFLoader {
     }
 
     static func load(from url: URL) throws -> ShapeLoadResult {
-        let drawing = try DXF.read(contentsOf: url)
+        shapes(of: try DXF.read(contentsOf: url))
+    }
+
+    /// One compound of curve edges for a drawing, whichever format it was read from.
+    ///
+    /// Shared by the DXF and DWG loaders: both come back as the same `DXF.Drawing`. It uses the
+    /// entities of the drawing as read, so block references are as the read left them.
+    static func shapes(of drawing: DXF.Drawing) -> ShapeLoadResult {
         var shapes: [Shape] = []
 
         func p3(_ x: Double, _ y: Double) -> SIMD3<Double> { SIMD3(x, y, 0) }
