@@ -4,7 +4,9 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
-## Unreleased
+## v2.0.0-beta.8 (2026-11-15)
+
+**Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
 
 **`CADFileFormat.dwg`: `ShapeLoader` loads a DWG as one compound of edges ([#58](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/58), "also worth deciding").** `ShapeLoader.load(from:format: .dwg)` reads the DWG in process through SwiftDWG and builds the same compound of curve edges `DXFLoader` builds for a DXF (lines, arcs, circles, ellipses, polylines and splines in the z = 0 plane; text, dimensions, hatches and leaders have no edges). `CADFileFormat(fileExtension: "dwg")` now gives `.dwg`. The drawing-to-shapes step is shared with DXF (`DXFLoader.shapes(of:)`), so the two formats cannot drift apart, and the same plate read from a DWG and from a DXF gives the same edges and bounds. A bad file throws `DWG.Error`, as `DWGLoader` does.
 
