@@ -32,9 +32,9 @@ Public product/target from `Package.swift`, plus the key API surfaces from the R
     reader with the ODA specification). Each read records the source hash and DWG version. No tool
     to install, any platform. Reads R2000 to R2018 (R14 for simple entities); throws `DWG.Error`.
     `import OCCTSwiftIO` re-exports SwiftDWG's `DWG` namespace, as it does SwiftDXF's `DXF`.
-    `ShapeLoader` also loads a DWG (`CADFileFormat.dwg`) as one compound of edges, as it does a DXF;
-    block references are not expanded and what the reader could not read is not reported there, so
-    use `DrawingLoader` for the entities and the warnings.
+    `ShapeLoader` also loads a DWG (`CADFileFormat.dwg`) as one compound of edges, as it does a DXF.
+    Block references are expanded on both, and `ShapeLoadResult.warnings` carries the same
+    `DrawingWarning`s `DrawingLoader` gives; use `DrawingLoader` for the entities.
   - `DirectoryWatcher`: kqueue-backed file/directory create/modify notifications, macOS-only
     (`#if os(macOS)`). Ignores dotfile writes; starts cleanly on a not-yet-existing path.
 

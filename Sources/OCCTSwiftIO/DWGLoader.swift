@@ -51,13 +51,15 @@ public enum DWGLoader {
     ///
     /// This is `ShapeLoader`'s path for ``CADFileFormat/dwg``. Lines, arcs, circles, ellipses,
     /// polylines and splines become edges in the z = 0 plane; text, dimensions, hatches and leaders
-    /// have no edges. Block references are not expanded, and what the reader could not read is not
-    /// reported, because a ``ShapeLoadResult`` has nowhere to put either: use ``readEntities(from:options:)``
-    /// or ``DrawingLoader`` for the entities and the warnings.
+    /// have no edges. Block references are expanded, as ``DrawingLoader`` expands them, so the
+    /// geometry in a block is in the compound; what the reader could not read, and what could not
+    /// be expanded, is in ``ShapeLoadResult/warnings``, the same warnings ``DrawingLoader`` gives
+    /// (#70). Use ``readEntities(from:options:)`` or ``DrawingLoader`` for the entities.
     ///
     /// - Throws: ``DWG/Error``, as ``readEntities(from:options:)`` does.
     static func load(from url: URL) throws -> ShapeLoadResult {
-        DXFLoader.shapes(of: try read(data: Data(contentsOf: url), options: .init()).drawing)
+        let parsed = try read(data: Data(contentsOf: url), options: DXFLoader.shapeReadOptions)
+        return DXFLoader.shapes(of: parsed.drawing, layersKnown: false)
     }
 
     /// The lines of ``Conversion/warnings`` for a drawing read with `options`.

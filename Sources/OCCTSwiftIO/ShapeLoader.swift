@@ -37,18 +37,29 @@ public struct ShapeLoadResult: @unchecked Sendable {
     /// The decoded manifest, when this result came from `loadFromManifest`.
     public var manifest: ScriptManifest?
 
+    /// What a drawing read left out or assumed, as ``DrawingLoader`` reports it.
+    ///
+    /// Filled for DXF and DWG: entities of a type with no entity form, entities and records a DWG
+    /// could not read, block references that name no block or could not all be expanded, paper
+    /// space, an undeclared length unit, an empty drawing. Empty for every other format, which have
+    /// no such notion, and JWW does not report yet (#67). Text, dimensions, hatches and leaders are
+    /// read but have no edges, which is not a warning: they are not in the compound by design.
+    public var warnings: [DrawingWarning]
+
     public init(
         shapesWithColors: [(shape: Shape, color: SIMD4<Float>?)] = [],
         dimensions: [Document.Dimension] = [],
         geomTolerances: [Document.GeomTolerance] = [],
         datums: [Document.Datum] = [],
-        manifest: ScriptManifest? = nil
+        manifest: ScriptManifest? = nil,
+        warnings: [DrawingWarning] = []
     ) {
         self.shapesWithColors = shapesWithColors
         self.dimensions = dimensions
         self.geomTolerances = geomTolerances
         self.datums = datums
         self.manifest = manifest
+        self.warnings = warnings
     }
 
     /// Convenience: just the shapes, dropping color info.

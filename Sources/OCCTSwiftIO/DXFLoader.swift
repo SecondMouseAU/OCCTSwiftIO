@@ -4,7 +4,8 @@
 // Loads DXF (AutoCAD Drawing Interchange Format), a 2D vector drawing, into OCCT geometry. Like JWW,
 // DXF is not a B-Rep solid or a mesh; it's lines, arcs/circles, ellipses, points and text in a plane.
 // We map the drawable curve entities to OCCT edges (in the Z=0 plane) and return them as one compound
-// `Shape`. Text is not converted to geometry (it would need font outlines). Reading is delegated to
+// `Shape`. Text is not converted to geometry (it would need font outlines). Block references are
+// expanded, and what the read left out is returned as `DrawingWarning`s. Reading is delegated to
 // SwiftDXF, which is validated bit-exact against the ezdxf reference reader.
 
 import Foundation
@@ -27,15 +28,22 @@ public enum DXFLoader {
         try DXF.read(contentsOf: url, options: options)
     }
 
+    /// How `ShapeLoader` reads a DXF or a DWG: with block references expanded, as `DrawingLoader`
+    /// does, so the geometry in a block is in the compound and the two loaders agree on what a
+    /// drawing holds (#70).
+    static let shapeReadOptions = DXF.ReadOptions(expandBlocks: true)
+
     static func load(from url: URL) throws -> ShapeLoadResult {
-        shapes(of: try DXF.read(contentsOf: url))
+        shapes(of: try DXF.read(contentsOf: url, options: shapeReadOptions), layersKnown: true)
     }
 
-    /// One compound of curve edges for a drawing, whichever format it was read from.
+    /// One compound of curve edges for a drawing, whichever format it was read from, and the
+    /// warnings of the read.
     ///
-    /// Shared by the DXF and DWG loaders: both come back as the same `DXF.Drawing`. It uses the
-    /// entities of the drawing as read, so block references are as the read left them.
-    static func shapes(of drawing: DXF.Drawing) -> ShapeLoadResult {
+    /// Shared by the DXF and DWG loaders: both come back as the same `DXF.Drawing`. `drawing` is
+    /// expected to have been read with ``shapeReadOptions``; the warnings are `DrawingLoader`'s for
+    /// such a read. `layersKnown` is `false` for a DWG, which counts what it skipped without a layer.
+    static func shapes(of drawing: DXF.Drawing, layersKnown: Bool) -> ShapeLoadResult {
         var shapes: [Shape] = []
 
         func p3(_ x: Double, _ y: Double) -> SIMD3<Double> { SIMD3(x, y, 0) }
@@ -123,10 +131,13 @@ public enum DXFLoader {
             }
         }
 
+        let warnings = DrawingLoader.warnings(
+            for: drawing, expandedBlocks: true, layersKnown: layersKnown)
         guard let compound = Shape.compound(shapes) else {
-            return ShapeLoadResult(shapesWithColors: [])
+            return ShapeLoadResult(shapesWithColors: [], warnings: warnings)
         }
-        return ShapeLoadResult(shapesWithColors: [(shape: compound, color: nil)])
+        return ShapeLoadResult(
+            shapesWithColors: [(shape: compound, color: nil)], warnings: warnings)
     }
 
     /// Emit one circular-arc edge for a bulged polyline segment, through the contour layer's
