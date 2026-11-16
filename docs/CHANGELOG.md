@@ -4,7 +4,9 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
-## Unreleased
+## v2.0.0-beta.9 (2026-11-16)
+
+**Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
 
 **`ShapeLoader` expands block references on a DXF and a DWG, and reports what it left out ([#70](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/70)).** The shapes path read a drawing without expanding its `INSERT`s and had nowhere to say so, so a drawing whose geometry sits in blocks came back looking complete and nearly empty. On four real DWGs (the measurements are in the issue) it lost 8 %, 39 %, 42 % and 44 % of the curves; on the railway drawing the part's own outline, an axle placed three times, was among them. Two changes, the issue's option 3:
 
