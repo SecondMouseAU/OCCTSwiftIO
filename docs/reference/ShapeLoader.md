@@ -26,13 +26,15 @@ public struct ShapeLoadResult: @unchecked Sendable {
     public var geomTolerances: [Document.GeomTolerance]
     public var datums: [Document.Datum]
     public var manifest: ScriptManifest?
+    public var warnings: [DrawingWarning]
 
     public init(
         shapesWithColors: [(shape: Shape, color: SIMD4<Float>?)] = [],
         dimensions: [Document.Dimension] = [],
         geomTolerances: [Document.GeomTolerance] = [],
         datums: [Document.Datum] = [],
-        manifest: ScriptManifest? = nil
+        manifest: ScriptManifest? = nil,
+        warnings: [DrawingWarning] = []
     )
 
     /// Convenience: just the shapes, dropping color info.
@@ -50,6 +52,13 @@ public struct ShapeLoadResult: @unchecked Sendable {
   empty otherwise). The element types (`Document.Dimension`, `Document.GeomTolerance`, `Document.Datum`) come from
   OCCTSwift.
 - `manifest` — the decoded manifest, populated only by `loadFromManifest`.
+- `warnings` — what a drawing read left out or assumed, as the same `DrawingWarning`s `DrawingLoader`
+  gives (skipped entities by type and layer, entities and records a DWG could not read, a block that
+  is missing, cyclic or too deeply nested, paper space, an undeclared unit, an empty drawing). Filled
+  for **DXF and DWG**, whose block references are expanded so the geometry in a block is in the
+  compound ([#70](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/70)); empty for every other
+  format. JWW does not report yet ([#67](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/67)).
+  Text, dimensions, hatches and leaders are read but have no edges, which is not a warning.
 - `shapes` — convenience accessor returning just the shapes.
 
 ---

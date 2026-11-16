@@ -87,6 +87,7 @@ let dxf = try await ShapeLoader.load(from: dxfURL, format: .dxf)
 
 // DWG → the same compound of edges, read in process (no tool to install).
 let dwg = try await ShapeLoader.load(from: dwgURL, format: .dwg)
+dwg.warnings   // what was not read, as DrawingLoader reports it; block references are expanded
 
 // Export shapes to STEP / BREP / OBJ / PLY / glTF / GLB.
 try await ExportManager.export(shapes: result.shapes, format: .glb, to: outURL)
@@ -167,7 +168,8 @@ result.warnings      // SwiftDXF warnings: units assumed, curves fitted, text ig
 result.unbuilt       // contour shapes OCCT could not build (normally empty)
 ```
 
-`load(from:)` and `ShapeLoader` keep returning a single compound of edges. Within it, `SPLINE` is
+`load(from:)` and `ShapeLoader` keep returning a single compound of edges, with block references
+expanded and what was left out in `ShapeLoadResult.warnings`. Within it, `SPLINE` is
 flattened to straight edges (tolerance one ten-thousandth of the drawing diagonal) and ellipses are
 polylined; use `loadContours` when you want arcs and lines fitted to a tolerance in millimetres.
 

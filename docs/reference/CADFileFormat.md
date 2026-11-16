@@ -26,11 +26,16 @@ public enum CADFileFormat: String, Sendable {
     case iges
     /// JWW (Jw_cad) — a 2D vector drawing; loaded as a compound of OCCT edges (no B-Rep solid).
     case jww
+    /// DXF — a 2D vector drawing; loaded as a compound of OCCT edges. ASCII DXF only.
+    case dxf
+    /// DWG, read in process by SwiftDWG; loaded as a compound of OCCT edges, as `dxf` is.
+    case dwg
 }
 ```
 
-`step`, `stl`, `obj`, `brep`, `iges` load to OCCT `Shape`s; `jww` loads to a compound of OCCT edges in
-the `Z = 0` plane.
+`step`, `stl`, `obj`, `brep`, `iges` load to OCCT `Shape`s; `jww`, `dxf` and `dwg` load to a compound of
+OCCT edges in the `Z = 0` plane. A DXF or DWG is read with its block references expanded, and
+`ShapeLoadResult.warnings` says what was left out.
 
 ---
 
@@ -46,7 +51,7 @@ public init?(fileExtension ext: String)
 - **Parameters:** `ext` — a path extension such as `"step"`, `"STP"`, `"iges"`.
 - **Returns:** the matching `CADFileFormat`, or `nil` if the extension isn't recognised.
 - **Recognised extensions:** `step`/`stp` → `.step`, `stl` → `.stl`, `obj` → `.obj`, `brep`/`brp` →
-  `.brep`, `iges`/`igs` → `.iges`, `jww` → `.jww`.
+  `.brep`, `iges`/`igs` → `.iges`, `jww` → `.jww`, `dxf` → `.dxf`, `dwg` → `.dwg`.
 - **Example:**
   ```swift
   let url = URL(fileURLWithPath: "part.STP")

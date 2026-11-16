@@ -4,6 +4,15 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## Unreleased
+
+**`ShapeLoader` expands block references on a DXF and a DWG, and reports what it left out ([#70](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/70)).** The shapes path read a drawing without expanding its `INSERT`s and had nowhere to say so, so a drawing whose geometry sits in blocks came back looking complete and nearly empty. On four real DWGs (the measurements are in the issue) it lost 8 %, 39 %, 42 % and 44 % of the curves; on the railway drawing the part's own outline, an axle placed three times, was among them. Two changes, the issue's option 3:
+
+- **Blocks are expanded.** DXF and DWG are read with `DXF.ReadOptions(expandBlocks: true)`, as `DrawingLoader` reads them, so the geometry inside a block reference is in the compound, placed as the reference places it. This changes what a DXF with blocks loads: it now has more edges, the ones it was missing. A DXF with no blocks is unchanged.
+- **`ShapeLoadResult.warnings: [DrawingWarning]`.** New, defaulted to `[]`, so source compatible. For DXF and DWG it is `DrawingLoader.warnings(...)` for the same read: entities of a type with no entity form (`SOLID`, `ATTDEF`, ...) by type and layer, entities and records a DWG could not read, a block that is missing, cyclic or nested too deep, paper space, an undeclared unit, an empty drawing. The shapes path and `DrawingLoader` now say the same about a file, and a test holds them equal on every drawing it has. Other formats leave it empty; JWW does not report yet ([#67](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/67)). Text, dimensions, hatches and leaders are read but have no edges, by design, and are not warnings.
+
+The tests use a DXF written in the test, with a block inserted three times and one that names no block. The DWG fixtures hold no curve in a block, so for a DWG the tests check that the references are expanded (the five `INSERT`s of `anonymous-names.dwg` are placed and their five `ATTDEF`s counted) and that its warnings equal `DrawingLoader`'s; a DWG with block geometry is not tested here. `docs/reference/CADFileFormat.md` listed neither `dxf` nor `dwg`; both are there now.
+
 ## v2.0.0-beta.8 (2026-11-15)
 
 **Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.

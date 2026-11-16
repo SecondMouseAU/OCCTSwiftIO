@@ -40,6 +40,9 @@ nav_order: 4
   ellipses → polyline approximations, points → vertices. Coordinates lie in the `Z = 0` plane.
   **Text** is not converted to geometry (it would need font outlines), and **block inserts** are not
   yet expanded.
+- **DXF and DWG** load to one compound of curve edges, as JWW does. Block references are expanded, so
+  the geometry in a block is in the compound, and `ShapeLoadResult.warnings` carries what was left
+  out (the same `DrawingWarning`s `DrawingLoader` gives).
 
 ## Export (OCCTSwiftIO)
 
