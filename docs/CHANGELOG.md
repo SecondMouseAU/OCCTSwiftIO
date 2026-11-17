@@ -4,6 +4,18 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## Unreleased
+
+**`ShapeLoader` fits a DXF or DWG spline or ellipse to lines and circular arcs, instead of flattening it to chords ([#75](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/75)).** A spline was flattened to a chain of straight edges, and an ellipse to a fixed 48 chords whatever its size or shape, with no stated tolerance. Both now go through SwiftDXF's `Entity.fitted(tolerance:)`, the fit `Drawing.contours` makes, and its pieces become edges by the same conversion `loadContours` uses. The tolerance is the one splines already had, one ten-thousandth of the drawing's diagonal in the drawing's own units. A spline that is exactly a line or an arc is one edge of that kind, and a circle drawn as an ellipse is two arcs.
+
+**This changes what `ShapeLoader` returns for a DXF or DWG with a spline or an ellipse:** fewer edges, and arcs among them. A consumer that counts edges, or assumes every edge is straight, sees the difference. Measured:
+
+- `spline.dxf` (in the repo): 105 edges, all lines, become 23: one line and 22 arcs.
+- A third-party part drawing with 465 splines (not in the repo): 23,379 edges become 4,767. The splines go from 19,468 chords to 856 pieces, 30 of them exactly lines or arcs. The farthest a new edge lies from its spline, against a dense reference, is 0.027 where the tolerance is 0.055.
+- Ellipses, major radius 1 to 1000 and ratio 0.1 to 1: the 48 chords strayed 7.6 to 10 times the tolerance. The fit takes 2 to 29 pieces and stays within 0.52 times it.
+
+Decisions on the issue's five questions: the tolerance is unchanged; ellipses are fitted as well as splines; the tolerance is not exposed; a fit that misses its tolerance is not reported (a new `DrawingWarning` case would break an exhaustive `switch` in a consumer); it is the default, not an option. The JWW loader is unchanged and still samples an ellipse as 48 chords.
+
 ## v2.0.0-beta.9 (2026-11-16)
 
 **Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.

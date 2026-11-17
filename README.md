@@ -169,9 +169,10 @@ result.unbuilt       // contour shapes OCCT could not build (normally empty)
 ```
 
 `load(from:)` and `ShapeLoader` keep returning a single compound of edges, with block references
-expanded and what was left out in `ShapeLoadResult.warnings`. Within it, `SPLINE` is
-flattened to straight edges (tolerance one ten-thousandth of the drawing diagonal) and ellipses are
-polylined; use `loadContours` when you want arcs and lines fitted to a tolerance in millimetres.
+expanded and what was left out in `ShapeLoadResult.warnings`. Within it, `SPLINE` and `ELLIPSE` are
+fitted to lines and circular arcs, within one ten-thousandth of the drawing diagonal in the drawing's
+own units, so a spline that is really a line or an arc comes back as that one edge; use
+`loadContours` when you want planar faces, with the fit held to a tolerance in millimetres.
 
 For body-producing loaders (CPU mesh + pick data for AIS), use
 [OCCTSwiftTools](https://github.com/SecondMouseAU/OCCTSwiftTools), which wraps this package.
