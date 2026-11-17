@@ -241,14 +241,19 @@ struct ShapeFitTests {
         let edges = Self.edges(of: drawing)
         let tolerance = Self.tolerance(of: drawing)
         #expect(edges.allSatisfy { $0.isLine || $0.isCircle })
-        // The same curve, flattened far finer than the tolerance, is the reference.
-        var reference: [SIMD2<Double>] = []
-        for case .spline(let spline) in drawing.entities {
-            reference = spline.flattened(tolerance: tolerance / 1_000).map { SIMD2($0.x, $0.y) }
-        }
+        // The one spline in the file, flattened far finer than the tolerance, is the reference.
+        // Several would need one reference each: a single polyline through them would join the
+        // end of one to the start of the next.
+        var splines: [DXF.Spline] = []
+        for case .spline(let spline) in drawing.entities { splines.append(spline) }
+        #expect(splines.count == 1, "the fixture holds one spline")
+        let reference = (splines.first?.flattened(tolerance: tolerance / 1_000) ?? [])
+            .map { SIMD2($0.x, $0.y) }
         let curveEdges = edges.filter { $0.isCircle }
         #expect(!curveEdges.isEmpty)
         #expect(reference.count > 2)
-        #expect(Self.farthest(curveEdges, from: reference) <= tolerance)
+        if reference.count > 2 {
+            #expect(Self.farthest(curveEdges, from: reference) <= tolerance)
+        }
     }
 }
