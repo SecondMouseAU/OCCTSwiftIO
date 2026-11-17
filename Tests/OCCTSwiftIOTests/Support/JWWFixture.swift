@@ -212,7 +212,8 @@ enum JWWFixture {
             case point(Double, Double)
             case text(String, at: (Double, Double))
             /// A dimension stored as one record: its dimension line and value, and, in a file of
-            /// version 4.20 or later, its two witness lines, two arrow points and two measured points.
+            /// version 4.20 or later, its two witness lines, two arrow points and two measured
+            /// points.
             case dimensionRecord(
                 line: (Double, Double, Double, Double), value: String, at: (Double, Double),
                 textLayer: Int, witness: [(Double, Double, Double, Double)],
