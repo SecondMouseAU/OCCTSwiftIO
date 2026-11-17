@@ -106,6 +106,7 @@ result.source    // file name, SHA-256, format, and the format's own version
 result.warnings  // what was skipped by type and layer, could not be read, or assumed, as data
 result.drawing.identities[i]   // a stable identity for entity i: its DXF handle, else its position
 result.rebuiltDimensions       // JWW: the dimensions rebuilt from loose pieces, by identity
+result.unexplainedDimensionValues   // JWW: dimension values that are not dimensions, at full size
 result.layerGroupScales        // JWW: each layer group's scale, multiplied out (80 for 1:80)
 ```
 

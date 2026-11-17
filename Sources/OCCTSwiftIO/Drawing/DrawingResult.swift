@@ -51,12 +51,6 @@ public struct DrawingResult: Sendable {
 
 extension DrawingResult {
     /// A dimension the reader built from loose pieces, not one stored in the file as a dimension.
-    ///
-    /// A JWW drawing often keeps each dimension as separate lines, arrow points and a value text,
-    /// marked with Jw_cad's dimension flags. SwiftJWW pairs each value with the arrow points whose
-    /// distance gives it, which is an inference, so a consumer should be able to tell such a
-    /// dimension from a stored one. Which pieces each was built from is not recorded yet
-    /// ([SwiftJWW#22](https://github.com/SecondMouseAU/SwiftJWW/issues/22)).
     public struct RebuiltDimension: Sendable, Equatable {
         /// The identity of the `.dimension` entity in ``DrawingResult/drawing``.
         public var identity: DXF.Identity
@@ -66,10 +60,7 @@ extension DrawingResult {
         }
     }
 
-    /// A dimension value that no rebuilt dimension explains.
-    ///
-    /// SwiftJWW leaves out radius, diameter and angle values, values in another unit, and any value
-    /// with no pair of arrow points at the stated distance.
+    /// A dimension value that is not a `.dimension` in the drawing, kept as a loose text.
     public struct UnexplainedDimensionValue: Sendable, Equatable {
         /// The value as written, such as `1,930` or `R5`.
         public var text: String
@@ -100,8 +91,15 @@ extension DrawingResult {
             self.scale = scale
         }
 
-        /// The start of the names of the group's layers: a JWW layer is named `<group>-<layer>` in
-        /// hexadecimal, so the layers of group 0 are `0-0` to `0-F`.
-        public var layerNamePrefix: String { String(group, radix: 16, uppercase: true) + "-" }
+        /// The start of the names of the group's layers, such as `0-`.
+        ///
+        /// A JWW layer is named `<group>-<layer>` in hexadecimal, so the layers of group 0 are
+        /// `0-0` to `0-F`. The members of an expanded block keep their own layers but take the
+        /// scale of the group of the reference that places them.
+        public var layerNamePrefix: String { Self.layerNamePrefix(ofGroup: group) }
+
+        static func layerNamePrefix(ofGroup group: Int) -> String {
+            String(group, radix: 16, uppercase: true) + "-"
+        }
     }
 }

@@ -115,6 +115,50 @@ struct JWWFullSizeTests {
         #expect(compound.subShapes(ofType: .edge).count == 4)
     }
 
+    @Test("a stored dimension record is a dimension, and is not listed as rebuilt")
+    func storedRecord() throws {
+        let result = try Self.read("stored.jww", JWWFixture.storedDimension())
+        let found = Self.dimensions(result.drawing)
+        #expect(found.count == 1)
+        if let value = found.first?.dimension.computedMeasurement {
+            #expect(abs(value - 100) < 1e-9)
+        }
+        #expect(found.first?.dimension.textOverride == "100")
+        #expect(result.rebuiltDimensions.isEmpty)
+        #expect(result.unexplainedDimensionValues.isEmpty)
+    }
+
+    @Test("a record with no measured points (older than 4.20) is listed and warned about")
+    func recordWithoutMeasuredPoints() throws {
+        let result = try Self.read("old.jww", JWWFixture.storedDimension(version: 351))
+        #expect(result.source.version == "351")
+        #expect(Self.dimensions(result.drawing).isEmpty)
+        #expect(
+            result.unexplainedDimensionValues == [
+                .init(text: "100", position: DXF.Point(45, -18), layer: "0-E")
+            ])
+        #expect(
+            result.warnings.contains {
+                $0.kind == .unexplainedDimensionValue && $0.message.contains("4.20")
+            })
+    }
+
+    @Test("a block in a scaled group is placed and expanded at full size, on both paths")
+    func blockAtScale() async throws {
+        let url = try DrawingLoaderTests.temporaryFile("block.jww", JWWFixture.blockAtScale())
+        let result = try DrawingLoader.read(from: url)
+        // One drawn unit at 1:10, placed at (2, 3): from (20, 30) to (30, 30).
+        #expect(
+            DrawingLoaderTests.geometry(result.drawing) == [
+                "line [[\"20.0000\", \"30.0000\"], [\"30.0000\", \"30.0000\"]]"
+            ])
+        let shapes = try await ShapeLoader.load(from: url, format: .jww)
+        let compound = try #require(shapes.shapes.first)
+        let bounds = try #require(compound.bounds)
+        #expect(abs(bounds.min.x - 20) < 1e-6 && abs(bounds.max.x - 30) < 1e-6)
+        #expect(shapes.warnings == result.warnings)
+    }
+
     // MARK: real drawings
 
     /// A drawing on the maintainer's machine.
@@ -135,8 +179,7 @@ struct JWWFullSizeTests {
         "the JNR 2120: 29 dimensions rebuilt at 1:80, none unexplained",
         .enabled(if: JWWFullSizeTests.isLocal("2120.jww"), "2120.jww is not in the repository"))
     func the2120() throws {
-        let result = try DrawingLoader.read(
-            from: Self.local("2120.jww"), options: .init(expandBlocks: false))
+        let result = try DrawingLoader.read(from: Self.local("2120.jww"))
         let found = Self.dimensions(result.drawing)
         #expect(found.count == 29)
         #expect(result.rebuiltDimensions.count == 29)

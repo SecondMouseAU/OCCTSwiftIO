@@ -52,28 +52,58 @@ extension DrawingLoader {
         }
 
         let scales = layerGroupScales(of: jww)
-        var warnings = scaleWarnings(jww: jww, scales: scales)
-        var unexplained: [DrawingResult.UnexplainedDimensionValue] = []
-        for index in output.report.unexplainedValues where jww.elements.indices.contains(index) {
-            let element = jww.elements[index]
-            guard case .text(let at, _, _, _, let string, _, _) = element.entity else { continue }
-            let group = element.attributes.layerGroup
-            let factor = appliedScale(jww.scale(ofLayerGroup: group))
-            let value = DrawingResult.UnexplainedDimensionValue(
-                text: string, position: DXF.Point(at.x * factor, at.y * factor),
-                layer: layerName(group: group, layer: element.attributes.layer))
-            unexplained.append(value)
-            warnings.append(
-                DrawingWarning(
-                    kind: .unexplainedDimensionValue, type: "TEXT", layer: value.layer,
-                    message: "the dimension value \(string) on layer \(value.layer) at "
-                        + "(\(number(value.position.x)), \(number(value.position.y))) is not "
-                        + "explained by any dimension, so it is kept as text"))
-        }
+        let (unexplained, valueWarnings) = unexplainedValues(
+            jww: jww, unmatched: output.report.unexplainedValues)
 
         return JWWRead(
             drawing: drawing, version: String(jww.version), rebuiltDimensions: rebuilt,
-            unexplainedDimensionValues: unexplained, layerGroupScales: scales, warnings: warnings)
+            unexplainedDimensionValues: unexplained, layerGroupScales: scales,
+            warnings: scaleWarnings(jww: jww, scales: scales) + valueWarnings)
+    }
+
+    /// The dimension values that are not a `DIMENSION` in the drawing, in file order, with a
+    /// warning for each.
+    ///
+    /// Two kinds: the value texts SwiftJWW could not pair with arrow points (`unmatched`, indices
+    /// into the elements), and the values of dimension records that store no measured points (a
+    /// file older than version 4.20), which SwiftJWW's writer leaves as a loose line and text.
+    static func unexplainedValues(
+        jww: JWW.Drawing, unmatched: [Int]
+    ) -> ([DrawingResult.UnexplainedDimensionValue], [DrawingWarning]) {
+        var found: [(index: Int, text: String, at: JWW.Point, reason: String)] = []
+        for index in unmatched where jww.elements.indices.contains(index) {
+            if case .text(let at, _, _, _, let string, _, _) = jww.elements[index].entity {
+                found.append(
+                    (index, string, at, "is not explained by any dimension, so it is kept as text"))
+            }
+        }
+        for (index, element) in jww.elements.enumerated() {
+            guard let record = element.dimension, record.measuredPoints.count != 2 else { continue }
+            found.append(
+                (
+                    index, record.label.string, record.label.at,
+                    "belongs to a dimension record that stores no measured points (a file older "
+                        + "than version 4.20), so it is kept as a line and text"
+                ))
+        }
+
+        var values: [DrawingResult.UnexplainedDimensionValue] = []
+        var warnings: [DrawingWarning] = []
+        for entry in found.sorted(by: { $0.index < $1.index }) {
+            let attributes = jww.elements[entry.index].attributes
+            let factor = appliedScale(jww.scale(ofLayerGroup: attributes.layerGroup))
+            let value = DrawingResult.UnexplainedDimensionValue(
+                text: entry.text, position: DXF.Point(entry.at.x * factor, entry.at.y * factor),
+                layer: layerName(group: attributes.layerGroup, layer: attributes.layer))
+            values.append(value)
+            warnings.append(
+                DrawingWarning(
+                    kind: .unexplainedDimensionValue, type: "TEXT", layer: value.layer,
+                    message: "the dimension value \(entry.text) on layer \(value.layer) at "
+                        + "(\(number(value.position.x)), \(number(value.position.y))) "
+                        + entry.reason))
+        }
+        return (values, warnings)
     }
 
     /// The scale of each layer group that holds a top-level element, in group order.
@@ -132,7 +162,8 @@ extension DrawingLoader {
 
     /// A JWW layer's name as SwiftJWW's writer gives it: group and layer in hexadecimal, `0-E`.
     static func layerName(group: Int, layer: Int) -> String {
-        String(group, radix: 16, uppercase: true) + "-" + String(layer, radix: 16, uppercase: true)
+        DrawingResult.LayerGroupScale.layerNamePrefix(ofGroup: group)
+            + String(layer, radix: 16, uppercase: true)
     }
 
     /// A number for a message: whole numbers without a decimal point.

@@ -37,20 +37,11 @@ public struct DrawingWarning: Sendable, Equatable, CustomStringConvertible {
         /// `BLOCK_RECORD`), or `OBJECT` for one whose type is itself unreadable. An entity of a
         /// block that was expanded counts once for each reference.
         case unreadable
-        /// A JWW layer group that holds part of the drawing states no usable scale, so it was read
-        /// at drawn size.
-        ///
-        /// ``layer`` is the prefix of the group's layer names, such as `0-`.
+        /// A JWW layer group in use states no scale, so it was read at drawn size.
         case scaleNotStated
-        /// The JWW layer groups that hold the drawing were drawn at different scales.
-        ///
-        /// Each group is at its own full size, so the groups are no longer placed relative to each
-        /// other as they are on the sheet. ``count`` is the number of different scales.
+        /// The JWW layer groups in use have different scales; ``count`` is how many.
         case mixedScales
-        /// A JWW dimension value that no rebuilt dimension explains, so it stays a loose text.
-        ///
-        /// One warning for each value, with its ``layer``; the value and its position are in
-        /// ``DrawingResult/unexplainedDimensionValues``.
+        /// A JWW dimension value that is not a dimension in the drawing, one per value.
         case unexplainedDimensionValue
     }
 

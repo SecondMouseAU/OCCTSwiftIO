@@ -34,8 +34,9 @@ public enum CADFileFormat: String, Sendable {
 ```
 
 `step`, `stl`, `obj`, `brep`, `iges` load to OCCT `Shape`s; `jww`, `dxf` and `dwg` load to a compound of
-OCCT edges in the `Z = 0` plane. A DXF or DWG is read with its block references expanded, and
-`ShapeLoadResult.warnings` says what was left out.
+OCCT edges in the `Z = 0` plane. A DXF, DWG or JWW is read with its block references expanded, and
+`ShapeLoadResult.warnings` says what was left out. A JWW is at full size: each element is multiplied
+by its layer group's scale (see [DrawingLoader](DrawingLoader.md#jww)).
 
 ---
 

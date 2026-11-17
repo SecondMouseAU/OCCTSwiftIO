@@ -78,14 +78,21 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
   lists the identity of each such entity: a `.dimension` not listed there was stored in the file.
   Which pieces each was built from is not recorded yet
   ([SwiftJWW#22](https://github.com/SecondMouseAU/SwiftJWW/issues/22)).
-- **Values no dimension explains stay text.** A radius, diameter or angle value, a value in another
+- **Values that are not dimensions stay text.** A radius, diameter or angle value, a value in another
   unit, or a value with no arrow points at the stated distance is kept as a loose text and listed in
   `unexplainedDimensionValues` (the text as written, its position at full size and its layer), with
   an `unexplainedDimensionValue` warning.
+- **Stored dimension records.** A drawing made with Jw_cad's dimension command stores each
+  dimension as one record. In a file of version 4.20 or later the record has its measured points
+  and comes back as a `.dimension`, not listed as rebuilt. In an older file it has none, so SwiftJWW
+  writes its line and value as a loose line and text; its value is listed in
+  `unexplainedDimensionValues` with a warning, as above.
 
-A dimension stored as a record (a drawing made with Jw_cad's dimension command, version 4.20 or
-later) is written as a `DIMENSION` too, and is not listed as rebuilt. A JWW declares no length unit,
-so it has the `unitsNotDeclared` warning; Jw_cad draws in millimetres.
+Limits: SwiftJWW rebuilds dimensions from top-level elements only, so loose dimension pieces inside
+a block stay pieces, with no warning. The members of an expanded block keep their own layer names
+but are scaled by the layer group of the reference that places them, so `layerNamePrefix` gives a
+member's scale only when both are in the same group. A JWW declares no length unit, so it has the
+`unitsNotDeclared` warning; Jw_cad draws in millimetres.
 
 ## `DrawingWarning`
 
@@ -104,7 +111,7 @@ a `layer` and a `count`, and a `message`.
 | `emptyDrawing` | Nothing was read. |
 | `scaleNotStated` | A JWW layer group that holds part of the drawing states no usable scale, so it was read at drawn size. `layer` is the group's layer-name prefix (`0-`). |
 | `mixedScales` | The JWW layer groups that hold the drawing have different scales; each is at its own full size. `count` is the number of different scales. |
-| `unexplainedDimensionValue` | A JWW dimension value that no rebuilt dimension explains; it stays a loose text. One per value, with its `layer`; the value and position are in `unexplainedDimensionValues`. |
+| `unexplainedDimensionValue` | A JWW dimension value that is not a `.dimension` in the drawing (SwiftJWW could not pair it with arrow points, or its record stores no measured points); it stays a loose text. One per value, with its `layer`; the value and position are in `unexplainedDimensionValues`. |
 
 The `unreadable` kind reads the names SwiftDWG documents in its README: the `UNREADABLE_` prefix, and
 `LAYER`, `LTYPE`, `STYLE`, `DIMSTYLE` and `BLOCK_RECORD` as the tables whose records it counts.
