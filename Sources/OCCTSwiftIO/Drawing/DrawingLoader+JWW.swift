@@ -55,10 +55,19 @@ extension DrawingLoader {
         let (unexplained, valueWarnings) = unexplainedValues(
             jww: jww, unmatched: output.report.unexplainedValues)
 
+        var warnings = scaleWarnings(jww: jww, scales: scales) + valueWarnings
+        if jww.counts.solid > 0 {
+            // SwiftJWW reads a solid fill's place in the file but not the fill, and not its layer.
+            let count = jww.counts.solid
+            warnings.append(
+                DrawingWarning(
+                    kind: .skippedEntities, type: "SOLID", count: count,
+                    message: "\(count) SOLID entities were not read"))
+        }
+
         return JWWRead(
             drawing: drawing, version: String(jww.version), rebuiltDimensions: rebuilt,
-            unexplainedDimensionValues: unexplained, layerGroupScales: scales,
-            warnings: scaleWarnings(jww: jww, scales: scales) + valueWarnings)
+            unexplainedDimensionValues: unexplained, layerGroupScales: scales, warnings: warnings)
     }
 
     /// The dimension values that are not a `DIMENSION` in the drawing, in file order, with a
@@ -70,18 +79,27 @@ extension DrawingLoader {
     static func unexplainedValues(
         jww: JWW.Drawing, unmatched: [Int]
     ) -> ([DrawingResult.UnexplainedDimensionValue], [DrawingWarning]) {
-        var found: [(index: Int, text: String, at: JWW.Point, reason: String)] = []
+        var found: [(index: Int, text: String, at: JWW.Point, layer: Int, reason: String)] = []
         for index in unmatched where jww.elements.indices.contains(index) {
-            if case .text(let at, _, _, _, let string, _, _) = jww.elements[index].entity {
+            let element = jww.elements[index]
+            if case .text(let at, _, _, _, let string, _, _) = element.entity {
                 found.append(
-                    (index, string, at, "is not explained by any dimension, so it is kept as text"))
+                    (
+                        index, string, at, element.attributes.layer,
+                        "is not explained by any dimension, so it is kept as text"
+                    ))
             }
         }
         for (index, element) in jww.elements.enumerated() {
-            guard let record = element.dimension, record.measuredPoints.count != 2 else { continue }
+            // The writer leaves such a record's parts loose, each on its own layer.
+            guard let record = element.dimension, record.measuredPoints.count != 2,
+                case .dimension(let parts, _) = element.entity,
+                let text = parts.first(where: { if case .text = $0 { true } else { false } }),
+                case .text(_, _, _, _, _, let layer, _) = text
+            else { continue }
             found.append(
                 (
-                    index, record.label.string, record.label.at,
+                    index, record.label.string, record.label.at, layer,
                     "belongs to a dimension record that stores no measured points (a file older "
                         + "than version 4.20), so it is kept as a line and text"
                 ))
@@ -90,11 +108,11 @@ extension DrawingLoader {
         var values: [DrawingResult.UnexplainedDimensionValue] = []
         var warnings: [DrawingWarning] = []
         for entry in found.sorted(by: { $0.index < $1.index }) {
-            let attributes = jww.elements[entry.index].attributes
-            let factor = appliedScale(jww.scale(ofLayerGroup: attributes.layerGroup))
+            let group = jww.elements[entry.index].attributes.layerGroup
+            let factor = appliedScale(jww.scale(ofLayerGroup: group))
             let value = DrawingResult.UnexplainedDimensionValue(
                 text: entry.text, position: DXF.Point(entry.at.x * factor, entry.at.y * factor),
-                layer: layerName(group: attributes.layerGroup, layer: attributes.layer))
+                layer: layerName(group: group, layer: entry.layer))
             values.append(value)
             warnings.append(
                 DrawingWarning(
@@ -119,15 +137,19 @@ extension DrawingLoader {
     }
 
     /// The warnings about scale: a group in use that states none, and groups at different scales.
+    ///
+    /// The scales compared are the factors applied, so a group read at drawn size beside a scaled
+    /// one is a mixed scale too.
     static func scaleWarnings(
         jww: JWW.Drawing, scales: [DrawingResult.LayerGroupScale]
     ) -> [DrawingWarning] {
         var out: [DrawingWarning] = []
-        var stated: [DrawingResult.LayerGroupScale] = []
+        var described: [String] = []
         for entry in scales {
             if isUsable(jww.scale(ofLayerGroup: entry.group)) {
-                stated.append(entry)
+                described.append("1:\(number(entry.scale)) for group \(entry.group)")
             } else {
+                described.append("drawn size for group \(entry.group)")
                 out.append(
                     DrawingWarning(
                         kind: .scaleNotStated, layer: entry.layerNamePrefix,
@@ -135,15 +157,14 @@ extension DrawingLoader {
                             + "drawn size"))
             }
         }
-        let distinct = Set(stated.map(\.scale))
+        let distinct = Set(scales.map(\.scale))
         if distinct.count > 1 {
-            let list = stated.map { "1:\(number($0.scale)) for group \($0.group)" }
             out.append(
                 DrawingWarning(
                     kind: .mixedScales, count: distinct.count,
-                    message: "the layer groups are drawn at different scales ("
-                        + list.joined(separator: ", ") + "); each is at full size, so they are "
-                        + "no longer placed relative to each other as on the sheet"))
+                    message: "the layer groups are at different scales ("
+                        + described.joined(separator: ", ") + "); each is at full size, so they "
+                        + "are no longer placed relative to each other as on the sheet"))
         }
         return out
     }

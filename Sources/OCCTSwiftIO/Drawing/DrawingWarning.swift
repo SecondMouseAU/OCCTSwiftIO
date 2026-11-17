@@ -52,7 +52,8 @@ public struct DrawingWarning: Sendable, Equatable, CustomStringConvertible {
     /// of a layer group's layer names, for ``Kind/scaleNotStated``; `nil` when the format does not
     /// say.
     ///
-    /// A DWG's skipped entities are counted without their layer, so it is `nil` for them.
+    /// A DWG's skipped entities, and a JWW's solid fills, are counted without their layer, so it is
+    /// `nil` for them.
     public var layer: String?
     public var count: Int
     public var message: String

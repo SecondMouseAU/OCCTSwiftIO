@@ -40,7 +40,9 @@ nav_order: 4
   at 1:80 comes in at its real size. It is read as `DrawingLoader` reads it, through SwiftJWW's DXF
   writer, and shares the DXF edge step: lines → line edges, arcs/circles → circular-arc edges (the
   JWW *tilt* axis is honoured), ellipses → polyline approximations, points → vertices, in the
-  `Z = 0` plane. Block inserts are expanded. **Text** and **dimensions** have no edges.
+  `Z = 0` plane. Block inserts are expanded. **Text** has no edges, nor does a dimension written as
+  a `DIMENSION`; the lines of one that is not (a value nothing explains, or a record from a file
+  older than version 4.20) stay lines.
 - **DXF and DWG** load to one compound of curve edges, as JWW does. Block references are expanded, so
   the geometry in a block is in the compound. For all three, `ShapeLoadResult.warnings` carries what
   was left out (the same `DrawingWarning`s `DrawingLoader` gives).

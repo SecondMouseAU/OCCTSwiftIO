@@ -84,12 +84,14 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
   an `unexplainedDimensionValue` warning.
 - **Stored dimension records.** A drawing made with Jw_cad's dimension command stores each
   dimension as one record. In a file of version 4.20 or later the record has its measured points
-  and comes back as a `.dimension`, not listed as rebuilt. In an older file it has none, so SwiftJWW
+  and comes back as a `.dimension`, not listed as rebuilt, with no edges on the shapes path. In an older file it has none, so SwiftJWW
   writes its line and value as a loose line and text; its value is listed in
   `unexplainedDimensionValues` with a warning, as above.
 
 Limits: SwiftJWW rebuilds dimensions from top-level elements only, so loose dimension pieces inside
-a block stay pieces, with no warning. The members of an expanded block keep their own layer names
+a block stay pieces, with no warning, and an older dimension record inside a block is not listed.
+A solid fill is skipped by SwiftJWW and reported as `skippedEntities` of type `SOLID`, with no
+layer. The members of an expanded block keep their own layer names
 but are scaled by the layer group of the reference that places them, so `layerNamePrefix` gives a
 member's scale only when both are in the same group. A JWW declares no length unit, so it has the
 `unitsNotDeclared` warning; Jw_cad draws in millimetres.

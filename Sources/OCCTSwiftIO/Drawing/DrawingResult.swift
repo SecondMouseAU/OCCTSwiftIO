@@ -23,10 +23,11 @@ public struct DrawingResult: Sendable {
     /// A `.dimension` entity whose identity is not here was stored in the file as a dimension.
     /// Only a JWW has rebuilt dimensions so far; for a DXF or a DWG this is empty.
     public var rebuiltDimensions: [RebuiltDimension]
-    /// The dimension values on a JWW's dimension layers that no rebuilt dimension explains.
+    /// The dimension values of a JWW that are not a `.dimension` in the drawing.
     ///
-    /// Each stays in the drawing as a loose text, and has a
-    /// ``DrawingWarning/Kind/unexplainedDimensionValue`` warning.
+    /// A value is a top-level text marked with Jw_cad's dimension flags, or the value of a
+    /// dimension record that stores no measured points. Each stays in the drawing as a loose text,
+    /// and has a ``DrawingWarning/Kind/unexplainedDimensionValue`` warning.
     public var unexplainedDimensionValues: [UnexplainedDimensionValue]
     /// The scale of each JWW layer group that holds part of the drawing.
     ///

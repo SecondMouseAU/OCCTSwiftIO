@@ -171,8 +171,8 @@ enum JWWFixture {
 
     /// The 100 x 60 plate of `Fixtures/DWG/plate.dwg` and `Fixtures/Drawing/plate.dxf`.
     ///
-    /// Four lines and a circle of radius 5 at (30, 30), all on layer 0. JWW has no equivalent of
-    /// the DXF dimension entities used there, so it carries the geometry only.
+    /// Four lines and a circle of radius 5 at (30, 30), all on layer 0: the geometry only, without
+    /// the dimensions of the DXF and DWG plates.
     static func plate() -> Data {
         var b = Builder()
         b.header()
@@ -221,6 +221,8 @@ enum JWWFixture {
             case block(number: Int, name: String, members: [Item])
             /// A reference to block `number`, at `at`, unscaled and unrotated.
             case insert(number: Int, at: (Double, Double))
+            /// A solid fill over four corners.
+            case solid([(Double, Double)])
         }
         var shape: Shape
         var group = 0
@@ -288,6 +290,13 @@ enum JWWFixture {
             b.str(name)
             b.u16(members.count)
             for member in members { write(member, into: &b, version: version) }
+        case .solid(let corners):
+            b.objectTag("CDataSolid")
+            base()  // colour 2, so no extra colour word follows the corners
+            for corner in corners.prefix(4) {
+                b.f64(corner.0)
+                b.f64(corner.1)
+            }
         case .insert(let number, let at):
             b.objectTag("CDataBlock")
             base()
@@ -361,5 +370,22 @@ enum JWWFixture {
                         number: 1, name: "B", members: [Item(shape: .line(0, 0, 1, 0))])),
                 Item(shape: .insert(number: 1, at: (2, 3))),
             ], scales: [0: 10])
+    }
+
+    /// A line in layer group 0 at 1:10 and one in group 1, which states a scale of 0.
+    static func scaledBesideUnstated() -> Data {
+        drawing(
+            [
+                Item(shape: .line(0, 0, 10, 0)),
+                Item(shape: .line(0, 1, 5, 1), group: 1),
+            ], scales: [0: 10, 1: 0])
+    }
+
+    /// The plate's outline at 1:1 with a solid fill over it.
+    static func solidFill() -> Data {
+        drawing([
+            Item(shape: .line(0, 0, 100, 0)),
+            Item(shape: .solid([(0, 0), (100, 0), (100, 60), (0, 60)])),
+        ])
     }
 }

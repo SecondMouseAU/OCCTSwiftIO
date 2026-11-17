@@ -7,7 +7,7 @@ parent: API Reference
 
 `ShapeLoader` is a headless CAD file loader. Its static methods load STEP / IGES / BREP / STL / OBJ /
 JWW into OCCT `Shape`s plus document metadata, returning a `ShapeLoadResult`. There is no Viewport
-dependency — renderable bodies live in OCCTSwiftTools, which wraps this package.
+dependency; renderable bodies live in OCCTSwiftTools, which wraps this package.
 
 ## Topics
 
@@ -42,17 +42,17 @@ public struct ShapeLoadResult: @unchecked Sendable {
 }
 ```
 
-- `shapesWithColors` — source shapes paired with a per-shape color, `nil` when the format carries no
+- `shapesWithColors`: source shapes paired with a per-shape color, `nil` when the format carries no
   color (STL / OBJ / BREP / IGES). **One entry per body:** a multibody file yields one entry per solid,
   matching what the STEP path produces via `Document.shapesWithColors()`. A single-body file, or one
   whose result carries no solids (e.g. a raw-mesh STL that loads as loose faces), yields a single entry.
   This requires OCCTSwift ≥ 1.11.3, where the robust importers return a compound of solids for
   multibody files instead of dropping all but the first ([OCCTSwift#302](https://github.com/SecondMouseAU/OCCTSwift/issues/302)).
-- `dimensions` / `geomTolerances` / `datums` — AP242 GD&T extracted from the document (STEP only;
+- `dimensions` / `geomTolerances` / `datums`: AP242 GD&T extracted from the document (STEP only;
   empty otherwise). The element types (`Document.Dimension`, `Document.GeomTolerance`, `Document.Datum`) come from
   OCCTSwift.
-- `manifest` — the decoded manifest, populated only by `loadFromManifest`.
-- `warnings` — what a drawing read left out or assumed, as the same `DrawingWarning`s `DrawingLoader`
+- `manifest`: the decoded manifest, populated only by `loadFromManifest`.
+- `warnings`: what a drawing read left out or assumed, as the same `DrawingWarning`s `DrawingLoader`
   gives (skipped entities by type and layer, entities and records a DWG could not read, a block that
   is missing, cyclic or too deeply nested, paper space, an undeclared unit, an empty drawing). Filled
   for **DXF, DWG and JWW**, whose block references are expanded so the geometry in a block is in the
@@ -62,7 +62,7 @@ public struct ShapeLoadResult: @unchecked Sendable {
   dimension explains; see [DrawingLoader](DrawingLoader.md#jww),
   [#67](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/67)). Text, dimensions, hatches and
   leaders are read but have no edges, which is not a warning.
-- `shapes` — convenience accessor returning just the shapes.
+- `shapes`: convenience accessor returning just the shapes.
 
 ---
 
@@ -79,8 +79,8 @@ public static func load(
 ) async throws -> ShapeLoadResult
 ```
 
-- **Parameters:** `url` — the file to load; `format` — the `CADFileFormat` selecting the code path;
-  `progress` — optional `ImportProgress` observer (see [ImportProgressClosure](ImportProgressClosure.md)).
+- **Parameters:** `url`: the file to load; `format`: the `CADFileFormat` selecting the code path;
+  `progress`: optional `ImportProgress` observer (see [ImportProgressClosure](ImportProgressClosure.md)).
 - **Returns:** a `ShapeLoadResult` with shapes, colors, and (for STEP) AP242 metadata.
 - **Throws:** rethrows OCCTSwift import errors; `ImportError.cancelled` if `progress.shouldCancel()`
   returns `true`.
@@ -94,7 +94,7 @@ public static func load(
 
 ## `ShapeLoader.loadRobust(from:format:progress:)`
 
-Robust variant — routes STL and IGES through the sewing/healing path (which closes gaps the basic
+Robust variant: routes STL and IGES through the sewing/healing path (which closes gaps the basic
 importer can't). For STEP / OBJ / BREP this is identical to `load(from:format:progress:)`.
 
 ```swift
@@ -125,7 +125,7 @@ This entry point is synchronous `throws`, not `async`.
 public static func loadFromManifest(at url: URL) throws -> ShapeLoadResult
 ```
 
-- **Parameters:** `url` — the URL of the `manifest.json` document.
+- **Parameters:** `url`: the URL of the `manifest.json` document.
 - **Returns:** a `ShapeLoadResult` whose `manifest` property holds the decoded `ScriptManifest` and
   whose `shapesWithColors` pairs each loaded BREP body with its `BodyDescriptor.color`.
 - **Throws:** if the manifest can't be read or decoded, or if a referenced BREP fails to load.

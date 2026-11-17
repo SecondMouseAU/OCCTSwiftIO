@@ -67,7 +67,7 @@ struct JWWFullSizeTests {
     }
 
     @Test("groups at different scales are each at full size, with a warning")
-    func mixedScales() throws {
+    func groupsAtDifferentScales() throws {
         let result = try Self.read("mixed.jww", JWWFixture.mixedScales())
         #expect(
             DrawingLoaderTests.geometry(result.drawing) == [
@@ -82,7 +82,7 @@ struct JWWFullSizeTests {
     }
 
     @Test("a group that states no scale is read at drawn size, with a warning")
-    func unstatedScale() throws {
+    func groupWithNoScale() throws {
         let result = try Self.read("unstated.jww", JWWFixture.unstatedScale())
         #expect(
             DrawingLoaderTests.geometry(result.drawing) == [
@@ -90,6 +90,29 @@ struct JWWFullSizeTests {
             ])
         #expect(result.layerGroupScales == [.init(group: 0, scale: 1)])
         #expect(result.warnings.contains { $0.kind == .scaleNotStated && $0.layer == "0-" })
+    }
+
+    @Test("a group read at drawn size beside a scaled one is a mixed scale too")
+    func unstatedBesideScaled() throws {
+        let result = try Self.read("unstated.jww", JWWFixture.scaledBesideUnstated())
+        #expect(
+            result.layerGroupScales == [.init(group: 0, scale: 10), .init(group: 1, scale: 1)])
+        #expect(result.warnings.contains { $0.kind == .scaleNotStated && $0.layer == "1-" })
+        let warning = result.warnings.first { $0.kind == .mixedScales }
+        #expect(warning?.message.contains("drawn size for group 1") == true)
+    }
+
+    @Test("a solid fill SwiftJWW does not read is reported, on both paths")
+    func solidFillIsReported() async throws {
+        let url = try DrawingLoaderTests.temporaryFile("solid.jww", JWWFixture.solidFill())
+        let result = try DrawingLoader.read(from: url)
+        #expect(
+            result.warnings.contains {
+                $0.kind == .skippedEntities && $0.type == "SOLID" && $0.count == 1
+                    && $0.layer == nil
+            })
+        let shapes = try await ShapeLoader.load(from: url, format: .jww)
+        #expect(shapes.warnings == result.warnings)
     }
 
     @Test("a DXF or a DWG has no rebuilt dimensions and no layer group scales")
@@ -120,9 +143,9 @@ struct JWWFullSizeTests {
         let result = try Self.read("stored.jww", JWWFixture.storedDimension())
         let found = Self.dimensions(result.drawing)
         #expect(found.count == 1)
-        if let value = found.first?.dimension.computedMeasurement {
-            #expect(abs(value - 100) < 1e-9)
-        }
+        let value = found.first?.dimension.computedMeasurement
+        #expect(value != nil)
+        if let value { #expect(abs(value - 100) < 1e-9) }
         #expect(found.first?.dimension.textOverride == "100")
         #expect(result.rebuiltDimensions.isEmpty)
         #expect(result.unexplainedDimensionValues.isEmpty)
@@ -144,7 +167,7 @@ struct JWWFullSizeTests {
     }
 
     @Test("a block in a scaled group is placed and expanded at full size, on both paths")
-    func blockAtScale() async throws {
+    func blockInScaledGroup() async throws {
         let url = try DrawingLoaderTests.temporaryFile("block.jww", JWWFixture.blockAtScale())
         let result = try DrawingLoader.read(from: url)
         // One drawn unit at 1:10, placed at (2, 3): from (20, 30) to (30, 30).
