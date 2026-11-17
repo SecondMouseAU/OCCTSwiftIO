@@ -17,7 +17,7 @@ extension DrawingLoader {
         var rebuiltDimensions: [DrawingResult.RebuiltDimension]
         var unexplainedDimensionValues: [DrawingResult.UnexplainedDimensionValue]
         var layerGroupScales: [DrawingResult.LayerGroupScale]
-        /// The warnings only a JWW gives: scales and unexplained values.
+        /// The warnings only a JWW gives: scales, unexplained values and skipped solid fills.
         ///
         /// The warnings every format gives come from
         /// ``warnings(for:expandedBlocks:layersKnown:leftOutPaperSpace:)``.
@@ -169,8 +169,8 @@ extension DrawingLoader {
         return out
     }
 
-    /// The factor SwiftJWW's writer applies for a group's stated scale: the scale when it is usable,
-    /// otherwise 1.
+    /// The factor SwiftJWW's writer applies for a group's stated scale: the scale when it is
+    /// usable, otherwise 1.
     static func appliedScale(_ stated: Double?) -> Double {
         guard let stated, isUsable(stated) else { return 1 }
         return stated

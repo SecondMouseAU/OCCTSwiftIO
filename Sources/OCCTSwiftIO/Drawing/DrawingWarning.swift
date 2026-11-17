@@ -48,9 +48,9 @@ public struct DrawingWarning: Sendable, Equatable, CustomStringConvertible {
     public var kind: Kind
     /// The entity type, for the kinds that concern one.
     public var type: String?
-    /// The layer, for ``Kind/skippedEntities`` and ``Kind/unexplainedDimensionValue``, or the prefix
-    /// of a layer group's layer names, for ``Kind/scaleNotStated``; `nil` when the format does not
-    /// say.
+    /// The layer, for ``Kind/skippedEntities`` and ``Kind/unexplainedDimensionValue``, or the
+    /// prefix of a layer group's layer names, for ``Kind/scaleNotStated``; `nil` when the format
+    /// does not say.
     ///
     /// A DWG's skipped entities, and a JWW's solid fills, are counted without their layer, so it is
     /// `nil` for them.

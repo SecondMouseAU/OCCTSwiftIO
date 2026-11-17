@@ -158,7 +158,7 @@ struct JWWFullSizeTests {
         #expect(Self.dimensions(result.drawing).isEmpty)
         #expect(
             result.unexplainedDimensionValues == [
-                .init(text: "100", position: DXF.Point(45, -18), layer: "0-E")
+                .init(text: "100", position: DXF.Point(45, -18), layer: "0-D")
             ])
         #expect(
             result.warnings.contains {

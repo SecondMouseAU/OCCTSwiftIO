@@ -29,8 +29,8 @@ public enum DXFLoader {
     }
 
     /// How `ShapeLoader` reads a DXF, a DWG or a JWW: with block references expanded, as
-    /// `DrawingLoader` does, so the geometry in a block is in the compound and the two loaders agree
-    /// on what a drawing holds (#70).
+    /// `DrawingLoader` does, so the geometry in a block is in the compound and the two loaders
+    /// agree on what a drawing holds (#70).
     static let shapeReadOptions = DXF.ReadOptions(expandBlocks: true)
 
     static func load(from url: URL) throws -> ShapeLoadResult {
@@ -40,9 +40,10 @@ public enum DXFLoader {
     /// One compound of curve edges for a drawing, whichever format it was read from, and the
     /// warnings of the read.
     ///
-    /// Shared by the DXF, DWG and JWW loaders: all three come back as the same `DXF.Drawing`. `drawing` is
-    /// expected to have been read with ``shapeReadOptions``; the warnings are `DrawingLoader`'s for
-    /// such a read. `layersKnown` is `false` for a DWG, which counts what it skipped without a layer.
+    /// Shared by the DXF, DWG and JWW loaders: all three come back as the same `DXF.Drawing`.
+    /// `drawing` is expected to have been read with ``shapeReadOptions``; the warnings are
+    /// `DrawingLoader`'s for such a read. `layersKnown` is `false` for a DWG, which counts what it
+    /// skipped without a layer.
     static func shapes(of drawing: DXF.Drawing, layersKnown: Bool) -> ShapeLoadResult {
         var shapes: [Shape] = []
 

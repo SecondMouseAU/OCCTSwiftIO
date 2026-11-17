@@ -51,6 +51,27 @@ public struct DrawingResult: Sendable {
 
 The last three are empty for a DXF and a DWG. The initialiser takes them as defaulted parameters.
 
+```swift
+extension DrawingResult {
+    public struct RebuiltDimension: Sendable, Equatable {
+        public var identity: DXF.Identity     // of the .dimension entity in drawing
+        public init(identity: DXF.Identity)
+    }
+    public struct UnexplainedDimensionValue: Sendable, Equatable {
+        public var text: String               // as written: "1,930", "R5"
+        public var position: DXF.Point        // at full size
+        public var layer: String              // "0-E"
+        public init(text: String, position: DXF.Point, layer: String)
+    }
+    public struct LayerGroupScale: Sendable, Equatable {
+        public var group: Int                 // 0 to 15
+        public var scale: Double              // the factor applied: 80 for 1:80, 1 when none is stated
+        public var layerNamePrefix: String    // "0-" for group 0
+        public init(group: Int, scale: Double)
+    }
+}
+```
+
 `DrawingSource` records the file's `fileName`, its `sha256` (empty where CryptoKit is unavailable),
 its `format` (`.dxf`, `.dwg`, `.jww`) and the format's own `version`: `$ACADVER` for a DXF and the
 version code for a DWG (both like `AC1032`), the file version for a JWW (`700`).
@@ -90,8 +111,9 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
 
 Limits: SwiftJWW rebuilds dimensions from top-level elements only, so loose dimension pieces inside
 a block stay pieces, with no warning, and an older dimension record inside a block is not listed.
-A solid fill is skipped by SwiftJWW and reported as `skippedEntities` of type `SOLID`, with no
-layer. The members of an expanded block keep their own layer names
+A solid fill at the top level is skipped by SwiftJWW and reported as `skippedEntities` of type
+`SOLID`, with no layer; one inside a block is dropped by SwiftJWW without being counted, so it is
+not reported ([SwiftJWW#24](https://github.com/SecondMouseAU/SwiftJWW/issues/24)). The members of an expanded block keep their own layer names
 but are scaled by the layer group of the reference that places them, so `layerNamePrefix` gives a
 member's scale only when both are in the same group. A JWW declares no length unit, so it has the
 `unitsNotDeclared` warning; Jw_cad draws in millimetres.

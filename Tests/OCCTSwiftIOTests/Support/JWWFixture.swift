@@ -215,8 +215,8 @@ enum JWWFixture {
             /// version 4.20 or later, its two witness lines, two arrow points and two measured points.
             case dimensionRecord(
                 line: (Double, Double, Double, Double), value: String, at: (Double, Double),
-                witness: [(Double, Double, Double, Double)], arrows: [(Double, Double)],
-                measured: [(Double, Double)])
+                textLayer: Int, witness: [(Double, Double, Double, Double)],
+                arrows: [(Double, Double)], measured: [(Double, Double)])
             /// A block definition, numbered, with its members.
             case block(number: Int, name: String, members: [Item])
             /// A reference to block `number`, at `at`, unscaled and unrotated.
@@ -271,11 +271,12 @@ enum JWWFixture {
             b.f64(0)  // angle, degrees
             b.emptyStr()  // font
             b.str(string)
-        case .dimensionRecord(let line, let value, let at, let witness, let arrows, let measured):
+        case .dimensionRecord(
+            let line, let value, let at, let textLayer, let witness, let arrows, let measured):
             b.objectTag("CDataSunpou")
             base()
             b.senFields(line.0, line.1, line.2, line.3, layer: item.layer)
-            b.mojiFields(value, at: at, layer: item.layer)
+            b.mojiFields(value, at: at, layer: textLayer)
             if version >= 420 {
                 b.u16(0)  // SXF mode
                 for w in witness { b.senFields(w.0, w.1, w.2, w.3, layer: item.layer) }
@@ -348,14 +349,15 @@ enum JWWFixture {
     /// The plate's width at 1:10, dimensioned by one stored dimension record whose value is `100`.
     ///
     /// In a file of version 4.20 or later the record has its measured points; in an older file
-    /// (`version` 351) it has only the dimension line and the value.
+    /// (`version` 351) it has only the dimension line and the value. The record is on layer E and
+    /// its value text on layer D, which a writer that leaves the record loose puts it on.
     static func storedDimension(version: Int = 700) -> Data {
         drawing(
             [
                 Item(shape: .line(0, 0, 10, 0)),
                 Item(
                     shape: .dimensionRecord(
-                        line: (0, -2, 10, -2), value: "100", at: (4.5, -1.8),
+                        line: (0, -2, 10, -2), value: "100", at: (4.5, -1.8), textLayer: 0xD,
                         witness: [(0, 0, 0, -2), (10, 0, 10, -2)], arrows: [(0, -2), (10, -2)],
                         measured: [(0, 0), (10, 0)]), layer: 0xE),
             ], version: version, scales: [0: 10])
