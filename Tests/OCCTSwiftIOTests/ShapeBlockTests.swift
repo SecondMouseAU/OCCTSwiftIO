@@ -112,6 +112,12 @@ struct ShapeBlockTests {
             (DrawingLoaderTests.plateDWG, .dwg),
             (DrawingLoaderTests.autocad("anonymous-names.dwg"), .dwg),
             (DrawingLoaderTests.autocad("point_object_id.dwg"), .dwg),
+            (try DrawingLoaderTests.temporaryFile("plate.jww", JWWFixture.plate()), .jww),
+            (
+                try DrawingLoaderTests.temporaryFile(
+                    "dimensioned.jww", JWWFixture.dimensionedPlate()), .jww
+            ),
+            (try DrawingLoaderTests.temporaryFile("mixed.jww", JWWFixture.mixedScales()), .jww),
         ]
         for (url, format) in files {
             let shapes = try await ShapeLoader.load(from: url, format: format)

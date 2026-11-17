@@ -19,15 +19,20 @@ enum JWWFixture {
         mutating func emptyStr() { u8(0) }
         mutating func zeros(_ n: Int) { d.append(Data(count: n)) }
 
-        /// Emit a minimal but byte-exact v700 header (all fields zero / empty strings).
-        mutating func header() {
+        /// Emit a minimal but byte-exact v700 header: every field zero or empty, except each layer
+        /// group's scale denominator, which is `scales[group]` or 1, as Jw_cad writes an unscaled
+        /// group.
+        mutating func header(scales: [Int: Double] = [:]) {
             d.append(contentsOf: Array("JwwData.".utf8))
             u32(700)
             emptyStr()  // memo
             u32(0)
             u32(0)  // zumen, writeGLay
-            for _ in 0..<16 {
-                zeros(4 + 4 + 8 + 4)
+            for group in 0..<16 {
+                u32(0)  // state
+                u32(0)  // write layer
+                f64(scales[group] ?? 1)  // scale denominator: 80 is 1:80
+                u32(0)  // protection
                 for _ in 0..<16 { zeros(8) }
             }  // layer-groups
             zeros(14 * 4)
@@ -91,15 +96,34 @@ enum JWWFixture {
             zeros(4)
             zeros(8 * 6)  // moji write settings
         }
-        mutating func base(penStyle: Int = 1, color: Int = 2, layer: Int = 0) {
-            u32(0)
+        mutating func base(
+            penStyle: Int = 1, color: Int = 2, layer: Int = 0, group: Int = 0, flags: Int = 0
+        ) {
+            u32(0)  // curve attribute
             u8(penStyle)
             u16(color)
-            u16(0)
+            u16(0)  // pen width, present from v3.51
             u16(layer)
-            u16(0)
-            u16(0)  // v>=351 → penWidth present
+            u16(group)
+            u16(flags)
         }
+
+        /// The class tag of the next object.
+        ///
+        /// The class name the first time, then a reference to the index it took. Each class and
+        /// each object takes the next index, from 1.
+        mutating func objectTag(_ name: String) {
+            if let index = classIndex[name] {
+                u16(0x8000 | index)
+            } else {
+                classTag(name)
+                classIndex[name] = nextIndex
+                nextIndex += 1
+            }
+            nextIndex += 1
+        }
+        var classIndex: [String: Int] = [:]
+        var nextIndex = 1
         mutating func str(_ s: String) {
             let a = Array(s.utf8)
             u8(a.count)
@@ -177,5 +201,95 @@ enum JWWFixture {
         b.f64(1)  // ratio: a circle
         b.u32(1)  // full circle
         return b.d
+    }
+
+    /// One top-level element of a fixture drawing, in drawn units.
+    struct Item {
+        enum Shape {
+            case line(Double, Double, Double, Double)
+            case point(Double, Double)
+            case text(String, at: (Double, Double))
+        }
+        var shape: Shape
+        var group = 0
+        var layer = 0
+        /// Jw_cad's attribute flags: 0x2000 on a dimension line, 0x40 on an arrow point, 0x4010 on
+        /// a dimension value, 0x4110 on a radius value.
+        var flags = 0
+    }
+
+    /// A drawing of `items`, with the layer groups at `scales` (1 where not given).
+    static func drawing(_ items: [Item], scales: [Int: Double] = [:]) -> Data {
+        var b = Builder()
+        b.header(scales: scales)
+        b.u16(items.count)  // array preamble
+        for item in items {
+            switch item.shape {
+            case .line(let x1, let y1, let x2, let y2):
+                b.objectTag("CDataSen")
+                b.base(layer: item.layer, group: item.group, flags: item.flags)
+                b.f64(x1)
+                b.f64(y1)
+                b.f64(x2)
+                b.f64(y2)
+            case .point(let x, let y):
+                b.objectTag("CDataTen")
+                b.base(layer: item.layer, group: item.group, flags: item.flags)
+                b.f64(x)
+                b.f64(y)
+                b.u32(0)  // not a temporary point
+            case .text(let string, let at):
+                b.objectTag("CDataMoji")
+                b.base(layer: item.layer, group: item.group, flags: item.flags)
+                b.f64(at.0)
+                b.f64(at.1)
+                b.f64(at.0)
+                b.f64(at.1)  // end point
+                b.u32(0)  // text kind
+                b.f64(2)
+                b.f64(2)  // width, height
+                b.f64(0)  // spacing
+                b.f64(0)  // angle, degrees
+                b.emptyStr()  // font
+                b.str(string)
+            }
+        }
+        return b.d
+    }
+
+    /// The 100 x 60 plate drawn at 1:10 in layer group 0, with its width dimensioned.
+    ///
+    /// The dimension is kept the way Jw_cad keeps one it did not store as a dimension: a dimension
+    /// line, two extension lines, two arrow points and the value `100`, loose on layer E with the
+    /// dimension flags. A radius value `R5` on the same layer has no dimension to explain it.
+    static func dimensionedPlate() -> Data {
+        let dimension = 0xE
+        let outline: [Item] = [
+            (0.0, 0.0, 10.0, 0.0), (10, 0, 10, 6), (10, 6, 0, 6), (0, 6, 0, 0),
+        ].map { Item(shape: .line($0.0, $0.1, $0.2, $0.3)) }
+        let pieces: [Item] = [
+            Item(shape: .line(0, -2, 10, -2), layer: dimension, flags: 0x2000),
+            Item(shape: .line(0, -0.5, 0, -2), layer: dimension, flags: 0x2000),
+            Item(shape: .line(10, -0.5, 10, -2), layer: dimension, flags: 0x2000),
+            Item(shape: .point(0, -2), layer: dimension, flags: 0x40),
+            Item(shape: .point(10, -2), layer: dimension, flags: 0x40),
+            Item(shape: .text("100", at: (4.5, -1.8)), layer: dimension, flags: 0x4010),
+            Item(shape: .text("R5", at: (3, 3)), layer: dimension, flags: 0x4110),
+        ]
+        return drawing(outline + pieces, scales: [0: 10])
+    }
+
+    /// A line 10 drawn units long in layer group 0 at 1:10, and one 5 long in group 1 at 1:1.
+    static func mixedScales() -> Data {
+        drawing(
+            [
+                Item(shape: .line(0, 0, 10, 0)),
+                Item(shape: .line(0, 1, 5, 1), group: 1),
+            ], scales: [0: 10, 1: 1])
+    }
+
+    /// A line 10 drawn units long in layer group 0, which states a scale of 0.
+    static func unstatedScale() -> Data {
+        drawing([Item(shape: .line(0, 0, 10, 0))], scales: [0: 0])
     }
 }

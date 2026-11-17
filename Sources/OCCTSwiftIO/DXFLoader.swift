@@ -79,7 +79,7 @@ public enum DXFLoader {
 
             case .ellipse(let c, let major, let ratio, let startParam, let endParam, _, _):
                 // OCCT's edgeFromEllipse can't express a rotated major axis, so polyline it (carrying the
-                // tilt), matching JWWLoader's treatment of elliptical arcs.
+                // tilt). A JWW's elliptical arcs come here too, as SwiftJWW writes them as ELLIPSE.
                 let majorR = (major.x * major.x + major.y * major.y).squareRoot()
                 guard majorR > 0 else { continue }
                 emitEllipsePolyline(
@@ -174,7 +174,6 @@ public enum DXFLoader {
     /// Sample an elliptical arc into edges.
     ///
     /// `start`/`end` are the DXF ellipse parameters (radians); `tilt` rotates the major axis.
-    /// Mirrors JWWLoader.emitEllipsePolyline.
     private static func emitEllipsePolyline(
         cx: Double, cy: Double, majorR: Double, ratio: Double,
         tilt: Double, start: Double, end: Double, into shapes: inout [Shape]

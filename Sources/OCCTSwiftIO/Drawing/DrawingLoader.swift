@@ -2,8 +2,8 @@
 // OCCTSwiftIO
 //
 // One entry point for 2D drawing import. DXF is read directly, DWG by SwiftDWG, and JWW through
-// SwiftJWW's DXF writer, and all three come back as the same `DXF.Drawing`, so a consumer neither
-// picks a reader nor branches on the file extension.
+// SwiftJWW's DXF writer at full size, and all three come back as the same `DXF.Drawing`, so a
+// consumer neither picks a reader nor branches on the file extension.
 
 import Foundation
 import SwiftJWW
@@ -45,6 +45,12 @@ public enum DrawingLoader {
     ///
     /// The format comes from the file's bytes, not its extension.
     ///
+    /// A JWW comes back at full size: each element is multiplied by the scale of its layer group,
+    /// which ``DrawingResult/layerGroupScales`` states. The dimensions SwiftJWW rebuilds from
+    /// loose lines, arrow points and value texts are `.dimension` entities, listed in
+    /// ``DrawingResult/rebuiltDimensions``, and the values it could not explain are in
+    /// ``DrawingResult/unexplainedDimensionValues``.
+    ///
     /// - Throws: ``LoadError`` for a file that is none of the three, ``DWG/Error`` for a DWG that
     ///   cannot be read (a release that is not read, damage to its structure, or, for a file named
     ///   `.dwg`, bytes that are not a DWG), and the reader's own error for a DXF or a JWW. SwiftDWG
@@ -62,6 +68,7 @@ public enum DrawingLoader {
         let drawing: DXF.Drawing
         var source = DrawingSource(
             fileName: fileName, sha256: FileDigest.sha256Hex(data), format: format, version: "")
+        var jww: JWWRead?
 
         switch format {
         case .dxf:
@@ -72,15 +79,20 @@ public enum DrawingLoader {
             drawing = dwg.drawing
             source.version = dwg.version
         case .jww:
-            let jww = try JWW.read(data: data)
-            drawing = try DXF.read(text: DXFWriter.string(jww), options: readOptions)
-            source.version = String(jww.version)
+            let read = try readJWW(data, options: readOptions)
+            drawing = read.drawing
+            source.version = read.version
+            jww = read
         }
 
         let warnings = self.warnings(
             for: drawing, expandedBlocks: options.expandBlocks, layersKnown: format != .dwg,
             leftOutPaperSpace: options.skipPaperSpace)
-        return DrawingResult(drawing: drawing, source: source, warnings: warnings)
+        return DrawingResult(
+            drawing: drawing, source: source, warnings: warnings + (jww?.warnings ?? []),
+            rebuiltDimensions: jww?.rebuiltDimensions ?? [],
+            unexplainedDimensionValues: jww?.unexplainedDimensionValues ?? [],
+            layerGroupScales: jww?.layerGroupScales ?? [])
     }
 
     /// The warnings a drawing carries: what was skipped, could not be read, or assumed.

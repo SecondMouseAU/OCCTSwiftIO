@@ -55,10 +55,13 @@ public struct ShapeLoadResult: @unchecked Sendable {
 - `warnings` — what a drawing read left out or assumed, as the same `DrawingWarning`s `DrawingLoader`
   gives (skipped entities by type and layer, entities and records a DWG could not read, a block that
   is missing, cyclic or too deeply nested, paper space, an undeclared unit, an empty drawing). Filled
-  for **DXF and DWG**, whose block references are expanded so the geometry in a block is in the
+  for **DXF, DWG and JWW**, whose block references are expanded so the geometry in a block is in the
   compound ([#70](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/70)); empty for every other
-  format. JWW does not report yet ([#67](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/67)).
-  Text, dimensions, hatches and leaders are read but have no edges, which is not a warning.
+  format. A JWW is read as `DrawingLoader` reads it, at full size, so it also carries the JWW
+  warnings (a layer group with no scale, groups at different scales, dimension values no rebuilt
+  dimension explains; see [DrawingLoader](DrawingLoader.md#jww),
+  [#67](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/67)). Text, dimensions, hatches and
+  leaders are read but have no edges, which is not a warning.
 - `shapes` — convenience accessor returning just the shapes.
 
 ---
