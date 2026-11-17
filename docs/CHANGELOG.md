@@ -4,6 +4,10 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## Unreleased
+
+**The `OCCTSwiftIO` target no longer depends on `MeshIO` ([#29](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/29)).** Nothing under `Sources/OCCTSwiftIO` or `Tests/OCCTSwiftIOTests` imports `MeshIO`, so the dependency only made every consumer of the `OCCTSwiftIO` product compile the mesh-format stack behind it: ThreeMF (and so C++ `pugixml` and C++ interoperability), SwiftGLTF, SwiftPMX and SwiftX. The `MeshIO` product is unchanged and still available on its own. No source change for a consumer of either product; a consumer that relied on `OCCTSwiftIO` to bring `MeshIO` in must now name the `MeshIO` product itself. `README.md` and `docs/index.md` no longer say `OCCTSwiftIO` builds on `MeshIO`.
+
 ## v2.0.0-beta.9 (2026-11-16)
 
 **Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.

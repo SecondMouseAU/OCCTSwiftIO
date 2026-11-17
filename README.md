@@ -17,7 +17,8 @@ Viewport dependency**: safe for CLIs, batch pipelines, and server-side workflows
 | **`OCCTSwiftIO`** | Yes | **CAD B-Rep** load/export as OCCT `Shape`s + **JWW** (2D vector) load. |
 
 The split lets OCCT-free consumers (e.g. a raw-mesh pipeline) read meshes without pulling in the 1.3 GB
-kernel; `OCCTSwiftIO` builds on top of `MeshIO` and adds the kernel-backed formats.
+kernel. The two products are independent: `OCCTSwiftIO` does not depend on `MeshIO`, so taking it does
+not build the mesh-format stack (ThreeMF and its C++ interop, SwiftGLTF, SwiftPMX, SwiftX).
 
 ## Format coverage
 
