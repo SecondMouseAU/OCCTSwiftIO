@@ -60,7 +60,8 @@ let healed = try await ShapeLoader.loadRobust(from: igesURL, format: .iges)
 ## JWW (2D vector drawings)
 
 JWW is a Jw_cad 2D drawing, not a solid or a mesh. It loads to a single **compound `Shape` of OCCT
-edges** in the `Z = 0` plane (lines, circular arcs, ellipse polylines, and points), at **full size**:
+edges** in the `Z = 0` plane (lines, circular arcs and points, with each ellipse fitted to lines and
+circular arcs), at **full size**:
 each element is multiplied by its layer group's scale, so a part drawn at 1:80 comes in 80 times
 larger than it is drawn on the sheet. Block references are expanded, and a dimension written as a
 `DIMENSION` has no edges; the lines of a dimension that is not one (a value nothing explains, or a
