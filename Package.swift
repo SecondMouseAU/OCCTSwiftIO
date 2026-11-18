@@ -90,7 +90,6 @@ let package = Package(
                 .product(name: "SwiftJWW", package: "SwiftJWW"),
                 .product(name: "SwiftDXF", package: "SwiftDXF"),
                 .product(name: "SwiftDWG", package: "SwiftDWG"),
-                "MeshIO",
             ],
             path: "Sources/OCCTSwiftIO",
             swiftSettings: [
