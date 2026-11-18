@@ -4,9 +4,10 @@
 // Loads DXF (AutoCAD Drawing Interchange Format), a 2D vector drawing, into OCCT geometry. Like JWW,
 // DXF is not a B-Rep solid or a mesh; it's lines, arcs/circles, ellipses, points and text in a plane.
 // We map the drawable curve entities to OCCT edges (in the Z=0 plane) and return them as one compound
-// `Shape`. Text is not converted to geometry (it would need font outlines). Block references are
-// expanded, and what the read left out is returned as `DrawingWarning`s. Reading is delegated to
-// SwiftDXF, which is validated bit-exact against the ezdxf reference reader.
+// `Shape`. Splines and ellipses are fitted to lines and circular arcs within a tolerance. Text is not
+// converted to geometry (it would need font outlines). Block references are expanded, and what the
+// read left out is returned as `DrawingWarning`s. Reading is delegated to SwiftDXF, which is
+// validated bit-exact against the ezdxf reference reader.
 
 import Foundation
 import OCCTSwift
@@ -49,6 +50,7 @@ public enum DXFLoader {
         func p3(_ x: Double, _ y: Double) -> SIMD3<Double> { SIMD3(x, y, 0) }
         let axis = SIMD3<Double>(0, 0, 1)
         let deg = Double.pi / 180
+        let tolerance = fitTolerance(of: drawing)
 
         for entity in drawing.entities {
             switch entity {
@@ -77,16 +79,6 @@ public enum DXFLoader {
                     shapes.append(s)
                 }
 
-            case .ellipse(let c, let major, let ratio, let startParam, let endParam, _, _):
-                // OCCT's edgeFromEllipse can't express a rotated major axis, so polyline it (carrying the
-                // tilt), matching JWWLoader's treatment of elliptical arcs.
-                let majorR = (major.x * major.x + major.y * major.y).squareRoot()
-                guard majorR > 0 else { continue }
-                emitEllipsePolyline(
-                    cx: c.x, cy: c.y, majorR: majorR, ratio: ratio,
-                    tilt: atan2(major.y, major.x),
-                    start: startParam, end: endParam, into: &shapes)
-
             case .point(let p, _, _):
                 if let v = Shape.vertex(at: p3(p.x, p.y)) { shapes.append(v) }
 
@@ -114,10 +106,13 @@ public enum DXFLoader {
                     }
                 }
 
-            case .spline(let spline):
-                // Flattened to a chain of straight edges. The tolerance is relative to the drawing
-                // so it holds in any unit. Use `loadContours` for lines and arcs fitted to 0.01 mm.
-                emitSplinePolyline(spline, tolerance: splineTolerance(drawing), into: &shapes)
+            case .ellipse, .spline:
+                // Lines and circular arcs within `tolerance`, the fit SwiftDXF's contour layer makes,
+                // so a spline that is really a line or an arc is one edge of that kind and an
+                // ellipse has a stated tolerance in place of a fixed number of chords (#75).
+                for piece in entity.fitted(tolerance: tolerance)?.pieces ?? [] {
+                    if let s = edge(for: piece.segment) { shapes.append(s) }
+                }
 
             case .text:
                 break  // text → no geometry
@@ -150,50 +145,14 @@ public enum DXFLoader {
         if let s = edge(for: segment) { shapes.append(s) }
     }
 
-    /// Flatten a spline into straight edges.
-    private static func emitSplinePolyline(
-        _ spline: DXF.Spline, tolerance: Double, into shapes: inout [Shape]
-    ) {
-        let points = spline.flattened(tolerance: tolerance)
-        for (p, q) in zip(points, points.dropFirst()) {
-            if let s = Shape.edgeFromPoints(SIMD3(p.x, p.y, 0), SIMD3(q.x, q.y, 0)) {
-                shapes.append(s)
-            }
-        }
-    }
-
-    /// One ten-thousandth of the drawing's diagonal, so flattening is unit-independent.
-    private static func splineTolerance(_ drawing: DXF.Drawing) -> Double {
+    /// The fit tolerance: one ten-thousandth of the drawing's diagonal.
+    ///
+    /// Relative to the drawing so it holds in any unit; the shapes path works in the drawing's own.
+    private static func fitTolerance(of drawing: DXF.Drawing) -> Double {
         guard let b = drawing.bounds else { return 1e-6 }
         let diagonal =
             ((b.max.x - b.min.x) * (b.max.x - b.min.x)
             + (b.max.y - b.min.y) * (b.max.y - b.min.y)).squareRoot()
         return max(diagonal * 1e-4, 1e-9)
-    }
-
-    /// Sample an elliptical arc into edges.
-    ///
-    /// `start`/`end` are the DXF ellipse parameters (radians); `tilt` rotates the major axis.
-    /// Mirrors JWWLoader.emitEllipsePolyline.
-    private static func emitEllipsePolyline(
-        cx: Double, cy: Double, majorR: Double, ratio: Double,
-        tilt: Double, start: Double, end: Double, into shapes: inout [Shape]
-    ) {
-        let n = 48
-        var a1 = end
-        if a1 <= start { a1 += 2 * .pi }
-        let ct = cos(tilt)
-        let st = sin(tilt)
-        func pt(_ a: Double) -> SIMD3<Double> {
-            let ex = majorR * cos(a)
-            let ey = majorR * ratio * sin(a)
-            return SIMD3(cx + ex * ct - ey * st, cy + ex * st + ey * ct, 0)
-        }
-        var prev = pt(start)
-        for i in 1...n {
-            let cur = pt(start + (a1 - start) * Double(i) / Double(n))
-            if let s = Shape.edgeFromPoints(prev, cur) { shapes.append(s) }
-            prev = cur
-        }
     }
 }
