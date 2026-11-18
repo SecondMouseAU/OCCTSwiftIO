@@ -37,14 +37,23 @@ public struct DrawingWarning: Sendable, Equatable, CustomStringConvertible {
         /// `BLOCK_RECORD`), or `OBJECT` for one whose type is itself unreadable. An entity of a
         /// block that was expanded counts once for each reference.
         case unreadable
+        /// A JWW layer group in use states no scale, so it was read at drawn size.
+        case scaleNotStated
+        /// The JWW layer groups in use have different scales; ``count`` is how many.
+        case mixedScales
+        /// A JWW dimension value that is not a dimension in the drawing, one per value.
+        case unexplainedDimensionValue
     }
 
     public var kind: Kind
     /// The entity type, for the kinds that concern one.
     public var type: String?
-    /// The layer, for ``Kind/skippedEntities``; `nil` when the format does not say.
+    /// The layer, for ``Kind/skippedEntities`` and ``Kind/unexplainedDimensionValue``, or the
+    /// prefix of a layer group's layer names, for ``Kind/scaleNotStated``; `nil` when the format
+    /// does not say.
     ///
-    /// A DWG's skipped entities are counted without their layer, so it is `nil` for them.
+    /// A DWG's skipped entities, and a JWW's solid fills, are counted without their layer, so it is
+    /// `nil` for them.
     public var layer: String?
     public var count: Int
     public var message: String

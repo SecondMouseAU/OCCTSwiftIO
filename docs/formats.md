@@ -36,13 +36,16 @@ nav_order: 4
 
 - **STEP / IGES / BREP** load to OCCT `Shape`s with per-shape colors and AP242 dimensions / datums.
 - **JWW** is a 2D vector drawing, not a mesh or solid. It loads to a single **compound `Shape` of OCCT
-  edges**: lines → line edges, arcs/circles → circular-arc edges (the JWW *tilt* axis is honoured),
-  ellipses → polyline approximations, points → vertices. Coordinates lie in the `Z = 0` plane.
-  **Text** is not converted to geometry (it would need font outlines), and **block inserts** are not
-  yet expanded.
+  edges** at **full size**: each element is multiplied by its layer group's scale, so a part drawn
+  at 1:80 comes in at its real size. It is read as `DrawingLoader` reads it, through SwiftJWW's DXF
+  writer, and shares the DXF edge step: lines → line edges, arcs/circles → circular-arc edges (the
+  JWW *tilt* axis is honoured), ellipses → line and circular-arc edges fitted within a tolerance,
+  as for a DXF, points → vertices, in the `Z = 0` plane. Block inserts are expanded. **Text** has no edges, nor does a dimension written as
+  a `DIMENSION`; the lines of one that is not (a value nothing explains, or a record from a file
+  older than version 4.20) stay lines.
 - **DXF and DWG** load to one compound of curve edges, as JWW does. Block references are expanded, so
-  the geometry in a block is in the compound, and `ShapeLoadResult.warnings` carries what was left
-  out (the same `DrawingWarning`s `DrawingLoader` gives).
+  the geometry in a block is in the compound. For all three, `ShapeLoadResult.warnings` carries what
+  was left out (the same `DrawingWarning`s `DrawingLoader` gives).
 
 ## Export (OCCTSwiftIO)
 

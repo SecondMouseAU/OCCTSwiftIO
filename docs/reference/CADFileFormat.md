@@ -24,9 +24,9 @@ public enum CADFileFormat: String, Sendable {
     case obj
     case brep
     case iges
-    /// JWW (Jw_cad) — a 2D vector drawing; loaded as a compound of OCCT edges (no B-Rep solid).
+    /// JWW (Jw_cad): a 2D vector drawing; loaded as a compound of OCCT edges (no B-Rep solid).
     case jww
-    /// DXF — a 2D vector drawing; loaded as a compound of OCCT edges. ASCII DXF only.
+    /// DXF: a 2D vector drawing; loaded as a compound of OCCT edges. ASCII DXF only.
     case dxf
     /// DWG, read in process by SwiftDWG; loaded as a compound of OCCT edges, as `dxf` is.
     case dwg
@@ -34,8 +34,9 @@ public enum CADFileFormat: String, Sendable {
 ```
 
 `step`, `stl`, `obj`, `brep`, `iges` load to OCCT `Shape`s; `jww`, `dxf` and `dwg` load to a compound of
-OCCT edges in the `Z = 0` plane. A DXF or DWG is read with its block references expanded, and
-`ShapeLoadResult.warnings` says what was left out.
+OCCT edges in the `Z = 0` plane. A DXF, DWG or JWW is read with its block references expanded, and
+`ShapeLoadResult.warnings` says what was left out. A JWW is at full size: each element is multiplied
+by its layer group's scale (see [DrawingLoader](DrawingLoader.md#jww)).
 
 ---
 
@@ -48,7 +49,7 @@ unrecognised extension.
 public init?(fileExtension ext: String)
 ```
 
-- **Parameters:** `ext` — a path extension such as `"step"`, `"STP"`, `"iges"`.
+- **Parameters:** `ext`: a path extension such as `"step"`, `"STP"`, `"iges"`.
 - **Returns:** the matching `CADFileFormat`, or `nil` if the extension isn't recognised.
 - **Recognised extensions:** `step`/`stp` → `.step`, `stl` → `.stl`, `obj` → `.obj`, `brep`/`brp` →
   `.brep`, `iges`/`igs` → `.iges`, `jww` → `.jww`, `dxf` → `.dxf`, `dwg` → `.dwg`.

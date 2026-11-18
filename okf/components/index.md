@@ -22,7 +22,10 @@ Public product/target from `Package.swift`, plus the key API surfaces from the R
     `DrawingWarning`s (skipped entities by type and layer, entities and records a DWG could not
     read, paper space, missing blocks, undeclared units). The format is sniffed from the bytes
     (`DrawingFormat.sniff`). DWG is read by SwiftDWG, JWW by SwiftJWW and passed through its DXF
-    writer. Block references are expanded by default. Needs SwiftDXF 0.4.0 or later.
+    writer at full size, with the dimensions it rebuilds from loose pieces listed in
+    `rebuiltDimensions`, the values it cannot explain in `unexplainedDimensionValues`, and each
+    layer group's scale in `layerGroupScales` (#67). Block references are expanded by default.
+    Needs SwiftDXF 0.4.0 or later and SwiftJWW 1.4.0 or later.
   - `DXFLoader.loadContours(from:options:)`: planar faces with holes from a DXF drawing, as a
     `DXFContourResult` (faces, wires, SwiftDXF warnings and open chains). Needs SwiftDXF 0.3.0 or
     later, which owns chaining, nesting, units and curve fitting; this repo only builds OCCT

@@ -80,7 +80,7 @@ import OCCTSwiftIO
 // STEP / IGES / BREP → shapes + colors + AP242 metadata.
 let result = try await ShapeLoader.load(from: stepURL, format: .step)
 
-// JWW (Jw_cad 2D drawing) → a compound of OCCT edges (lines, arcs/circles, points).
+// JWW (Jw_cad 2D drawing) → a compound of OCCT edges (lines, arcs/circles, points), at full size.
 let drawing = try await ShapeLoader.load(from: jwwURL, format: .jww)
 
 // DXF → the same: one compound of curve edges (lines, arcs, circles, ellipses, splines).
@@ -106,10 +106,14 @@ result.drawing   // DXF.Drawing: entities (including hatches and leaders), layer
 result.source    // file name, SHA-256, format, and the format's own version
 result.warnings  // what was skipped by type and layer, could not be read, or assumed, as data
 result.drawing.identities[i]   // a stable identity for entity i: its DXF handle, else its position
+result.rebuiltDimensions       // JWW: the dimensions rebuilt from loose pieces, by identity
+result.unexplainedDimensionValues   // JWW: dimension values that are not dimensions, at full size
+result.layerGroupScales        // JWW: each layer group's scale, multiplied out (80 for 1:80)
 ```
 
 DWG is read by [SwiftDWG](https://github.com/SecondMouseAU/SwiftDWG) in process, with no tool to
-install, JWW through SwiftJWW, DXF directly.
+install, JWW through SwiftJWW at full size with the dimensions it rebuilds from loose pieces, DXF
+directly.
 Block references are expanded by default, each expanded entity's identity listing the references
 it came through, so a title block can be kept or dropped by name; pass
 `.init(expandBlocks: false)` to leave them. `.hatch` and `.leader` are entity cases (boundary loops,
