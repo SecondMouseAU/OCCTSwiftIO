@@ -16,7 +16,8 @@ The package ships **two products** so consumers take only what they need:
   (Jw_cad 2D vector) load, a `ScriptManifest` round-trip, and a `BRepGraph` → ML export layer.
 
 The split lets OCCT-free consumers (e.g. a raw-mesh ingest) read meshes without pulling in the 1.3 GB
-kernel; `OCCTSwiftIO` builds on `MeshIO` and adds the kernel-backed formats. See
+kernel. The two products are independent: `OCCTSwiftIO` does not depend on `MeshIO`, so taking it does
+not build the mesh-format stack (ThreeMF and its C++ interop, SwiftGLTF, SwiftPMX, SwiftX). See
 [Formats](formats.md) for the full coverage table and per-format notes.
 
 ---

@@ -16,6 +16,8 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 Decisions on the issue's five questions: the tolerance is unchanged; ellipses are fitted as well as splines; the tolerance is not exposed; a fit that misses its tolerance is not reported (a new `DrawingWarning` case would break an exhaustive `switch` in a consumer); it is the default, not an option. The JWW loader is unchanged and still samples an ellipse as 48 chords.
 
+**The `OCCTSwiftIO` target no longer depends on `MeshIO` ([#29](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/29)).** Nothing under `Sources/OCCTSwiftIO` or `Tests/OCCTSwiftIOTests` imports `MeshIO`, so the dependency only made every consumer of the `OCCTSwiftIO` product compile the mesh-format stack behind it: ThreeMF (and so C++ `pugixml` and C++ interoperability), SwiftGLTF, SwiftPMX and SwiftX. The `MeshIO` product is unchanged and still available on its own. No source change for a consumer of either product; a consumer that relied on `OCCTSwiftIO` to bring `MeshIO` in must now name the `MeshIO` product itself. `README.md` and `docs/index.md` no longer say `OCCTSwiftIO` builds on `MeshIO`.
+
 ## v2.0.0-beta.9 (2026-11-16)
 
 **Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
