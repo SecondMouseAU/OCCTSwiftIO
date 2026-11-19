@@ -61,7 +61,7 @@ extension DrawingLoader {
         let (unexplained, valueWarnings) = unexplainedValues(jww: jww, report: report)
 
         var warnings = scaleWarnings(jww: jww, scales: scales) + valueWarnings
-        let solids = jww.skippedSolidCount
+        let solids = skippedSolids(in: jww, expandedBlocks: options.expandBlocks)
         if solids > 0 {
             // SwiftJWW reads a solid fill's place in the file but not the fill, and not its layer.
             warnings.append(
@@ -75,6 +75,16 @@ extension DrawingLoader {
             unexplainedDimensionValues: unexplained, layerGroupScales: scales, warnings: warnings)
     }
 
+    /// The solid fills SwiftJWW skipped, counted as the `unreadable` warning counts: once for each
+    /// placement of a block when blocks are expanded, and once in each block definition when not.
+    static func skippedSolids(in jww: JWW.Drawing, expandedBlocks: Bool) -> Int {
+        // With no fill in any block, every count is the top-level one, so nothing is expanded.
+        guard expandedBlocks, jww.skippedSolidCount > jww.counts.solid else {
+            return jww.skippedSolidCount
+        }
+        return jww.expandingBlocks().solidCount
+    }
+
     /// The pieces of each dimension the writer rebuilt, keyed by the handle of its `DIMENSION`.
     ///
     /// The report gives each dimension's elements. Which of its lines are extension lines comes
@@ -83,12 +93,17 @@ extension DrawingLoader {
     private static func rebuiltPieces(
         jww: JWW.Drawing, report: DXFWriter.Report
     ) -> [String: [Piece]] {
+        guard !report.recoveredDimensionElements.isEmpty else { return [:] }
         let recovered = Dictionary(
             jww.recoveringDimensions().dimensions.map { ($0.elementIndices, $0.dimension) },
             uniquingKeysWith: { first, _ in first })
         var out: [String: [Piece]] = [:]
         for (handle, indices) in report.recoveredDimensionElements {
-            let extensionLines = recovered[indices]?.extensionLines ?? []
+            let match = recovered[indices]
+            assert(
+                match != nil,
+                "SwiftJWW's recovery gave no dimension from the elements reported for \(handle)")
+            let extensionLines = match?.extensionLines ?? []
             var pieces: [Piece] = []
             for index in indices where jww.elements.indices.contains(index) {
                 let element = jww.elements[index]

@@ -74,11 +74,34 @@ struct JWWRebuiltPiecesTests {
         #expect(Set((forty.pieces + sixty.pieces).map(\.elementIndex)) == Set(0..<10))
     }
 
-    @Test("a stored dimension record and a DXF list no rebuilt dimensions, so no pieces")
-    func noPieces() throws {
-        let stored = try JWWFullSizeTests.read("stored.jww", JWWFixture.storedDimension())
-        #expect(stored.rebuiltDimensions.isEmpty)
-        #expect(try DrawingLoader.read(from: DrawingLoaderTests.plateDXF).rebuiltDimensions.isEmpty)
+    @Test("pieces take the scale and layer names of their own layer group")
+    func anotherGroup() throws {
+        // Group A at 1:5, while group 0 states 1:10.
+        let result = try JWWFullSizeTests.read(
+            "chain-a.jww", JWWFixture.chainedDimensions(group: 0xA, scale: 5))
+        #expect(result.layerGroupScales == [.init(group: 0xA, scale: 5)])
+        #expect(result.rebuiltDimensions.count == 2)
+        #expect(Set(result.rebuiltDimensions.flatMap(\.pieces).map(\.layer)) == ["A-E"])
+        let twenty = try #require(Self.rebuilt("20", in: result))
+        #expect(
+            twenty.pieces == [
+                Piece(
+                    kind: .dimensionLine, points: [DXF.Point(0, -10), DXF.Point(50, -10)],
+                    layer: "A-E", elementIndex: 0),
+                Piece(
+                    kind: .extensionLine, points: [DXF.Point(0, -2.5), DXF.Point(0, -10)],
+                    layer: "A-E", elementIndex: 1),
+                Piece(
+                    kind: .extensionLine, points: [DXF.Point(20, -2.5), DXF.Point(20, -10)],
+                    layer: "A-E", elementIndex: 2),
+                Piece(
+                    kind: .arrowPoint, points: [DXF.Point(0, -10)], layer: "A-E", elementIndex: 4),
+                Piece(
+                    kind: .arrowPoint, points: [DXF.Point(20, -10)], layer: "A-E", elementIndex: 5
+                ),
+                Piece(
+                    kind: .valueText, points: [DXF.Point(7.5, -9)], layer: "A-E", elementIndex: 7),
+            ])
     }
 
     /// `layerNamePrefix` is the one copy of the writer's layer naming left here.

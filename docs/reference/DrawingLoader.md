@@ -109,12 +109,13 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
   distance, at the group's scale, gives it, and the pair comes back as one rotated linear
   `.dimension`, its pieces in the block it names. That is an inference, so `rebuiltDimensions`
   lists the identity of each such entity: a `.dimension` not listed there was stored in the file.
-- **Each rebuilt dimension lists its pieces** ([#77](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/77)),
-  so a consumer can check what was paired without the `JWW.Drawing`. A piece has a `kind`: the
-  `valueText`, a `valueTextCopy` (the same value stored a second time at the same place), the two
-  `arrowPoint`s it measures between, a `dimensionLine` (a line along the dimension line, which can
-  run past the arrow points) or an `extensionLine` (a line that ends on an arrow point and crosses
-  the dimension line). Each has its `points` at full size (both ends of a line, the one point of an
+- **Each rebuilt dimension lists its pieces**
+  ([#77](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/77)), so a consumer can check what was
+  paired without the `JWW.Drawing`. A piece has a `kind`: the `valueText`, a `valueTextCopy` (the
+  same value stored a second time at the same place), the two `arrowPoint`s it measures between, a
+  `dimensionLine` (a line along the dimension line, which can run past the arrow points) or an
+  `extensionLine` (a line that ends on an arrow point and is not parallel to the dimension line).
+  Each has its `points` at full size (both ends of a line, the one point of an
   arrow point, the insertion point of a text), the `layer` the writer names (`0-E`) and its
   `elementIndex` among the JWW file's top-level elements. The elements come from SwiftJWW's writer
   report ([SwiftJWW#22](https://github.com/SecondMouseAU/SwiftJWW/issues/22)); which lines are
@@ -129,19 +130,21 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
   an `unexplainedDimensionValue` warning.
 - **Stored dimension records.** A drawing made with Jw_cad's dimension command stores each
   dimension as one record. In a file of version 4.20 or later the record has its measured points
-  and comes back as a `.dimension`, not listed as rebuilt, with no edges on the shapes path. In an older file it has none, so SwiftJWW
-  writes its line and value as a loose line and text; its value is listed in
-  `unexplainedDimensionValues` with a warning, as above.
+  and comes back as a `.dimension`, not listed as rebuilt, with no edges on the shapes path. In an
+  older file it has none, so SwiftJWW writes its line and value as a loose line and text; its value
+  is listed in `unexplainedDimensionValues` with a warning, as above.
 
 Limits: SwiftJWW rebuilds dimensions from top-level elements only, so loose dimension pieces inside
 a block stay pieces, with no warning, and an older dimension record inside a block is not listed.
 A solid fill is skipped by SwiftJWW and reported as `skippedEntities` of type `SOLID`, with no
-layer. The count is SwiftJWW's `Drawing.skippedSolidCount`
-([SwiftJWW#24](https://github.com/SecondMouseAU/SwiftJWW/issues/24)): each fill in the file once,
-at the top level or in a block definition, however often its block is placed. The members of an
-expanded block keep their own layer names but are scaled by the layer group of the reference that
-places them, so `layerNamePrefix` gives a member's scale only when both are in the same group. A JWW declares no length unit, so it has the
-`unitsNotDeclared` warning; Jw_cad draws in millimetres.
+layer ([#81](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/81)). A fill inside a block is
+counted as `unreadable` counts: once for each reference that places the block when blocks are
+expanded (SwiftJWW's `BlockExpansion.solidCount`), and once in its block definition when they are
+not (`Drawing.skippedSolidCount`,
+[SwiftJWW#24](https://github.com/SecondMouseAU/SwiftJWW/issues/24)). The members of an expanded
+block keep their own layer names but are scaled by the layer group of the reference that places
+them, so `layerNamePrefix` gives a member's scale only when both are in the same group. A JWW
+declares no length unit, so it has the `unitsNotDeclared` warning; Jw_cad draws in millimetres.
 
 ## `DrawingWarning`
 

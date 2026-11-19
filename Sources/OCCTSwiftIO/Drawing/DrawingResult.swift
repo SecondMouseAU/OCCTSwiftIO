@@ -78,7 +78,7 @@ extension DrawingResult {
                 case arrowPoint
                 /// A line along the dimension line, which can run past the arrow points.
                 case dimensionLine
-                /// A line that ends on an arrow point and runs across the dimension line.
+                /// A line that ends on an arrow point and is not parallel to the dimension line.
                 case extensionLine
             }
 
@@ -136,10 +136,6 @@ extension DrawingResult {
         /// A JWW layer is named `<group>-<layer>` in hexadecimal, so the layers of group 0 are
         /// `0-0` to `0-F`. The members of an expanded block keep their own layers but take the
         /// scale of the group of the reference that places them.
-        public var layerNamePrefix: String { Self.layerNamePrefix(ofGroup: group) }
-
-        static func layerNamePrefix(ofGroup group: Int) -> String {
-            String(group, radix: 16, uppercase: true) + "-"
-        }
+        public var layerNamePrefix: String { String(group, radix: 16, uppercase: true) + "-" }
     }
 }

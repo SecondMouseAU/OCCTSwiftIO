@@ -116,19 +116,26 @@ struct JWWFullSizeTests {
         #expect(shapes.warnings == result.warnings)
     }
 
-    @Test("a solid fill in a block is reported once, however often the block is placed")
-    func solidFillInBlock() throws {
-        let result = try Self.read("solid-block.jww", JWWFixture.solidInBlock())
-        // The fill at the top level and the one in the block, which is placed twice.
-        #expect(
-            result.warnings.filter { $0.type == "SOLID" }
-                == [
-                    DrawingWarning(
-                        kind: .skippedEntities, type: "SOLID", count: 2,
-                        message: "2 SOLID entities were not read")
-                ])
-        // The block's line is placed twice, so the placements were expanded.
-        #expect(DrawingLoaderTests.geometry(result.drawing).count == 2)
+    @Test("a solid fill in a block is counted for each placement, or once when not expanded")
+    func solidFillInBlock() async throws {
+        let url = try DrawingLoaderTests.temporaryFile("solid-block.jww", JWWFixture.solidInBlock())
+        func solids(_ warnings: [DrawingWarning]) -> [DrawingWarning] {
+            warnings.filter { $0.type == "SOLID" }
+        }
+        func warning(_ count: Int) -> DrawingWarning {
+            DrawingWarning(
+                kind: .skippedEntities, type: "SOLID", count: count,
+                message: "\(count) SOLID entities were not read")
+        }
+        // The fill at the top level, and the one in the block for each of its two placements.
+        let expanded = try DrawingLoader.read(from: url)
+        #expect(DrawingLoaderTests.geometry(expanded.drawing).count == 2)
+        #expect(solids(expanded.warnings) == [warning(3)])
+        let shapes = try await ShapeLoader.load(from: url, format: .jww)
+        #expect(shapes.warnings == expanded.warnings)
+        // Not expanded, the block's fill is counted once, in its definition.
+        let unexpanded = try DrawingLoader.read(from: url, options: .init(expandBlocks: false))
+        #expect(solids(unexpanded.warnings) == [warning(2)])
     }
 
     @Test("a DXF or a DWG has no rebuilt dimensions and no layer group scales")
