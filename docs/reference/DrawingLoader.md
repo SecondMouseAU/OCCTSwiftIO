@@ -97,8 +97,9 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
   distance, at the group's scale, gives it, and the pair comes back as one rotated linear
   `.dimension`, its pieces in the block it names. That is an inference, so `rebuiltDimensions`
   lists the identity of each such entity: a `.dimension` not listed there was stored in the file.
-  Which pieces each was built from is not recorded yet
-  ([SwiftJWW#22](https://github.com/SecondMouseAU/SwiftJWW/issues/22)).
+  Which pieces each was built from is not recorded yet: SwiftJWW 1.5.0's writer report gives them
+  ([SwiftJWW#22](https://github.com/SecondMouseAU/SwiftJWW/issues/22)), and recording them here is
+  [#77](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/77).
 - **Values that are not dimensions stay text.** A radius, diameter or angle value, a value in another
   unit, or a value with no arrow points at the stated distance is kept as a loose text and listed in
   `unexplainedDimensionValues` (the text as written, its position at full size and its layer), with
@@ -112,8 +113,9 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
 Limits: SwiftJWW rebuilds dimensions from top-level elements only, so loose dimension pieces inside
 a block stay pieces, with no warning, and an older dimension record inside a block is not listed.
 A solid fill at the top level is skipped by SwiftJWW and reported as `skippedEntities` of type
-`SOLID`, with no layer; one inside a block is dropped by SwiftJWW without being counted, so it is
-not reported ([SwiftJWW#24](https://github.com/SecondMouseAU/SwiftJWW/issues/24)). The members of an expanded block keep their own layer names
+`SOLID`, with no layer. One inside a block is counted by SwiftJWW from 1.5.0
+(`Drawing.skippedSolidCount`, [SwiftJWW#24](https://github.com/SecondMouseAU/SwiftJWW/issues/24)),
+but the warning here still gives the top-level count, so it is not reported yet. The members of an expanded block keep their own layer names
 but are scaled by the layer group of the reference that places them, so `layerNamePrefix` gives a
 member's scale only when both are in the same group. A JWW declares no length unit, so it has the
 `unitsNotDeclared` warning; Jw_cad draws in millimetres.
