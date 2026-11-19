@@ -391,4 +391,76 @@ enum JWWFixture {
             Item(shape: .solid([(0, 0), (100, 0), (100, 60), (0, 60)])),
         ])
     }
+
+    /// A solid fill at the top level, and a block holding a line and a solid fill, placed twice.
+    static func solidInBlock() -> Data {
+        let square = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+        return drawing([
+            Item(shape: .solid(square)),
+            Item(
+                shape: .block(
+                    number: 1, name: "B",
+                    members: [Item(shape: .line(0, 0, 1, 0)), Item(shape: .solid(square))])),
+            Item(shape: .insert(number: 1, at: (2, 0))),
+            Item(shape: .insert(number: 1, at: (4, 0))),
+        ])
+    }
+
+    /// Two chained dimensions, 4 and 6 drawn units long, kept as loose pieces on layer E of
+    /// `group`, which is at 1:`scale`; group 0 is at 1:10.
+    ///
+    /// The values are the lengths at full size, `40` and `60` at 1:10. One dimension line runs the
+    /// length of the chain, from 0 to 10 drawn units, so both dimensions share it, and they share
+    /// the arrow point and the extension line at 4. The second value is stored twice at the same
+    /// place, as the 2120 stores one of its values.
+    static func chainedDimensions(group: Int = 0, scale: Double = 10) -> Data {
+        let layer = 0xE
+        let lines: [Item] = [
+            (0.0, -2.0, 10.0, -2.0), (0, -0.5, 0, -2), (4, -0.5, 4, -2), (10, -0.5, 10, -2),
+        ].map {
+            Item(
+                shape: .line($0.0, $0.1, $0.2, $0.3), group: group, layer: layer, flags: 0x2000)
+        }
+        let points: [Item] = [0.0, 4, 10].map {
+            Item(shape: .point($0, -2), group: group, layer: layer, flags: 0x40)
+        }
+        let first = String(Int(4 * scale))
+        let second = String(Int(6 * scale))
+        let values: [Item] = [(first, 1.5), (second, 6.5), (second, 6.5)].map {
+            Item(shape: .text($0.0, at: ($0.1, -1.8)), group: group, layer: layer, flags: 0x4010)
+        }
+        var scales: [Int: Double] = [0: 10]
+        scales[group] = scale
+        return drawing(lines + points + values, scales: scales)
+    }
+
+    /// Two dimensions at 1:10 that are not horizontal, kept as loose pieces on layer E.
+    ///
+    /// `60` is vertical, from (-2, 0) to (-2, 6); `50` is slanted, from (10, 0) to (13, 4). Each
+    /// has its dimension line, an extension line square to it at each end, two arrow points and
+    /// its value, in that order, so its elements are 0 to 5 and 6 to 11.
+    static func turnedDimensions() -> Data {
+        func dimension(
+            line: (Double, Double, Double, Double), witness: [(Double, Double, Double, Double)],
+            value: String, at: (Double, Double)
+        ) -> [Item] {
+            let layer = 0xE
+            let lines = ([line] + witness).map {
+                Item(shape: .line($0.0, $0.1, $0.2, $0.3), layer: layer, flags: 0x2000)
+            }
+            let points = [(line.0, line.1), (line.2, line.3)].map {
+                Item(shape: .point($0.0, $0.1), layer: layer, flags: 0x40)
+            }
+            return lines + points + [
+                Item(shape: .text(value, at: at), layer: layer, flags: 0x4010)
+            ]
+        }
+        let vertical = dimension(
+            line: (-2, 0, -2, 6), witness: [(-0.5, 0, -2, 0), (-0.5, 6, -2, 6)], value: "60",
+            at: (-2.5, 2.5))
+        let slanted = dimension(
+            line: (10, 0, 13, 4), witness: [(12, -1.5, 10, 0), (15, 2.5, 13, 4)], value: "50",
+            at: (11, 2.5))
+        return drawing(vertical + slanted, scales: [0: 10])
+    }
 }
