@@ -52,6 +52,7 @@ extension DrawingLoader {
             guard let handle = identity.handle,
                 let elements = report.recoveredDimensionElements[handle]
             else { continue }
+            // A DIMENSION with no rotation (group 50) is horizontal, as DXF defines it.
             let pieces = rebuiltPieces(
                 elements, rotation: dimension.rotation ?? 0, jww: jww, report: report)
             rebuilt.append(DrawingResult.RebuiltDimension(identity: identity, pieces: pieces))

@@ -433,4 +433,34 @@ enum JWWFixture {
         scales[group] = scale
         return drawing(lines + points + values, scales: scales)
     }
+
+    /// Two dimensions at 1:10 that are not horizontal, kept as loose pieces on layer E.
+    ///
+    /// `60` is vertical, from (-2, 0) to (-2, 6); `50` is slanted, from (10, 0) to (13, 4). Each
+    /// has its dimension line, an extension line square to it at each end, two arrow points and
+    /// its value, in that order, so its elements are 0 to 5 and 6 to 11.
+    static func turnedDimensions() -> Data {
+        func dimension(
+            line: (Double, Double, Double, Double), witness: [(Double, Double, Double, Double)],
+            value: String, at: (Double, Double)
+        ) -> [Item] {
+            let layer = 0xE
+            let lines = ([line] + witness).map {
+                Item(shape: .line($0.0, $0.1, $0.2, $0.3), layer: layer, flags: 0x2000)
+            }
+            let points = [(line.0, line.1), (line.2, line.3)].map {
+                Item(shape: .point($0.0, $0.1), layer: layer, flags: 0x40)
+            }
+            return lines + points + [
+                Item(shape: .text(value, at: at), layer: layer, flags: 0x4010)
+            ]
+        }
+        let vertical = dimension(
+            line: (-2, 0, -2, 6), witness: [(-0.5, 0, -2, 0), (-0.5, 6, -2, 6)], value: "60",
+            at: (-2.5, 2.5))
+        let slanted = dimension(
+            line: (10, 0, 13, 4), witness: [(12, -1.5, 10, 0), (15, 2.5, 13, 4)], value: "50",
+            at: (11, 2.5))
+        return drawing(vertical + slanted, scales: [0: 10])
+    }
 }

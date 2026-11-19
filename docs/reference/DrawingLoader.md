@@ -124,8 +124,9 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
   more than one dimension, and is listed under each: a chain of dimensions shares one dimension
   line, and neighbours share an arrow point and an extension line. The points are worked out from
   the JWW, not read back from the DXF text, so they can differ from the drawing's coordinates in
-  the seventh decimal place. The `.dimension`'s measured points (`defPoint2` and `defPoint3`) are
-  the far ends of its extension lines, not its arrow points. On the JNR 2120 the 29 rebuilt
+  the seventh decimal place. The `.dimension`'s measured points (`defPoint2` and `defPoint3`) can
+  be the far ends of its extension lines rather than its arrow points, so compare arrow points
+  with the `arrowPoint` pieces, not with those. On the JNR 2120 the 29 rebuilt
   dimensions list 174 pieces (29 value texts, one copy, 58 arrow points, 30 dimension lines and 56
   extension lines), which are the 125 elements on layer `0-E`.
 - **Values that are not dimensions stay text.** A radius, diameter or angle value, a value in another

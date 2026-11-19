@@ -104,6 +104,22 @@ struct JWWRebuiltPiecesTests {
             ])
     }
 
+    @Test("a vertical or slanted dimension tells its dimension line from its extension lines")
+    func turned() throws {
+        let result = try JWWFullSizeTests.read("turned.jww", JWWFixture.turnedDimensions())
+        #expect(result.rebuiltDimensions.count == 2)
+        let kinds: [Piece.Kind] = [
+            .dimensionLine, .extensionLine, .extensionLine, .arrowPoint, .arrowPoint, .valueText,
+        ]
+        for (value, first) in [("60", 0), ("50", 6)] {
+            let rebuilt = try #require(Self.rebuilt(value, in: result))
+            #expect(rebuilt.pieces.map(\.kind) == kinds, "\(value)")
+            #expect(rebuilt.pieces.map(\.elementIndex) == Array(first..<first + 6), "\(value)")
+        }
+        let vertical = try #require(Self.rebuilt("60", in: result))
+        #expect(vertical.pieces.first?.points == [DXF.Point(-20, 0), DXF.Point(-20, 60)])
+    }
+
     /// `layerNamePrefix` is the one copy of the writer's layer naming left here.
     @Test("a layer group's prefix starts every layer name the writer gives the group")
     func prefixMatchesTheWriter() {
