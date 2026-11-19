@@ -4,7 +4,16 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
-## Unreleased
+## v2.0.0-beta.10 (2026-11-19)
+
+**Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
+
+**Newer readers underneath.** The minimum versions move to SwiftJWW 1.5.0, SwiftDXF 0.5.0 and SwiftDWG 0.2.0, and the full suite passes on them.
+
+- **SwiftJWW 1.5.0.** An elliptical arc with a negative sweep is written as the part of the ellipse it covers, not the rest of it, so the known limit noted under #67 below is gone (SwiftJWW#23); an ellipse with a minor-to-major ratio above 1 is written as valid DXF (SwiftJWW#27). It also counts solid fills inside blocks (`Drawing.skippedSolidCount`, SwiftJWW#24) and its writer report names the pieces each rebuilt dimension was built from (SwiftJWW#22); this package does not use either yet: the `SOLID` warning still gives the top-level count, and recording the pieces is [#77](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/77).
+- **SwiftDXF 0.5.0.** The `string` of a `.text` entity is the text as it reads: `%%c`, `%%d` and `%%p` become `⌀`, `°` and `±`, MTEXT formatting codes are removed, and stacked tolerances are kept as data in `Drawing.textContent(ofEntityAt:)` (SwiftDXF#32). This package never reads the string, so nothing here changes, but a caller of `DrawingLoader` gets decoded text for a DXF, a DWG and a JWW alike.
+- **SwiftDWG 0.2.0.** R14 lightweight polylines and hatches are read instead of coming through empty, and one that cannot be read is counted as unreadable (SwiftDWG#12), so `DrawingLoader` gives their geometry and its warnings say what was lost.
+
 
 **A JWW reads at full size, with its dimensions ([#67](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/67)).** `DrawingLoader` read a JWW at the size it is drawn on the sheet and with no dimensions. SwiftJWW's DXF writer wrote each element as drawn, so a part drawn at 1:80 came in at one eightieth of its size with nothing to say so, and it wrote each dimension as loose lines and text. SwiftJWW 1.4.0's writer can do both, and this package now asks it to.
 
