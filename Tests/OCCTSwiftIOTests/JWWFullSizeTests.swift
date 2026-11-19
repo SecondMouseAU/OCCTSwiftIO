@@ -122,10 +122,10 @@ struct JWWFullSizeTests {
         func solids(_ warnings: [DrawingWarning]) -> [DrawingWarning] {
             warnings.filter { $0.type == "SOLID" }
         }
-        func warning(_ count: Int) -> DrawingWarning {
+        func warning(_ count: Int, note: String = "") -> DrawingWarning {
             DrawingWarning(
                 kind: .skippedEntities, type: "SOLID", count: count,
-                message: "\(count) SOLID entities were not read")
+                message: "\(count) SOLID entities were not read" + note)
         }
         // The fill at the top level, and the one in the block for each of its two placements.
         let expanded = try DrawingLoader.read(from: url)
@@ -133,9 +133,10 @@ struct JWWFullSizeTests {
         #expect(solids(expanded.warnings) == [warning(3)])
         let shapes = try await ShapeLoader.load(from: url, format: .jww)
         #expect(shapes.warnings == expanded.warnings)
-        // Not expanded, the block's fill is counted once, in its definition.
+        // Not expanded, the block's fill is counted once, in its definition, as `unreadable` says.
         let unexpanded = try DrawingLoader.read(from: url, options: .init(expandBlocks: false))
-        #expect(solids(unexpanded.warnings) == [warning(2)])
+        #expect(
+            solids(unexpanded.warnings) == [warning(2, note: " (1 in block definitions)")])
     }
 
     @Test("a DXF or a DWG has no rebuilt dimensions and no layer group scales")

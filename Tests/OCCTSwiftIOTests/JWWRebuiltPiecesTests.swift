@@ -160,4 +160,37 @@ struct JWWRebuiltPiecesTests {
             #expect(abs(distance - measured) <= 1e-5, "\(distance) against \(measured)")
         }
     }
+
+    static let realDrawings = ["2120.jww", "dd12.jww"]
+
+    @Test(
+        "on the real drawings, the extension lines are the ones SwiftJWW's recovery found",
+        .enabled(
+            if: realDrawings.contains(where: JWWFullSizeTests.isLocal),
+            "the real drawings are not in the repository"))
+    func linesAgreeWithTheRecovery() throws {
+        for name in Self.realDrawings where JWWFullSizeTests.isLocal(name) {
+            let url = JWWFullSizeTests.local(name)
+            let result = try DrawingLoader.read(from: url)
+            let jww = try JWW.read(data: Data(contentsOf: url))
+            // The element indices of each recovered dimension's extension lines.
+            var extensionLines: [[Int]: Set<Int>] = [:]
+            for found in jww.recoveringDimensions().dimensions {
+                extensionLines[found.elementIndices] = Set(
+                    found.elementIndices.filter { index in
+                        guard case .line(let a, let b, _, _) = jww.elements[index].entity else {
+                            return false
+                        }
+                        return found.dimension.extensionLines.contains { $0.a == a && $0.b == b }
+                    })
+            }
+            #expect(!result.rebuiltDimensions.isEmpty)
+            for rebuilt in result.rebuiltDimensions {
+                let expected = extensionLines[rebuilt.pieces.map(\.elementIndex)]
+                let labelled = Set(
+                    rebuilt.pieces.filter { $0.kind == .extensionLine }.map(\.elementIndex))
+                #expect(expected == labelled, "\(name): \(rebuilt.identity)")
+            }
+        }
+    }
 }

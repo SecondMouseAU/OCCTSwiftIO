@@ -112,16 +112,20 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
 - **Each rebuilt dimension lists its pieces**
   ([#77](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/77)), so a consumer can check what was
   paired without the `JWW.Drawing`. A piece has a `kind`: the `valueText`, a `valueTextCopy` (the
-  same value stored a second time at the same place), the two `arrowPoint`s it measures between, a
-  `dimensionLine` (a line along the dimension line, which can run past the arrow points) or an
-  `extensionLine` (a line that ends on an arrow point and is not parallel to the dimension line).
-  Each has its `points` at full size (both ends of a line, the one point of an
-  arrow point, the insertion point of a text), the `layer` the writer names (`0-E`) and its
-  `elementIndex` among the JWW file's top-level elements. The elements come from SwiftJWW's writer
-  report ([SwiftJWW#22](https://github.com/SecondMouseAU/SwiftJWW/issues/22)); which lines are
-  extension lines comes from SwiftJWW's recovery, run again on the same drawing. A piece can belong
-  to more than one dimension, and is listed under each: a chain of dimensions shares one dimension
-  line, and neighbours share an arrow point and an extension line. On the JNR 2120 the 29 rebuilt
+  same value stored again at the same place), the two `arrowPoint`s it measures between, a
+  `dimensionLine` (a line parallel to the dimension, which can run past the arrow points) or an
+  `extensionLine` (a line at an angle to the dimension, which ends on an arrow point). Each has its
+  `points` at full size (both ends of a line, the one point of an arrow point, the insertion point
+  of a text), the `layer` the writer names (`0-E`) and its `elementIndex` among the JWW file's
+  top-level elements. The elements come from SwiftJWW's writer report
+  ([SwiftJWW#22](https://github.com/SecondMouseAU/SwiftJWW/issues/22)). A line is parallel to the
+  dimension when the angle between it and the `.dimension`'s `rotation` is under a thousandth of a
+  radian, which is how SwiftJWW's recovery tells the two kinds of line apart. A piece can belong to
+  more than one dimension, and is listed under each: a chain of dimensions shares one dimension
+  line, and neighbours share an arrow point and an extension line. The points are worked out from
+  the JWW, not read back from the DXF text, so they can differ from the drawing's coordinates in
+  the seventh decimal place. The `.dimension`'s measured points (`defPoint2` and `defPoint3`) are
+  the far ends of its extension lines, not its arrow points. On the JNR 2120 the 29 rebuilt
   dimensions list 174 pieces (29 value texts, one copy, 58 arrow points, 30 dimension lines and 56
   extension lines), which are the 125 elements on layer `0-E`.
 - **Values that are not dimensions stay text.** A radius, diameter or angle value, a value in another
@@ -141,7 +145,8 @@ layer ([#81](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/81)). A fill in
 counted as `unreadable` counts: once for each reference that places the block when blocks are
 expanded (SwiftJWW's `BlockExpansion.solidCount`), and once in its block definition when they are
 not (`Drawing.skippedSolidCount`,
-[SwiftJWW#24](https://github.com/SecondMouseAU/SwiftJWW/issues/24)). The members of an expanded
+[SwiftJWW#24](https://github.com/SecondMouseAU/SwiftJWW/issues/24)), when the message says how
+many are in block definitions. The members of an expanded
 block keep their own layer names but are scaled by the layer group of the reference that places
 them, so `layerNamePrefix` gives a member's scale only when both are in the same group. A JWW
 declares no length unit, so it has the `unitsNotDeclared` warning; Jw_cad draws in millimetres.

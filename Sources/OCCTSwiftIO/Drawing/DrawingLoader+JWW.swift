@@ -43,16 +43,18 @@ extension DrawingLoader {
         let drawing = try DXF.read(text: output.text, options: options)
         let report = output.report
 
-        let pieces = rebuiltPieces(jww: jww, report: report)
         var rebuilt: [DrawingResult.RebuiltDimension] = []
         for (index, entity) in drawing.entities.enumerated() {
-            guard case .dimension = entity, drawing.identities.indices.contains(index) else {
-                continue
-            }
+            guard case .dimension(let dimension) = entity,
+                drawing.identities.indices.contains(index)
+            else { continue }
             let identity = drawing.identities[index]
-            if let handle = identity.handle, let found = pieces[handle] {
-                rebuilt.append(DrawingResult.RebuiltDimension(identity: identity, pieces: found))
-            }
+            guard let handle = identity.handle,
+                let elements = report.recoveredDimensionElements[handle]
+            else { continue }
+            let pieces = rebuiltPieces(
+                elements, rotation: dimension.rotation ?? 0, jww: jww, report: report)
+            rebuilt.append(DrawingResult.RebuiltDimension(identity: identity, pieces: pieces))
         }
 
         let scales = report.appliedScales.sorted { $0.key < $1.key }.map {
@@ -61,13 +63,8 @@ extension DrawingLoader {
         let (unexplained, valueWarnings) = unexplainedValues(jww: jww, report: report)
 
         var warnings = scaleWarnings(jww: jww, scales: scales) + valueWarnings
-        let solids = skippedSolids(in: jww, expandedBlocks: options.expandBlocks)
-        if solids > 0 {
-            // SwiftJWW reads a solid fill's place in the file but not the fill, and not its layer.
-            warnings.append(
-                DrawingWarning(
-                    kind: .skippedEntities, type: "SOLID", count: solids,
-                    message: "\(solids) SOLID entities were not read"))
+        if let solids = skippedSolidWarning(jww: jww, expandedBlocks: options.expandBlocks) {
+            warnings.append(solids)
         }
 
         return JWWRead(
@@ -75,58 +72,63 @@ extension DrawingLoader {
             unexplainedDimensionValues: unexplained, layerGroupScales: scales, warnings: warnings)
     }
 
-    /// The solid fills SwiftJWW skipped, counted as the `unreadable` warning counts: once for each
-    /// placement of a block when blocks are expanded, and once in each block definition when not.
-    static func skippedSolids(in jww: JWW.Drawing, expandedBlocks: Bool) -> Int {
-        // With no fill in any block, every count is the top-level one, so nothing is expanded.
-        guard expandedBlocks, jww.skippedSolidCount > jww.counts.solid else {
-            return jww.skippedSolidCount
+    /// The warning for the solid fills SwiftJWW skipped, counted as the `unreadable` warning
+    /// counts: once for each placement of a block when blocks are expanded, and when they are not,
+    /// once in each block definition, which the message says.
+    static func skippedSolidWarning(jww: JWW.Drawing, expandedBlocks: Bool) -> DrawingWarning? {
+        let inDefinitions = jww.skippedSolidCount - jww.counts.solid
+        let count: Int
+        var note = ""
+        if !expandedBlocks {
+            count = jww.skippedSolidCount
+            if inDefinitions > 0 { note = " (\(inDefinitions) in block definitions)" }
+        } else if inDefinitions > 0 {
+            count = jww.expandingBlocks().solidCount
+        } else {
+            count = jww.counts.solid  // no fill in a block, so nothing to expand
         }
-        return jww.expandingBlocks().solidCount
+        guard count > 0 else { return nil }
+        // SwiftJWW reads a solid fill's place in the file but not the fill, and not its layer.
+        return DrawingWarning(
+            kind: .skippedEntities, type: "SOLID", count: count,
+            message: "\(count) SOLID entities were not read" + note)
     }
 
-    /// The pieces of each dimension the writer rebuilt, keyed by the handle of its `DIMENSION`.
+    /// The sine of the angle below which a line is parallel to a dimension, the threshold SwiftJWW's
+    /// recovery uses to tell a dimension line from an extension line.
+    private static let parallelSine = 1e-3
+
+    /// The pieces of a rebuilt dimension: the elements the writer's report lists for it, at full
+    /// size, in file order.
     ///
-    /// The report gives each dimension's elements. Which of its lines are extension lines comes
-    /// from SwiftJWW's own recovery, run again on the same drawing, which gives the same
-    /// dimensions the writer used.
+    /// A line is a dimension line when it is parallel to the dimension, whose direction is
+    /// `rotation` degrees from the x axis, and an extension line otherwise.
     private static func rebuiltPieces(
-        jww: JWW.Drawing, report: DXFWriter.Report
-    ) -> [String: [Piece]] {
-        guard !report.recoveredDimensionElements.isEmpty else { return [:] }
-        let recovered = Dictionary(
-            jww.recoveringDimensions().dimensions.map { ($0.elementIndices, $0.dimension) },
-            uniquingKeysWith: { first, _ in first })
-        var out: [String: [Piece]] = [:]
-        for (handle, indices) in report.recoveredDimensionElements {
-            let match = recovered[indices]
-            assert(
-                match != nil,
-                "SwiftJWW's recovery gave no dimension from the elements reported for \(handle)")
-            let extensionLines = match?.extensionLines ?? []
-            var pieces: [Piece] = []
-            for index in indices where jww.elements.indices.contains(index) {
-                let element = jww.elements[index]
-                // A copy of the value is found after the value, so it comes later in the file.
-                let afterValue = pieces.contains { $0.kind == .valueText }
-                if let piece = piece(
-                    element, index: index,
-                    factor: report.appliedScales[element.attributes.layerGroup] ?? 1,
-                    extensionLines: extensionLines, afterValue: afterValue)
-                {
-                    pieces.append(piece)
-                }
+        _ indices: [Int], rotation: Double, jww: JWW.Drawing, report: DXFWriter.Report
+    ) -> [Piece] {
+        let angle = rotation * .pi / 180
+        let direction = (x: cos(angle), y: sin(angle))
+        var pieces: [Piece] = []
+        for index in indices where jww.elements.indices.contains(index) {
+            let element = jww.elements[index]
+            // A copy of the value is found after the value, so it comes later in the file.
+            let afterValue = pieces.contains { $0.kind == .valueText }
+            if let piece = piece(
+                element, index: index,
+                factor: report.appliedScales[element.attributes.layerGroup] ?? 1,
+                direction: direction, afterValue: afterValue)
+            {
+                pieces.append(piece)
             }
-            out[handle] = pieces
         }
-        return out
+        return pieces
     }
 
     /// One element of a rebuilt dimension as a piece, multiplied by `factor` and on the layer the
     /// writer names; nil for an element that is not a text, a point or a line.
     private static func piece(
-        _ element: JWW.Element, index: Int, factor: Double,
-        extensionLines: [JWW.Dimension.Segment], afterValue: Bool
+        _ element: JWW.Element, index: Int, factor: Double, direction: (x: Double, y: Double),
+        afterValue: Bool
     ) -> Piece? {
         func full(_ point: JWW.Point) -> DXF.Point { DXF.Point(point.x * factor, point.y * factor) }
         func named(_ layer: Int) -> String {
@@ -141,9 +143,11 @@ extension DrawingLoader {
             return Piece(
                 kind: .arrowPoint, points: [full(at)], layer: named(layer), elementIndex: index)
         case .line(let a, let b, let layer, _):
-            let isExtension = extensionLines.contains { $0.a == a && $0.b == b }
+            let length = hypot(b.x - a.x, b.y - a.y)
+            let cross = abs((b.x - a.x) * direction.y - (b.y - a.y) * direction.x)
+            let isParallel = length == 0 || cross / length < parallelSine
             return Piece(
-                kind: isExtension ? .extensionLine : .dimensionLine, points: [full(a), full(b)],
+                kind: isParallel ? .dimensionLine : .extensionLine, points: [full(a), full(b)],
                 layer: named(layer), elementIndex: index)
         default:
             return nil

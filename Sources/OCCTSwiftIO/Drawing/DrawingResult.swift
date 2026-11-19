@@ -72,13 +72,13 @@ extension DrawingResult {
             public enum Kind: String, Sendable, Equatable {
                 /// The text that states the value, such as `1,930`.
                 case valueText
-                /// A second copy of the value text, stored at the same place.
+                /// Another copy of the value text, stored at the same place.
                 case valueTextCopy
                 /// One of the two points the dimension measures between.
                 case arrowPoint
-                /// A line along the dimension line, which can run past the arrow points.
+                /// A line parallel to the dimension, which can run past the arrow points.
                 case dimensionLine
-                /// A line that ends on an arrow point and is not parallel to the dimension line.
+                /// A line at an angle to the dimension, which ends on an arrow point.
                 case extensionLine
             }
 
