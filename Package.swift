@@ -104,7 +104,8 @@ let package = Package(
         ),
         .testTarget(
             name: "OCCTSwiftIOTests",
-            dependencies: ["OCCTSwiftIO"],
+            // SwiftJWW for the tests that check a JWW's rebuilt dimensions against its elements.
+            dependencies: ["OCCTSwiftIO", .product(name: "SwiftJWW", package: "SwiftJWW")],
             path: "Tests/OCCTSwiftIOTests",
             exclude: ["Fixtures"]
         ),

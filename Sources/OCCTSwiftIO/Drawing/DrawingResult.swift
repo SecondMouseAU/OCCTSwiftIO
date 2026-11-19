@@ -18,7 +18,7 @@ public struct DrawingResult: Sendable {
     /// What was skipped by type and layer, could not be read, or was assumed.
     public var warnings: [DrawingWarning]
     /// The dimensions the reader rebuilt from loose pieces, rather than read as dimensions stored
-    /// in the file.
+    /// in the file, each with the pieces it was built from.
     ///
     /// A `.dimension` entity whose identity is not here was stored in the file as a dimension.
     /// Only a JWW has rebuilt dimensions so far; for a DXF or a DWG this is empty.
@@ -55,9 +55,48 @@ extension DrawingResult {
     public struct RebuiltDimension: Sendable, Equatable {
         /// The identity of the `.dimension` entity in ``DrawingResult/drawing``.
         public var identity: DXF.Identity
+        /// The loose pieces the dimension was built from, in file order.
+        ///
+        /// A piece can belong to more than one dimension: a chain of dimensions shares one
+        /// dimension line, and neighbours share an arrow point and an extension line.
+        public var pieces: [Piece]
 
-        public init(identity: DXF.Identity) {
+        public init(identity: DXF.Identity, pieces: [Piece] = []) {
             self.identity = identity
+            self.pieces = pieces
+        }
+
+        /// One loose element of the file that a rebuilt dimension was built from.
+        public struct Piece: Sendable, Equatable {
+            /// What the piece is in the dimension.
+            public enum Kind: String, Sendable, Equatable {
+                /// The text that states the value, such as `1,930`.
+                case valueText
+                /// A second copy of the value text, stored at the same place.
+                case valueTextCopy
+                /// One of the two points the dimension measures between.
+                case arrowPoint
+                /// A line along the dimension line, which can run past the arrow points.
+                case dimensionLine
+                /// A line that ends on an arrow point and runs across the dimension line.
+                case extensionLine
+            }
+
+            public var kind: Kind
+            /// Where the piece is, at full size: both ends of a line, the one point of an arrow
+            /// point, and the insertion point of a value text.
+            public var points: [DXF.Point]
+            /// The layer it is on, such as `0-E`.
+            public var layer: String
+            /// The index of the element in the JWW file's top-level elements.
+            public var elementIndex: Int
+
+            public init(kind: Kind, points: [DXF.Point], layer: String, elementIndex: Int) {
+                self.kind = kind
+                self.points = points
+                self.layer = layer
+                self.elementIndex = elementIndex
+            }
         }
     }
 

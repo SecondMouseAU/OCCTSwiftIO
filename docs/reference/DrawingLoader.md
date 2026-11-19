@@ -55,7 +55,19 @@ The last three are empty for a DXF and a DWG. The initialiser takes them as defa
 extension DrawingResult {
     public struct RebuiltDimension: Sendable, Equatable {
         public var identity: DXF.Identity     // of the .dimension entity in drawing
-        public init(identity: DXF.Identity)
+        public var pieces: [Piece]            // the loose elements it was built from, in file order
+        public init(identity: DXF.Identity, pieces: [Piece] = [])
+
+        public struct Piece: Sendable, Equatable {
+            public enum Kind: String, Sendable, Equatable {
+                case valueText, valueTextCopy, arrowPoint, dimensionLine, extensionLine
+            }
+            public var kind: Kind
+            public var points: [DXF.Point]    // at full size: a line's two ends, else one point
+            public var layer: String          // "0-E"
+            public var elementIndex: Int      // into the JWW file's top-level elements
+            public init(kind: Kind, points: [DXF.Point], layer: String, elementIndex: Int)
+        }
     }
     public struct UnexplainedDimensionValue: Sendable, Equatable {
         public var text: String               // as written: "1,930", "R5"
@@ -97,9 +109,20 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
   distance, at the group's scale, gives it, and the pair comes back as one rotated linear
   `.dimension`, its pieces in the block it names. That is an inference, so `rebuiltDimensions`
   lists the identity of each such entity: a `.dimension` not listed there was stored in the file.
-  Which pieces each was built from is not recorded yet: SwiftJWW 1.5.0's writer report gives them
-  ([SwiftJWW#22](https://github.com/SecondMouseAU/SwiftJWW/issues/22)), and recording them here is
-  [#77](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/77).
+- **Each rebuilt dimension lists its pieces** ([#77](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/77)),
+  so a consumer can check what was paired without the `JWW.Drawing`. A piece has a `kind`: the
+  `valueText`, a `valueTextCopy` (the same value stored a second time at the same place), the two
+  `arrowPoint`s it measures between, a `dimensionLine` (a line along the dimension line, which can
+  run past the arrow points) or an `extensionLine` (a line that ends on an arrow point and crosses
+  the dimension line). Each has its `points` at full size (both ends of a line, the one point of an
+  arrow point, the insertion point of a text), the `layer` the writer names (`0-E`) and its
+  `elementIndex` among the JWW file's top-level elements. The elements come from SwiftJWW's writer
+  report ([SwiftJWW#22](https://github.com/SecondMouseAU/SwiftJWW/issues/22)); which lines are
+  extension lines comes from SwiftJWW's recovery, run again on the same drawing. A piece can belong
+  to more than one dimension, and is listed under each: a chain of dimensions shares one dimension
+  line, and neighbours share an arrow point and an extension line. On the JNR 2120 the 29 rebuilt
+  dimensions list 174 pieces (29 value texts, one copy, 58 arrow points, 30 dimension lines and 56
+  extension lines), which are the 125 elements on layer `0-E`.
 - **Values that are not dimensions stay text.** A radius, diameter or angle value, a value in another
   unit, or a value with no arrow points at the stated distance is kept as a loose text and listed in
   `unexplainedDimensionValues` (the text as written, its position at full size and its layer), with
@@ -112,12 +135,12 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
 
 Limits: SwiftJWW rebuilds dimensions from top-level elements only, so loose dimension pieces inside
 a block stay pieces, with no warning, and an older dimension record inside a block is not listed.
-A solid fill at the top level is skipped by SwiftJWW and reported as `skippedEntities` of type
-`SOLID`, with no layer. One inside a block is counted by SwiftJWW from 1.5.0
-(`Drawing.skippedSolidCount`, [SwiftJWW#24](https://github.com/SecondMouseAU/SwiftJWW/issues/24)),
-but the warning here still gives the top-level count, so it is not reported yet. The members of an expanded block keep their own layer names
-but are scaled by the layer group of the reference that places them, so `layerNamePrefix` gives a
-member's scale only when both are in the same group. A JWW declares no length unit, so it has the
+A solid fill is skipped by SwiftJWW and reported as `skippedEntities` of type `SOLID`, with no
+layer. The count is SwiftJWW's `Drawing.skippedSolidCount`
+([SwiftJWW#24](https://github.com/SecondMouseAU/SwiftJWW/issues/24)): each fill in the file once,
+at the top level or in a block definition, however often its block is placed. The members of an
+expanded block keep their own layer names but are scaled by the layer group of the reference that
+places them, so `layerNamePrefix` gives a member's scale only when both are in the same group. A JWW declares no length unit, so it has the
 `unitsNotDeclared` warning; Jw_cad draws in millimetres.
 
 ## `DrawingWarning`
