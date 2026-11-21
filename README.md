@@ -128,25 +128,10 @@ parts. These come from [SwiftDXF](https://github.com/SecondMouseAU/SwiftDXF) 0.4
 [SwiftDWG](https://github.com/SecondMouseAU/SwiftDWG) (MIT) reads a DWG in process: there is no tool
 to build or install, and nothing to find at run time. `import OCCTSwiftIO` brings its `DWG`
 namespace into scope, so a `DWG.Error` can be caught by name. It reads R2000 to R2018 and, for simple
-entities, R14; R12 and earlier throw `DWG.Error.unsupportedVersion`. Its README reports that on
-AutoCAD's sample drawings it matches AutoCAD's own DXF export of the same drawing, handles included,
-and lists its limits. The ones that matter to a caller:
-
-- A file that is damaged in its structure, is of a release it does not read, or (for `DWGLoader`, or
-  a file named `.dwg`) is not a DWG, throws `DWG.Error` (`.notADWG`, `.unsupportedVersion`,
-  `.truncated`, `.invalid`). `DrawingLoader` tells a DWG from its bytes, so any other file with no
-  `.dwg` name is `LoadError.unrecognizedFormat`.
-- An entity, table record or block it cannot read is left out and counted. `DrawingLoader` reports
-  it as a `DrawingWarning` of kind `.unreadable`, by type, so it is not lost.
-- Entities it does not model, and the ones it cannot read, are counted without their layer:
-  `DrawingWarning.layer` is `nil` for a DWG.
-- Polyface and polygon meshes and the attributes of an insert are not decoded; a spline AutoCAD kept
-  as fit points has no control points.
-- A corrupt file ends in a `DWG.Error` or in a drawing that counts what it lost; SwiftDWG's README says
-  it is not meant to trap or never return, and that this is checked by inverting sampled bytes, not
-  proved for every byte. The reader runs in your process, so a file found to trap or hang is a
-  SwiftDWG bug to report, and a pipeline that reads DWGs it does not trust may want to run it out of
-  process.
+entities, R14; R12 and earlier throw `DWG.Error.unsupportedVersion`. It does not read every
+entity, and a corrupt file is not proved safe for every byte: what it cannot read is counted and
+reported as a `DrawingWarning`. The limits, what throws, and how corrupt files are checked are in
+the [DWGLoader reference](docs/reference/DWGLoader.md#limits-that-matter-to-a-caller).
 
 SwiftDWG is a Swift port of the DWG reader in [ACadSharp](https://github.com/DomCR/ACadSharp) (MIT),
 together with the Open Design Alliance's published specification of the format. It is not a

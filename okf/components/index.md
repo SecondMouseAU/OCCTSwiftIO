@@ -34,7 +34,8 @@ Public product/target from `Package.swift`, plus the key API surfaces from the R
   - `DWGLoader.readEntities(from:options:)`: DWG into the SwiftDXF entity model, read in process by
     [SwiftDWG](https://github.com/SecondMouseAU/SwiftDWG) (MIT; a Swift port of ACadSharp's DWG
     reader with the ODA specification). Each read records the source hash and DWG version. No tool
-    to install, any platform. Reads R2000 to R2018 (R14 for simple entities); throws `DWG.Error`.
+    to install, any platform. Versions read, what throws `DWG.Error`, and SwiftDWG's limits are in
+    [the DWGLoader reference](https://github.com/SecondMouseAU/OCCTSwiftIO/blob/main/docs/reference/DWGLoader.md).
     `import OCCTSwiftIO` re-exports SwiftDWG's `DWG` namespace, as it does SwiftDXF's `DXF`.
     `ShapeLoader` also loads a DWG (`CADFileFormat.dwg`) as one compound of edges, as it does a DXF.
     Block references are expanded on both, and `ShapeLoadResult.warnings` carries the same
