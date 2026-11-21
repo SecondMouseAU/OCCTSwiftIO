@@ -47,17 +47,15 @@ extension DXFLoader {
     /// Arcs are built counter-clockwise between their two end angles whatever the segment's own
     /// direction; the wire assembly takes care of orientation.
     static func edge(for segment: DXF.Contour.Segment) -> Shape? {
-        let start = SIMD3(segment.start.x, segment.start.y, 0)
-        let end = SIMD3(segment.end.x, segment.end.y, 0)
         guard segment.isArc, let center = segment.center, let radius = segment.radius,
             let startAngle = segment.startAngle
         else {
-            return Shape.edgeFromPoints(start, end)
+            return PlanarEdge.line(from: segment.start, to: segment.end)
         }
         let endAngle = startAngle + segment.sweep
-        return Shape.edgeFromCircle(
-            center: SIMD3(center.x, center.y, 0), axis: SIMD3(0, 0, 1), radius: radius,
-            p1: min(startAngle, endAngle), p2: max(startAngle, endAngle))
+        return PlanarEdge.arc(
+            center: center, radius: radius, from: min(startAngle, endAngle),
+            to: max(startAngle, endAngle))
     }
 
     private static func wire(for loop: DXF.Contour.Loop) -> Wire? {

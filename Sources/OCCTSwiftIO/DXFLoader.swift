@@ -15,7 +15,6 @@ import OCCTSwift
 // strings, per-entity layers, $INSUNITS and extents) into scope: that entity model is the primary
 // deliverable; the OCCT `Shape` compound below is the optional convenience.
 @_exported import SwiftDXF
-import simd
 
 public enum DXFLoader {
 
@@ -48,23 +47,19 @@ public enum DXFLoader {
     static func shapes(of drawing: DXF.Drawing, layersKnown: Bool) -> ShapeLoadResult {
         var shapes: [Shape] = []
 
-        func p3(_ x: Double, _ y: Double) -> SIMD3<Double> { SIMD3(x, y, 0) }
-        let axis = SIMD3<Double>(0, 0, 1)
         let deg = Double.pi / 180
         let tolerance = fitTolerance(of: drawing)
 
         for entity in drawing.entities {
             switch entity {
             case .line(let a, let b, _, _):
-                if a != b, let s = Shape.edgeFromPoints(p3(a.x, a.y), p3(b.x, b.y)) {
+                if a != b, let s = PlanarEdge.line(from: a, to: b) {
                     shapes.append(s)
                 }
 
             case .circle(let c, let r, _, _):
                 guard r > 0 else { continue }
-                if let s = Shape.edgeFromCircle(
-                    center: p3(c.x, c.y), axis: axis, radius: r, p1: 0, p2: 2 * .pi)
-                {
+                if let s = PlanarEdge.arc(center: c, radius: r, from: 0, to: 2 * .pi) {
                     shapes.append(s)
                 }
 
@@ -74,18 +69,16 @@ public enum DXFLoader {
                 let p1 = startDeg * deg
                 var p2 = endDeg * deg
                 if p2 <= p1 { p2 += 2 * .pi }
-                if let s = Shape.edgeFromCircle(
-                    center: p3(c.x, c.y), axis: axis, radius: r, p1: p1, p2: p2)
-                {
+                if let s = PlanarEdge.arc(center: c, radius: r, from: p1, to: p2) {
                     shapes.append(s)
                 }
 
             case .point(let p, _, _):
-                if let v = Shape.vertex(at: p3(p.x, p.y)) { shapes.append(v) }
+                if let v = PlanarEdge.vertex(at: p) { shapes.append(v) }
 
             case .polyline(let verts, let closed, _, _):
                 guard verts.count >= 2 else {
-                    if let v = verts.first, let vx = Shape.vertex(at: p3(v.point.x, v.point.y)) {
+                    if let v = verts.first, let vx = PlanarEdge.vertex(at: v.point) {
                         shapes.append(vx)
                     }
                     continue
@@ -97,9 +90,7 @@ public enum DXFLoader {
                     let b = verts[(i + 1) % n]
                     if a.point == b.point { continue }
                     if abs(a.bulge) < 1e-12 {
-                        if let s = Shape.edgeFromPoints(
-                            p3(a.point.x, a.point.y), p3(b.point.x, b.point.y))
-                        {
+                        if let s = PlanarEdge.line(from: a.point, to: b.point) {
                             shapes.append(s)
                         }
                     } else {
