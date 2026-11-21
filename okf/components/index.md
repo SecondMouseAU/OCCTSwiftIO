@@ -4,17 +4,24 @@ title: Components index
 resource: https://github.com/SecondMouseAU/OCCTSwiftIO
 tags: [index]
 description: Public modules / API surfaces exposed by OCCTSwiftIO.
-timestamp: 2026-11-14
+timestamp: 2026-11-21
 ---
 
 # Components
 
-Public product/target from `Package.swift`, plus the key API surfaces from the README.
+Public products/targets from `Package.swift` (there are two), plus the key API surfaces from the README.
 
-- **`OCCTSwiftIO`** (library product / target): the single public module. Headless, no Viewport.
+- **`MeshIO`** (library product / target): pure Swift, no OCCT. `MeshIO.load(contentsOf:weldEpsilon:)`
+  reads STL, OBJ, PLY, glTF, GLB, 3MF, PMX and DirectX `.x` into a neutral `Mesh`;
+  `MeshIO.write(_:to:format:asciiSTL:)` writes all but PMX and `.x`. The two products do not depend
+  on each other. Everything each one reads and writes is in
+  [Formats](https://github.com/SecondMouseAU/OCCTSwiftIO/blob/main/docs/formats.md).
+- **`OCCTSwiftIO`** (library product / target): the OCCT-backed product. Headless, no Viewport.
   - `ShapeLoader.load(from:format:)`: async loader returning shapes, per-shape colors, and AP242
-    dimensions/datums. Supported input formats: STEP, IGES, STL, OBJ, BREP. A STEP assembly loads
-    as one entry per leaf, not as its root compound too.
+    dimensions/datums. Supported input formats (`CADFileFormat`): STEP, IGES, STL, OBJ, BREP, and
+    the 2D vector formats DXF, DWG and JWW, which load as one compound of edges with block
+    references expanded and what was left out in `warnings`. A STEP assembly loads as one entry per
+    leaf, not as its root compound too. `ShapeLoader.loadFromManifest(at:)` reads a `ScriptManifest`.
   - `ExportManager.export(shapes:format:to:)`: async exporter. Supported output formats: glTF,
     GLB, OBJ, PLY, STEP, BREP.
   - `DrawingLoader.read(from:options:)`: one call and one `DrawingResult` for DXF, DWG and JWW:

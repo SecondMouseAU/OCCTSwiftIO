@@ -8,17 +8,10 @@ nav_order: 1
 Headless, multi-format CAD + mesh file I/O for the [OCCTSwift](https://github.com/SecondMouseAU/OCCTSwift)
 family: **no Viewport dependency**, so it is safe for CLIs, batch pipelines, and server-side workflows.
 
-The package ships **two products** so consumers take only what they need:
-
-- **`MeshIO`**: pure Swift, **no OCCT**. 3D mesh formats (STL / OBJ / PLY / glTF / GLB / 3MF / PMX / `.x`)
-  load and write into a neutral value-type `Mesh` (positions + indices).
-- **`OCCTSwiftIO`**: OCCT-backed. CAD B-Rep load/export as `Shape`s (STEP / IGES / BREP), plus **JWW**
-  (Jw_cad 2D vector) load, a `ScriptManifest` round-trip, and a `BRepGraph` → ML export layer.
-
-The split lets OCCT-free consumers (e.g. a raw-mesh ingest) read meshes without pulling in the 1.3 GB
-kernel. The two products are independent: `OCCTSwiftIO` does not depend on `MeshIO`, so taking it does
-not build the mesh-format stack (ThreeMF and its C++ interop, SwiftGLTF, SwiftPMX, SwiftX). See
-[Formats](formats.md) for the full coverage table and per-format notes.
+The package ships **two products**: `MeshIO` (pure Swift, no OCCT) for 3D mesh formats, and
+`OCCTSwiftIO` (OCCT-backed) for CAD B-Rep and 2D drawings. The
+[README](https://github.com/SecondMouseAU/OCCTSwiftIO#readme) says what each is for and how they
+relate; [Formats](formats.md) has everything each one reads and writes.
 
 ---
 
@@ -36,15 +29,7 @@ print(result.shapes.count, "shapes,", result.dimensions.count, "dimensions")
 try await ExportManager.export(shapes: result.shapes, format: .glb, to: outURL)
 ```
 
-Pure-mesh, no kernel:
-
-```swift
-import MeshIO
-
-let mesh = try MeshIO.load(contentsOf: stlURL)     // format chosen by extension
-print(mesh.vertexCount, mesh.triangleCount)
-try MeshIO.write(mesh, to: objURL)                 // writer chosen by extension
-```
+For the pure-mesh path, with no kernel, see [Reading & writing meshes](guides/cookbook/mesh-roundtrip.md).
 
 ---
 
@@ -69,17 +54,9 @@ Per-type API reference with real signatures: [API Reference](reference/README.md
 
 ## Install
 
-Add the package and pick the product(s) you need. Latest release: **v1.4.1**.
-
-```swift
-dependencies: [
-    .package(url: "https://github.com/SecondMouseAU/OCCTSwiftIO.git", from: "1.4.0"),
-],
-.target(name: "YourTarget", dependencies: [
-    .product(name: "MeshIO", package: "OCCTSwiftIO"),        // mesh, no OCCT
-    .product(name: "OCCTSwiftIO", package: "OCCTSwiftIO"),   // CAD + JWW + ML (pulls OCCT)
-]),
-```
+The install snippet, and which version to take, are in the
+[README](https://github.com/SecondMouseAU/OCCTSwiftIO#install). Releases are on the
+[Releases](https://github.com/SecondMouseAU/OCCTSwiftIO/releases) page.
 
 GitHub: <https://github.com/SecondMouseAU/OCCTSwiftIO>
 
