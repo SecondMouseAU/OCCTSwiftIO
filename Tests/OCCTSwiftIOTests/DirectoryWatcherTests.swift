@@ -69,8 +69,38 @@
             return dir
         }
 
-        private static func openFileDescriptorCount() -> Int {
-            (try? FileManager.default.contentsOfDirectory(atPath: "/dev/fd"))?.count ?? -1
+        /// Counts the process's open descriptors that point at `directory` or inside it.
+        ///
+        /// Resolves each descriptor's path with `F_GETPATH`. Returns `-1` if the descriptor table
+        /// or the directory's real path can't be read.
+        ///
+        /// Deliberately not the process-wide descriptor count: Swift Testing runs tests
+        /// concurrently, so any other test opening or closing a file (including the other
+        /// `DirectoryWatcherTests`, each of which holds a descriptor while its watcher runs)
+        /// shifts a process-wide count by one at random (#80). Each test makes its own
+        /// UUID-named directory, so only the descriptors a test's own watchers open can land under
+        /// it.
+        private static func openDescriptorCount(under directory: URL) -> Int {
+            // `F_GETPATH` reports the fully resolved path (`/private/var/...`), whereas the
+            // temporary directory is spelled through the `/var` symlink, so resolve it the same
+            // way. `URL.resolvingSymlinksInPath` is not used: it strips `/private`.
+            var resolved = [CChar](repeating: 0, count: Int(PATH_MAX))
+            guard realpath(directory.path, &resolved) != nil,
+                let names = try? FileManager.default.contentsOfDirectory(atPath: "/dev/fd")
+            else { return -1 }
+            let root = resolved.withUnsafeBufferPointer { String(cString: $0.baseAddress!) }
+
+            var count = 0
+            for name in names {
+                guard let fd = Int32(name) else { continue }
+                var buffer = [CChar](repeating: 0, count: Int(PATH_MAX))
+                // Fails for descriptors with no path (kqueues, sockets) and for ones another
+                // thread closed since the listing; neither can be ours.
+                guard fcntl(fd, F_GETPATH, &buffer) != -1 else { continue }
+                let path = buffer.withUnsafeBufferPointer { String(cString: $0.baseAddress!) }
+                if path == root || path.hasPrefix(root + "/") { count += 1 }
+            }
+            return count
         }
 
         // MARK: - Fires on create/modify within a bounded interval
@@ -281,18 +311,18 @@
             let dir = Self.makeTempDirectory()
             defer { try? FileManager.default.removeItem(at: dir) }
 
-            // Warm up: the very first watcher in a process can trigger one-time lazy allocations
-            // (e.g. dispatch's internal manager thread/kqueue) that would otherwise look like a
-            // "leak" relative to a pre-warmup baseline.
-            do {
-                let warm = DirectoryWatcher(url: dir) {}
-                warm.start()
-                warm.stop()
-            }
-            Thread.sleep(forTimeInterval: 0.2)  // let the warmup's async cancellation settle
+            // Nothing of this test's has opened `dir` yet.
+            #expect(Self.openDescriptorCount(under: dir) == 0)
 
-            let baseline = Self.openFileDescriptorCount()
-            #expect(baseline >= 0, "expected /dev/fd to be readable on macOS")
+            // Prove the counter can see a watcher's descriptor at all. Without this, a counter
+            // that quietly saw nothing (a path mismatch, say) would pass the leak check below
+            // vacuously. `start()` opens the descriptor synchronously, so no wait is needed.
+            let probe = DirectoryWatcher(url: dir) {}
+            probe.start()
+            #expect(
+                Self.openDescriptorCount(under: dir) == 1,
+                "expected a running watcher to hold exactly one descriptor on its directory")
+            probe.stop()
 
             for _ in 0..<50 {
                 let watcher = DirectoryWatcher(url: dir) {}
@@ -300,16 +330,18 @@
                 watcher.stop()
             }
 
-            // Cancellation runs asynchronously on the watcher's queue (matching upstream
+            // Cancellation runs asynchronously on each watcher's queue (matching upstream
             // DispatchSourceFileSystemObject / ScriptWatcher semantics), so give it a bounded
-            // window to finish closing every fd before asserting the count settled back down.
-            let settled = Self.waitUntil(timeout: 5.0) {
-                Self.openFileDescriptorCount() <= baseline
+            // window to finish closing every descriptor before asserting none is left. A leak
+            // would leave one per cycle, so this cannot pass by waiting.
+            let settled = Self.waitUntil(timeout: 10.0) {
+                Self.openDescriptorCount(under: dir) == 0
             }
             #expect(
                 settled,
-                "file descriptor count did not return to baseline after repeated start/stop cycles")
-            #expect(Self.openFileDescriptorCount() <= baseline)
+                "descriptors on the watched directory were not all closed after repeated start/stop cycles"
+            )
+            #expect(Self.openDescriptorCount(under: dir) == 0)
         }
     }
 #endif
