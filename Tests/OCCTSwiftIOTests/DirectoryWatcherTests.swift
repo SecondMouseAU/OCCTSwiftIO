@@ -305,6 +305,114 @@
             )
         }
 
+        // MARK: - A change between reading the path's state and arming the kevent is not lost
+
+        // kqueue reports only changes made after a filter is registered, and registering a
+        // dispatch source is not instant: the watcher reads the path (opens it, snapshots a
+        // directory) and then arms. A change landing in between used to go unobserved forever
+        // (#80). Each test below makes that change at exactly that point, through the watcher's
+        // `testHookBeforeArming` seam, so none of them depends on timing.
+
+        @Test func t_directoryEntryAddedBeforeArmingIsStillReported() throws {
+            let dir = Self.makeTempDirectory()
+            defer { try? FileManager.default.removeItem(at: dir) }
+
+            let recorder = Recorder()
+            let watcher = DirectoryWatcher(url: dir) { recorder.increment() }
+            watcher.testHookBeforeArming = {
+                try? "{}".write(
+                    toFile: dir.appendingPathComponent("payload.json").path, atomically: false,
+                    encoding: .utf8)
+            }
+            watcher.start()
+            defer { watcher.stop() }
+
+            #expect(
+                Self.waitUntil(timeout: 5.0) { recorder.count >= 1 },
+                "expected a notification for a file added after the directory was read but before the watch was armed"
+            )
+        }
+
+        @Test func t_fileModifiedBeforeArmingIsStillReported() throws {
+            let dir = Self.makeTempDirectory()
+            defer { try? FileManager.default.removeItem(at: dir) }
+            let fileURL = dir.appendingPathComponent("watched.txt")
+            try "initial".write(toFile: fileURL.path, atomically: false, encoding: .utf8)
+
+            let recorder = Recorder()
+            let watcher = DirectoryWatcher(url: fileURL) { recorder.increment() }
+            watcher.testHookBeforeArming = {
+                try? "changed, and longer".write(
+                    toFile: fileURL.path, atomically: false, encoding: .utf8)
+            }
+            watcher.start()
+            defer { watcher.stop() }
+
+            #expect(
+                Self.waitUntil(timeout: 5.0) { recorder.count >= 1 },
+                "expected a notification for a file modified after it was read but before the watch was armed"
+            )
+        }
+
+        @Test func t_directoryReplacedBeforeArmingIsStillWatched() throws {
+            let root = Self.makeTempDirectory()
+            defer { try? FileManager.default.removeItem(at: root) }
+            let watchedDir = root.appendingPathComponent("output")
+            try FileManager.default.createDirectory(
+                at: watchedDir, withIntermediateDirectories: false)
+
+            let recorder = Recorder()
+            let watcher = DirectoryWatcher(url: watchedDir) { recorder.increment() }
+            // Replaced by an empty directory at the same path before the watch is armed: no
+            // delete/rename event can ever arrive for the original, so only a check after arming
+            // can notice the descriptor now points at an unlinked inode.
+            watcher.testHookBeforeArming = {
+                try? FileManager.default.removeItem(at: watchedDir)
+                try? FileManager.default.createDirectory(
+                    at: watchedDir, withIntermediateDirectories: false)
+            }
+            watcher.start()
+            defer { watcher.stop() }
+
+            try "{}".write(
+                toFile: watchedDir.appendingPathComponent("payload.json").path, atomically: false,
+                encoding: .utf8)
+
+            #expect(
+                Self.waitUntil(timeout: 5.0) { recorder.count >= 1 },
+                "expected a notification for a write into the directory that replaced the one the watcher opened"
+            )
+        }
+
+        @Test func t_ancestorCreatedBeforeFallbackArmingIsStillFollowed() throws {
+            let root = Self.makeTempDirectory()
+            defer { try? FileManager.default.removeItem(at: root) }
+            let level1 = root.appendingPathComponent("a")
+            let level2 = level1.appendingPathComponent("b")
+
+            let recorder = Recorder()
+            let watcher = DirectoryWatcher(url: level2) { recorder.increment() }
+            // The nearest existing ancestor was resolved as `root`; `a` appears before the watch
+            // on `root` is armed, so `root` never reports it and the watcher would otherwise sit
+            // on `root` while everything happens inside `a`.
+            watcher.testHookBeforeArming = {
+                try? FileManager.default.createDirectory(
+                    at: level1, withIntermediateDirectories: false)
+            }
+            watcher.start()
+            defer { watcher.stop() }
+
+            try FileManager.default.createDirectory(at: level2, withIntermediateDirectories: false)
+            try "{}".write(
+                toFile: level2.appendingPathComponent("payload.json").path, atomically: false,
+                encoding: .utf8)
+
+            #expect(
+                Self.waitUntil(timeout: 5.0) { recorder.count >= 1 },
+                "expected a notification once the target appeared and was written into, not a watcher stuck on the ancestor it resolved before an intermediate level appeared"
+            )
+        }
+
         // MARK: - No file descriptor leak across repeated start/stop cycles
 
         @Test func t_repeatedStartStopDoesNotLeakFileDescriptors() throws {
@@ -316,12 +424,14 @@
 
             // Prove the counter can see a watcher's descriptor at all. Without this, a counter
             // that quietly saw nothing (a path mismatch, say) would pass the leak check below
-            // vacuously. `start()` opens the descriptor synchronously, so no wait is needed.
+            // vacuously. `start()` opens the descriptor synchronously, so no wait is needed. "At
+            // least", not "exactly": once the watcher's source registers it reads the directory
+            // again on its own queue, which holds a second descriptor on it for an instant.
             let probe = DirectoryWatcher(url: dir) {}
             probe.start()
             #expect(
-                Self.openDescriptorCount(under: dir) == 1,
-                "expected a running watcher to hold exactly one descriptor on its directory")
+                Self.openDescriptorCount(under: dir) >= 1,
+                "expected a running watcher to hold a descriptor on its directory")
             probe.stop()
 
             for _ in 0..<50 {
