@@ -33,7 +33,7 @@ Public products/targets from `Package.swift` (there are two), plus the key API s
     `rebuiltDimensions`, each with the pieces it was built from (#77), the values it cannot
     explain in `unexplainedDimensionValues`, and each layer group's scale in `layerGroupScales`
     (#67). Block references are expanded by default.
-    Needs SwiftDXF 0.5.0 or later, SwiftJWW 1.5.0 or later and SwiftDWG 0.2.0 or later.
+    Needs SwiftDXF 0.5.x (0.6.0 and later are not supported yet, #91), SwiftJWW 1.5.0 or later and SwiftDWG 0.2.0 or later.
   - `DXFLoader.loadContours(from:options:)`: planar faces with holes from a DXF drawing, as a
     `DXFContourResult` (faces, wires, SwiftDXF warnings and open chains). Needs SwiftDXF 0.3.0 or
     later, which owns chaining, nesting, units and curve fitting; this repo only builds OCCT
