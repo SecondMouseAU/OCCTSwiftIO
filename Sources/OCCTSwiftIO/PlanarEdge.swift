@@ -8,6 +8,7 @@
 
 import OCCTSwift
 import SwiftDXF
+import simd
 
 /// A point of a drawing with an x and a y: SwiftDXF's `Point`, whose z is dropped, and `Point2`.
 protocol PlanarPoint {
