@@ -157,11 +157,12 @@ struct DrawingUnreadableTests {
     func layerOfSkippedEntities() throws {
         let skipped = [
             "0", "SECTION", "2", "ENTITIES",
-            "0", "SOLID", "8", "FILL", "10", "0", "20", "0",
-            "0", "SOLID", "8", "OTHER", "10", "0", "20", "0",
+            "0", "MLINE", "8", "FILL", "10", "0", "20", "0",
+            "0", "MLINE", "8", "OTHER", "10", "0", "20", "0",
             "0", "ENDSEC", "0", "EOF",
         ].joined(separator: "\n")
-        let url = try DrawingLoaderTests.temporaryFile("solids.dxf", Data(skipped.utf8))
+        // MLINE is a type SwiftDXF does not model; SOLID was one until SwiftDXF 0.6.0 (#91).
+        let url = try DrawingLoaderTests.temporaryFile("mlines.dxf", Data(skipped.utf8))
         let fromDXF = try DrawingLoader.read(from: url).warnings.filter {
             $0.kind == .skippedEntities
         }
@@ -171,19 +172,19 @@ struct DrawingUnreadableTests {
         let drawing = try DXF.read(contentsOf: url)
         let unknown = DrawingLoader.skippedWarnings(for: drawing, layersKnown: false)
         #expect(unknown.count == 1)
-        #expect(unknown.first?.type == "SOLID" && unknown.first?.count == 2)
+        #expect(unknown.first?.type == "MLINE" && unknown.first?.count == 2)
         #expect(unknown.first?.layer == nil)
     }
 
-    @Test("the skipped entities of a DWG written by AutoCAD are reported without a layer")
-    func autocadDWGSkippedWithoutLayer() throws {
+    @Test("a DWG written by AutoCAD has none skipped: its attribute definitions are on the blocks")
+    func autocadDWGAttributeDefinitions() throws {
         let result = try DrawingLoader.read(
             from: DrawingLoaderTests.autocad("anonymous-names.dwg"))
-        let skipped = result.warnings.filter { $0.kind == .skippedEntities }
-        // Each of the five blocks holds one attribute definition, which has no entity form.
-        #expect(skipped.count == 1)
-        #expect(skipped.first?.type == "ATTDEF" && skipped.first?.count == 5)
-        #expect(skipped.first?.layer == nil)
-        #expect(!result.warnings.contains { $0.kind == .unreadable })
+        // Each of the five blocks holds one attribute definition. SwiftDXF 0.5 counted them as
+        // skipped, without a layer as a DWG's are (`layerOfSkippedEntities` still holds that
+        // rule); 0.6.0 reads them onto the block (#91), so nothing is skipped here.
+        #expect(result.drawing.skipped.isEmpty)
+        #expect(result.drawing.blocks.flatMap(\.attributeDefinitions).count == 5)
+        #expect(!result.warnings.contains { $0.kind == .skippedEntities || $0.kind == .unreadable })
     }
 }

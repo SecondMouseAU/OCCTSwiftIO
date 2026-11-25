@@ -51,10 +51,15 @@ The MeshIO rows are the mesh-only path, with no OCCT. OCCTSwiftIO also reads STL
   JWW *tilt* axis is honoured), ellipses → line and circular-arc edges fitted within a tolerance,
   as for a DXF, points → vertices, in the `Z = 0` plane. Block inserts are expanded. **Text** has no edges, nor does a dimension written as
   a `DIMENSION`; the lines of one that is not (a value nothing explains, or a record from a file
-  older than version 4.20) stay lines.
+  older than version 4.20) stay lines. A dimension that is a `DIMENSION` is counted in a `.noEdges`
+  warning, as text is.
 - **DXF and DWG** load to one compound of curve edges, as JWW does. Block references are expanded, so
   the geometry in a block is in the compound. For all three, `ShapeLoadResult.warnings` carries what
-  was left out (the same `DrawingWarning`s `DrawingLoader` gives). A DWG's limits are in
+  was left out (the same `DrawingWarning`s `DrawingLoader` gives) and, in a `.noEdges` warning for
+  each type and layer, what was read and has no edges: text, dimensions, hatches, leaders, tolerance
+  frames, solid fills, wipeouts and 3D faces. Geometry with no size (a zero-length line, a
+  zero-radius circle) is `.degenerate`, and geometry OCCT will not build is `.notBuilt`. A DWG's
+  limits are in
   [DWGLoader](reference/DWGLoader.md#limits-that-matter-to-a-caller).
 
 ## Export (OCCTSwiftIO)
