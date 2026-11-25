@@ -57,11 +57,13 @@ public struct ShapeLoadResult: @unchecked Sendable {
   is missing, cyclic or too deeply nested, paper space, an undeclared unit, an empty drawing). Filled
   for **DXF, DWG and JWW**, whose block references are expanded so the geometry in a block is in the
   compound ([#70](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/70)); empty for every other
-  format. A JWW is read as `DrawingLoader` reads it, at full size, so it also carries the JWW
-  warnings (a layer group with no scale, groups at different scales, dimension values no rebuilt
-  dimension explains; see [DrawingLoader](DrawingLoader.md#jww),
-  [#67](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/67)). Text, dimensions, hatches and
-  leaders are read but have no edges, which is not a warning.
+  format. It also carries one `.noEdges` warning for each type and layer of entity that was read and
+  gives no edge, so is not in the compound: text, dimensions, hatches, leaders, tolerance frames,
+  solid fills, wipeouts and 3D faces (`DrawingLoader` does not give this one; it returns the
+  entities themselves). A JWW is read as `DrawingLoader` reads it, at full size, so it also carries
+  the JWW warnings (a layer group with no scale, groups at different scales, dimension values no
+  rebuilt dimension explains; see [DrawingLoader](DrawingLoader.md#jww),
+  [#67](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/67)).
 - `shapes`: convenience accessor returning just the shapes.
 
 ---

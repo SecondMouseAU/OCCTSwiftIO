@@ -70,21 +70,32 @@ as skipped.
 
 ## Limits that matter to a caller
 
+This is the one account of SwiftDWG's limits in this repository. The README, the doc comments on
+`DWGLoader` and `DrawingLoader`, `CLAUDE.md` and the OKF components page point here and do not
+repeat it. The source is SwiftDWG's own README (its Limits section, as of 0.2.0); check it when
+SwiftDWG is upgraded.
+
 - **Unreadable records.** An entity SwiftDWG cannot read is left out and counted; a table record
   (layer, line type, text style, dimension style) or block it cannot read is left out and counted,
-  and entities on a lost layer read as layer `0`. `DrawingLoader` reports each as a
+  and entities on a lost layer read as layer `0`. A 2D or 3D polyline with a vertex that cannot be
+  read is dropped whole, not kept a point short. `DrawingLoader` reports each as a
   `DrawingWarning` of kind `.unreadable`.
 - **Skipped entities carry no layer.** SwiftDWG writes the entities it does not model, and the ones it
   could not read, as bare records, so SwiftDXF counts them on layer `0` (on the layer of the `INSERT`
   in a block that was expanded), whatever their layer was. `DrawingWarning.layer` is `nil` for a DWG.
 - **A corrupt file** ends in a `DWG.Error`, or in a drawing that counts what it lost. SwiftDWG's
   README says it is not meant to stop the process with a trap or to never return, and that memory is
-  bounded by the sizes the file declares. That is checked by inverting single bytes of sampled files,
-  and is not proved for every byte of every file, so a file found to trap or hang is a SwiftDWG bug
-  to report. The reader runs in this process, unlike the converter it replaces; a pipeline that
-  reads DWGs it does not trust may want to run it out of process.
+  bounded by the sizes the file declares. That is checked by inverting single bytes of sampled files:
+  in SwiftDWG's committed drawings every byte of the file header and one in 1,009 of the rest, and,
+  on a developer machine, in the AutoCAD sample drawings the first 1,280 bytes and some 250 more of
+  each. It is not proved for every byte of every file, so a file found to trap or hang is a SwiftDWG
+  bug to report. This repository's `DWGDamagedFileTests` repeats the check on two of its fixtures,
+  also by sampling. The reader runs in this process, unlike the converter it replaces; a pipeline
+  that reads DWGs it does not trust may want to run it out of process.
 - **Splines** that AutoCAD stored as fit points only come back with fit points and no control points.
 - **Leader hook lines** have the vertices the DWG holds, not the extra vertex AutoCAD adds in its DXF.
+- **True colours.** An entity's true colour comes with the palette index AutoCAD chose. A layer's
+  does not, so its index is the nearest one in RGB, which AutoCAD picks differently now and then.
 - **Three or more unreadable entities in one block, before R2004.** The ones that cannot be read are
   counted and the others kept, but what lies between two unreadable ones is found by its owner, in
   handle order, so a block's drawing order can be lost there. An entity whose own header cannot be

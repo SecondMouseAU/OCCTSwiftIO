@@ -83,14 +83,15 @@ struct ShapeBlockTests {
             Self.header + [
                 "0", "SECTION", "2", "ENTITIES",
                 "0", "LINE", "8", "0", "10", "0", "20", "0", "11", "5", "21", "0",
-                "0", "SOLID", "8", "HATCHING", "10", "0", "20", "0", "11", "1", "21", "0",
+                // MLINE is a type SwiftDXF does not model; SOLID was one until SwiftDXF 0.6.0 (#91).
+                "0", "MLINE", "8", "HATCHING", "10", "0", "20", "0", "11", "1", "21", "0",
                 "12", "1", "22", "1", "13", "0", "23", "1",
                 "0", "ENDSEC", "0", "EOF",
             ])
         let result = try await Self.load(data, as: "skipped.dxf", format: .dxf)
         let skipped = result.warnings.filter { $0.kind == .skippedEntities }
         #expect(skipped.count == 1)
-        #expect(skipped.first?.type == "SOLID")
+        #expect(skipped.first?.type == "MLINE")
         #expect(skipped.first?.layer == "HATCHING")
     }
 
@@ -103,7 +104,7 @@ struct ShapeBlockTests {
         #expect(result.warnings.contains { $0.kind == .emptyDrawing })
     }
 
-    @Test("the shapes path says what DrawingLoader says, for every drawing here")
+    @Test("the shapes path says what DrawingLoader says, and more: what it made no edge of")
     func sameWarningsAsDrawingLoader() async throws {
         let blocks = try DrawingLoaderTests.temporaryFile("framed.dxf", Self.dxf(Self.framed))
         let files: [(URL, CADFileFormat)] = [
@@ -122,21 +123,23 @@ struct ShapeBlockTests {
         for (url, format) in files {
             let shapes = try await ShapeLoader.load(from: url, format: format)
             let drawing = try DrawingLoader.read(from: url)
+            // `.noEdges` is the one kind only the shapes path gives (ShapeNoEdgeWarningTests).
             #expect(
-                shapes.warnings == drawing.warnings, "\(url.lastPathComponent) disagrees")
+                shapes.warnings.filter { $0.kind != .noEdges } == drawing.warnings,
+                "\(url.lastPathComponent) disagrees")
+            #expect(!drawing.warnings.contains { $0.kind == .noEdges })
         }
     }
 
-    @Test("a DWG's block references are expanded, and what they held that has no form is counted")
+    @Test("a DWG's block references are expanded, and an attribute definition is not skipped (#91)")
     func dwgBlocksAreExpanded() async throws {
         // Five INSERTs, each of a block that holds one attribute definition: no edges, but the
-        // references are placed, so the five ATTDEFs are counted and no INSERT is left over.
+        // references are placed, so no INSERT is left over. SwiftDXF 0.5 counted the five ATTDEFs
+        // as skipped; 0.6.0 keeps a definition on its block (#91), where it is not drawn unless it
+        // is constant, so there is nothing to count.
         let result = try await ShapeLoader.load(
             from: DrawingLoaderTests.autocad("anonymous-names.dwg"), format: .dwg)
-        #expect(
-            result.warnings.contains {
-                $0.kind == .skippedEntities && $0.type == "ATTDEF" && $0.count == 5
-            })
+        #expect(!result.warnings.contains { $0.kind == .skippedEntities })
         #expect(!result.warnings.contains { $0.type == "INSERT" })
     }
 

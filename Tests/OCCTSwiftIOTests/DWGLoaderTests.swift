@@ -50,10 +50,12 @@ struct DWGLoaderTests {
     }
 
     @Test func theReadOptionsReachTheDrawing() throws {
-        // Five INSERTs, each of a block that holds one attribute definition.
+        // Five INSERTs, each of a block that holds one attribute definition. The definitions are
+        // on their blocks (SwiftDXF 0.5 counted them as skipped; 0.6.0 does not, #91).
         let url = DrawingLoaderTests.autocad("anonymous-names.dwg")
         let expanded = try DWGLoader.readEntities(from: url, options: .init(expandBlocks: true))
-        #expect(expanded.drawing.skipped["ATTDEF"] == 5)
+        #expect(expanded.drawing.skipped["ATTDEF"] == nil)
+        #expect(expanded.drawing.blocks.flatMap(\.attributeDefinitions).count == 5)
         #expect(expanded.drawing.skipped["INSERT"] == nil)
 
         let kept = try DWGLoader.readEntities(from: url, options: .init(expandBlocks: false))

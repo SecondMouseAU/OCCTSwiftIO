@@ -5,9 +5,10 @@
 // DXF is not a B-Rep solid or a mesh; it's lines, arcs/circles, ellipses, points and text in a plane.
 // We map the drawable curve entities to OCCT edges (in the Z=0 plane) and return them as one compound
 // `Shape`. Splines and ellipses are fitted to lines and circular arcs within a tolerance. Text is not
-// converted to geometry (it would need font outlines). Block references are expanded, and what the
-// read left out is returned as `DrawingWarning`s. Reading is delegated to SwiftDXF, which is
-// validated bit-exact against the ezdxf reference reader.
+// converted to geometry (it would need font outlines), and nor are dimensions, hatches, leaders,
+// tolerance frames, solid fills, wipeouts or 3D faces: each is counted in a `.noEdges` warning.
+// Block references are expanded, and what the read left out is returned as `DrawingWarning`s.
+// Reading is delegated to SwiftDXF, which is validated bit-exact against the ezdxf reference reader.
 
 import Foundation
 import OCCTSwift
@@ -15,7 +16,6 @@ import OCCTSwift
 // strings, per-entity layers, $INSUNITS and extents) into scope: that entity model is the primary
 // deliverable; the OCCT `Shape` compound below is the optional convenience.
 @_exported import SwiftDXF
-import simd
 
 public enum DXFLoader {
 
@@ -32,7 +32,11 @@ public enum DXFLoader {
     /// How `ShapeLoader` reads a DXF, a DWG or a JWW: with block references expanded, as
     /// `DrawingLoader` does, so the geometry in a block is in the compound and the two loaders
     /// agree on what a drawing holds (#70).
-    static let shapeReadOptions = DXF.ReadOptions(expandBlocks: true)
+    ///
+    /// The visible attributes of a reference, and the constant ones of its block, come through as
+    /// `TEXT` as well, so that the `.noEdges` warning counts them: SwiftDXF 0.6 keeps an attribute
+    /// off the entities otherwise, and a drawing's drawn text would be counted short.
+    static let shapeReadOptions = DXF.ReadOptions(expandBlocks: true, expandAttributes: true)
 
     static func load(from url: URL) throws -> ShapeLoadResult {
         shapes(of: try DXF.read(contentsOf: url, options: shapeReadOptions), layersKnown: true)
@@ -43,28 +47,26 @@ public enum DXFLoader {
     ///
     /// Shared by the DXF, DWG and JWW loaders: all three come back as the same `DXF.Drawing`.
     /// `drawing` is expected to have been read with ``shapeReadOptions``; the warnings are
-    /// `DrawingLoader`'s for such a read. `layersKnown` is `false` for a DWG, which counts what it
-    /// skipped without a layer.
+    /// `DrawingLoader`'s for such a read, and then a `.noEdges` warning for each type and layer of
+    /// entity that was read and has no edges here. `layersKnown` is `false` for a DWG, which
+    /// counts what it skipped without a layer; the entities it read have theirs.
     static func shapes(of drawing: DXF.Drawing, layersKnown: Bool) -> ShapeLoadResult {
         var shapes: [Shape] = []
+        var noEdges = NoEdgeTally()
 
-        func p3(_ x: Double, _ y: Double) -> SIMD3<Double> { SIMD3(x, y, 0) }
-        let axis = SIMD3<Double>(0, 0, 1)
         let deg = Double.pi / 180
         let tolerance = fitTolerance(of: drawing)
 
         for entity in drawing.entities {
             switch entity {
             case .line(let a, let b, _, _):
-                if a != b, let s = Shape.edgeFromPoints(p3(a.x, a.y), p3(b.x, b.y)) {
+                if a != b, let s = PlanarEdge.line(from: a, to: b) {
                     shapes.append(s)
                 }
 
             case .circle(let c, let r, _, _):
                 guard r > 0 else { continue }
-                if let s = Shape.edgeFromCircle(
-                    center: p3(c.x, c.y), axis: axis, radius: r, p1: 0, p2: 2 * .pi)
-                {
+                if let s = PlanarEdge.arc(center: c, radius: r, from: 0, to: 2 * .pi) {
                     shapes.append(s)
                 }
 
@@ -74,18 +76,16 @@ public enum DXFLoader {
                 let p1 = startDeg * deg
                 var p2 = endDeg * deg
                 if p2 <= p1 { p2 += 2 * .pi }
-                if let s = Shape.edgeFromCircle(
-                    center: p3(c.x, c.y), axis: axis, radius: r, p1: p1, p2: p2)
-                {
+                if let s = PlanarEdge.arc(center: c, radius: r, from: p1, to: p2) {
                     shapes.append(s)
                 }
 
             case .point(let p, _, _):
-                if let v = Shape.vertex(at: p3(p.x, p.y)) { shapes.append(v) }
+                if let v = PlanarEdge.vertex(at: p) { shapes.append(v) }
 
             case .polyline(let verts, let closed, _, _):
                 guard verts.count >= 2 else {
-                    if let v = verts.first, let vx = Shape.vertex(at: p3(v.point.x, v.point.y)) {
+                    if let v = verts.first, let vx = PlanarEdge.vertex(at: v.point) {
                         shapes.append(vx)
                     }
                     continue
@@ -97,9 +97,7 @@ public enum DXFLoader {
                     let b = verts[(i + 1) % n]
                     if a.point == b.point { continue }
                     if abs(a.bulge) < 1e-12 {
-                        if let s = Shape.edgeFromPoints(
-                            p3(a.point.x, a.point.y), p3(b.point.x, b.point.y))
-                        {
+                        if let s = PlanarEdge.line(from: a.point, to: b.point) {
                             shapes.append(s)
                         }
                     } else {
@@ -116,20 +114,17 @@ public enum DXFLoader {
                     if let s = edge(for: piece.segment) { shapes.append(s) }
                 }
 
-            case .text:
-                break  // text → no geometry
-
-            case .dimension:
-                // dimension → annotation (extent/extension lines, text, arrows), not drawable curve geometry
-                break
-
-            case .hatch, .leader, .tolerance, .solid, .wipeout, .face3D:
-                break  // fill, annotation, mask and 3D face, not edges
+            case .text, .dimension, .hatch, .leader, .tolerance, .solid, .wipeout, .face3D:
+                // Annotation (text, dimension, leader, tolerance frame), fill (hatch, solid), mask
+                // (wipeout) and 3D face: no drawable curve of their own here. Counted, not dropped
+                // without a word.
+                noEdges.add(entity)
             }
         }
 
-        let warnings = DrawingLoader.warnings(
-            for: drawing, expandedBlocks: true, layersKnown: layersKnown)
+        let warnings =
+            DrawingLoader.warnings(for: drawing, expandedBlocks: true, layersKnown: layersKnown)
+            + noEdges.warnings
         guard let compound = Shape.compound(shapes) else {
             return ShapeLoadResult(shapesWithColors: [], warnings: warnings)
         }

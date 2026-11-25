@@ -33,7 +33,16 @@
         private var directSource: DispatchSourceFileSystemObject?
         private var fallbackSource: DispatchSourceFileSystemObject?
         private var lastEntryStamps: [String: EntryStamp] = [:]
+        private var lastFileStamp: EntryStamp?
         private var started = false
+
+        /// Test-only seam, run once, immediately before a new kevent source is resumed.
+        ///
+        /// That is the moment between "the state of the path was last read" and "the kernel is
+        /// watching it", so a test can change the filesystem there and force the otherwise
+        /// timing-dependent race (#80) deterministically. Cleared after its first call. Not part
+        /// of the public API.
+        var testHookBeforeArming: (() -> Void)?
 
         private struct EntryStamp: Equatable {
             var modificationDate: Date?
@@ -91,6 +100,7 @@
             fallbackSource?.cancel()
             fallbackSource = nil
             lastEntryStamps = [:]
+            lastFileStamp = nil
             lock.unlock()
         }
 
@@ -116,6 +126,14 @@
         ///   the subsequent write that adds the first real entry already fires on its own via
         ///   the ordinary entry-diff path. Revisit if a future consumer genuinely needs "the
         ///   directory now exists, even empty" as a distinct signal.
+        ///
+        ///   What is read here (opening `path`, snapshotting a directory) is only a baseline.
+        ///   Reading it and the kernel starting to watch it are separate moments: kqueue reports
+        ///   only changes made AFTER a filter is registered, and registration is not synchronous
+        ///   with `resume()` (it can wait on `queue`, notably when this runs from one of this
+        ///   type's own handlers). A change in that gap would never be reported, so once the
+        ///   source is registered `handleDirectRegistered` reads the path again and reports any
+        ///   difference from this baseline (#80).
         /// - Returns: whether the caller should invoke `onChange` after unlocking.
         private func attemptDirectAttach(treatCreationAsChange: Bool = false) -> Bool {
             fallbackSource?.cancel()
@@ -142,6 +160,7 @@
                 lastEntryStamps = snapshot
             } else {
                 fireNow = treatCreationAsChange
+                lastFileStamp = Self.stamp(ofFileAtPath: path)
             }
 
             let source = DispatchSource.makeFileSystemObjectSource(
@@ -153,9 +172,14 @@
                 let flags = source?.data ?? []
                 self?.handleDirectEvent(isDirectory: isDirectory, flags: flags)
             }
+            source.setRegistrationHandler { [weak self, weak source] in
+                guard let source else { return }
+                self?.handleDirectRegistered(source: source, fd: fd, isDirectory: isDirectory)
+            }
             source.setCancelHandler {
                 close(fd)
             }
+            runTestHookBeforeArming()
             source.resume()
             directSource = source
 
@@ -192,30 +216,107 @@
             source.setEventHandler { [weak self] in
                 self?.handleFallbackEvent()
             }
+            source.setRegistrationHandler { [weak self, weak source] in
+                guard let source else { return }
+                self?.handleFallbackRegistered(source: source, fd: fd, ancestor: ancestor)
+            }
             source.setCancelHandler {
                 close(fd)
             }
+            runTestHookBeforeArming()
             source.resume()
             fallbackSource = source
 
-            // Closes a TOCTOU race, not just tidiness: `path` (or an intermediate ancestor
-            // closer to it) can come into existence in the gap between `nearestExistingAncestor`
-            // resolving `ancestor` above and this kevent filter actually being armed by
-            // `resume()`. kqueue only reports events that occur AFTER a filter is registered,
-            // never ones that already happened, so a change landing in that gap would otherwise
-            // go unobserved forever: nothing is pending on the freshly-armed fd, and nothing else
-            // will prompt this watcher to look again. Re-checking once, synchronously, right
-            // after arming, catches exactly that window; if it did close, this recurses into
-            // `attemptDirectAttach` (which itself may recurse into `attachFallback` again, one
-            // level closer, if only a partial ancestor appeared) rather than leaving the watch
-            // sitting on a target that's already stale the instant it's armed. Bounded by the
-            // number of path components between `ancestor` and `path`, not a loop: each
+            // A fast path, not the whole answer. `path` (or an intermediate ancestor closer to
+            // it) can come into existence in the gap between `nearestExistingAncestor` resolving
+            // `ancestor` above and this kevent filter being registered. kqueue only reports
+            // events that occur AFTER registration, never ones that already happened, so a
+            // change landing in that gap would otherwise go unobserved forever: nothing is
+            // pending on the freshly-armed fd, and nothing else will prompt this watcher to look
+            // again. But registration is not synchronous with `resume()`, so this check can
+            // itself run before the filter is live, and a change after it and before
+            // registration slips past it. `handleFallbackRegistered` repeats the check once
+            // registration has actually happened and is what closes the window; this one just
+            // catches the common case without waiting for it. If it finds `path`, this recurses
+            // into `attemptDirectAttach` (which itself may recurse into `attachFallback` again,
+            // one level closer, if only a partial ancestor appeared) rather than leaving the
+            // watch sitting on a target that's already stale the instant it's armed. Bounded by
+            // the number of path components between `ancestor` and `path`, not a loop: each
             // recursion only happens because the filesystem state genuinely changed since the
             // prior check.
             if FileManager.default.fileExists(atPath: path) {
                 return attemptDirectAttach(treatCreationAsChange: true)
             }
             return false
+        }
+
+        private func runTestHookBeforeArming() {
+            guard let hook = testHookBeforeArming else { return }
+            testHookBeforeArming = nil
+            hook()
+        }
+
+        // MARK: - Registration (runs once per source, on `queue`)
+
+        /// Runs once, after the direct source's kevent is actually registered.
+        ///
+        /// Reads the path again and reports anything that changed between the baseline taken in
+        /// `attemptDirectAttach` and this registration; see its note on why that gap exists.
+        private func handleDirectRegistered(
+            source: DispatchSourceFileSystemObject, fd: Int32, isDirectory: Bool
+        ) {
+            let shouldFire: Bool
+            lock.lock()
+            // Stopped, or superseded by a later attach, while this was queued.
+            guard started, directSource === source else {
+                lock.unlock()
+                return
+            }
+            if !Self.descriptor(fd, stillRefersTo: path) {
+                // `path` was deleted or replaced between opening it and registering, so the
+                // descriptor is on an unlinked inode and no delete/rename event can ever arrive
+                // for something that happened before registration. Same recovery as
+                // `handleDirectEvent` takes on a delete/rename.
+                shouldFire = attemptDirectAttach(treatCreationAsChange: true)
+            } else if isDirectory {
+                let newStamps = Self.snapshotNonDotfileEntries(ofDirectory: path)
+                shouldFire = newStamps != lastEntryStamps
+                lastEntryStamps = newStamps
+            } else {
+                let newStamp = Self.stamp(ofFileAtPath: path)
+                shouldFire = newStamp != lastFileStamp
+                lastFileStamp = newStamp
+            }
+            lock.unlock()
+            if shouldFire {
+                onChange()
+            }
+        }
+
+        /// Runs once, after the fallback source's kevent is actually registered.
+        ///
+        /// Repeats the resolution `attachFallback` did before registering. If `path` now exists,
+        /// a nearer ancestor than `ancestor` does, or `ancestor` itself was replaced, the watcher
+        /// is already on the wrong target and no event will ever say so.
+        private func handleFallbackRegistered(
+            source: DispatchSourceFileSystemObject, fd: Int32, ancestor: String
+        ) {
+            var shouldFire = false
+            lock.lock()
+            guard started, fallbackSource === source else {
+                lock.unlock()
+                return
+            }
+            if FileManager.default.fileExists(atPath: path)
+                || Self.nearestExistingAncestor(of: path) != ancestor
+                || !Self.descriptor(fd, stillRefersTo: ancestor)
+            {
+                shouldFire = attemptDirectAttach(treatCreationAsChange: true)
+            }
+            lock.unlock()
+            if shouldFire {
+                onChange()
+            }
         }
 
         // MARK: - Event handling
@@ -302,6 +403,27 @@
                 )
             }
             return result
+        }
+
+        private static func stamp(ofFileAtPath path: String) -> EntryStamp? {
+            guard let attrs = try? FileManager.default.attributesOfItem(atPath: path) else {
+                return nil
+            }
+            return EntryStamp(
+                modificationDate: attrs[.modificationDate] as? Date,
+                size: (attrs[.size] as? NSNumber)?.intValue ?? 0
+            )
+        }
+
+        /// Whether `fd` and `path` still name the same file system object (device and inode).
+        private static func descriptor(_ fd: Int32, stillRefersTo path: String) -> Bool {
+            var descriptorInfo = stat()
+            var pathInfo = stat()
+            guard fstat(fd, &descriptorInfo) == 0, stat(path, &pathInfo) == 0 else {
+                return false
+            }
+            return descriptorInfo.st_dev == pathInfo.st_dev
+                && descriptorInfo.st_ino == pathInfo.st_ino
         }
 
         private static func nearestExistingAncestor(of path: String) -> String {

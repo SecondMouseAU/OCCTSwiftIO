@@ -34,8 +34,8 @@ public enum DWGLoader {
     /// - Throws: ``DWG/Error`` when the file is not a DWG, is of a release that is not read, or is
     ///   damaged in its structure. An entity or table record that cannot be read does not throw:
     ///   it is left out and reported in ``Conversion/warnings``. The reader runs in this process;
-    ///   SwiftDWG checks by sampled byte inversions, not for every byte, that a corrupt file does
-    ///   not trap or hang.
+    ///   what that does and does not promise for a corrupt file is in
+    ///   `docs/reference/DWGLoader.md`.
     public static func readEntities(
         from url: URL, options: DXF.ReadOptions = .init()
     ) throws -> Conversion {
@@ -50,11 +50,13 @@ public enum DWGLoader {
     /// A DWG file as one compound of OCCT edges, the way ``DXFLoader`` gives a DXF.
     ///
     /// This is `ShapeLoader`'s path for ``CADFileFormat/dwg``. Lines, arcs, circles, ellipses,
-    /// polylines and splines become edges in the z = 0 plane; text, dimensions, hatches and leaders
-    /// have no edges. Block references are expanded, as ``DrawingLoader`` expands them, so the
-    /// geometry in a block is in the compound; what the reader could not read, and what could not
-    /// be expanded, is in ``ShapeLoadResult/warnings``, the same warnings ``DrawingLoader`` gives
-    /// (#70). Use ``readEntities(from:options:)`` or ``DrawingLoader`` for the entities.
+    /// polylines and splines become edges in the z = 0 plane; text, dimensions, hatches, leaders,
+    /// tolerance frames, solid fills, wipeouts and 3D faces have no edges. Block references are
+    /// expanded, as ``DrawingLoader`` expands them, so the geometry in a block is in the compound;
+    /// what the reader could not read, and what could not be expanded, is in
+    /// ``ShapeLoadResult/warnings``, the same warnings ``DrawingLoader`` gives (#70), and then a
+    /// `.noEdges` warning for each type and layer of entity that was read and has no edge. Use
+    /// ``readEntities(from:options:)`` or ``DrawingLoader`` for the entities.
     ///
     /// - Throws: ``DWG/Error``, as ``readEntities(from:options:)`` does.
     static func load(from url: URL) throws -> ShapeLoadResult {

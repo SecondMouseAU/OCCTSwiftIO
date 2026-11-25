@@ -169,6 +169,7 @@ a `layer` and a `count`, and a `message`.
 | `emptyDrawing` | Nothing was read. |
 | `scaleNotStated` | A JWW layer group that holds part of the drawing states no usable scale, so it was read at drawn size. `layer` is the group's layer-name prefix (`0-`). |
 | `mixedScales` | The JWW layer groups that hold the drawing have different scales; each is at its own full size. `count` is the number of different scales. |
+| `noEdges` | Entities were read but no edge comes of them, so `ShapeLoader` does not have them: `TEXT` (also `MTEXT` and an attribute's value), `DIMENSION`, `HATCH`, `LEADER`, `TOLERANCE`, `SOLID`, `WIPEOUT`, `3DFACE`, by `type` and `layer`. The shapes path only (`ShapeLoader`, `DXFLoader.load`, `DWGLoader`, `JWWLoader`): `DrawingLoader` gives the entities, so it never has one. An entity in an expanded block counts once for each reference. |
 | `unexplainedDimensionValue` | A JWW dimension value that is not a `.dimension` in the drawing (SwiftJWW could not pair it with arrow points, or its record stores no measured points); it stays a loose text. One per value, with its `layer`; the value and position are in `unexplainedDimensionValues`. |
 
 The `unreadable` kind reads the names SwiftDWG documents in its README: the `UNREADABLE_` prefix, and

@@ -43,17 +43,28 @@ public struct DrawingWarning: Sendable, Equatable, CustomStringConvertible {
         case mixedScales
         /// A JWW dimension value that is not a dimension in the drawing, one per value.
         case unexplainedDimensionValue
+        /// Entities were read but no edge comes of them, so they are not in the compound
+        /// `ShapeLoader` returns, by type and layer.
+        ///
+        /// Of the shapes path only (`ShapeLoader`, `DXFLoader.load`, `DWGLoader` and `JWWLoader`
+        /// when they build shapes): `DrawingLoader` returns the entities themselves, so nothing is
+        /// left out there. ``type`` is the DXF type name: `TEXT` (which is also `MTEXT`, and an
+        /// attribute's value), `DIMENSION`, `HATCH`, `LEADER`, `TOLERANCE`, `SOLID`, `WIPEOUT` or
+        /// `3DFACE`. Unlike ``skippedEntities``, the entities are in the drawing the reader built;
+        /// this loader has no geometry for them. An entity in a block that was expanded counts once
+        /// for each reference.
+        case noEdges
     }
 
     public var kind: Kind
     /// The entity type, for the kinds that concern one.
     public var type: String?
-    /// The layer, for ``Kind/skippedEntities`` and ``Kind/unexplainedDimensionValue``, or the
-    /// prefix of a layer group's layer names, for ``Kind/scaleNotStated``; `nil` when the format
-    /// does not say.
+    /// The layer, for ``Kind/skippedEntities``, ``Kind/noEdges`` and
+    /// ``Kind/unexplainedDimensionValue``, or the prefix of a layer group's layer names, for
+    /// ``Kind/scaleNotStated``; `nil` when the format does not say.
     ///
     /// A DWG's skipped entities, and a JWW's solid fills, are counted without their layer, so it is
-    /// `nil` for them.
+    /// `nil` for them. The entities of ``Kind/noEdges`` were read, so each has its layer.
     public var layer: String?
     public var count: Int
     public var message: String

@@ -54,8 +54,8 @@ public enum DrawingLoader {
     /// - Throws: ``LoadError`` for a file that is none of the three, ``DWG/Error`` for a DWG that
     ///   cannot be read (a release that is not read, damage to its structure, or, for a file named
     ///   `.dwg`, bytes that are not a DWG), and the reader's own error for a DXF or a JWW. SwiftDWG
-    ///   runs in this process; it checks by sampled byte inversions, not for every byte, that a
-    ///   corrupt file does not trap or hang.
+    ///   runs in this process; what that does and does not promise for a corrupt file is in
+    ///   `docs/reference/DWGLoader.md`.
     public static func read(from url: URL, options: Options = .init()) throws -> DrawingResult {
         let data = try Data(contentsOf: url)
         let fileName = url.lastPathComponent
