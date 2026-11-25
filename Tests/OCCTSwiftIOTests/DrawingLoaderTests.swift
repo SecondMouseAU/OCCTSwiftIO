@@ -152,7 +152,7 @@ struct DrawingLoaderTests {
         let url = try Self.temporaryFile("plate.jww", JWWFixture.plate())
         let drawing = try DrawingLoader.read(from: url).drawing
         let contours = DXFLoader.contourFaces(of: drawing)
-        // The plate is one outline with a hole, so there is something for the engine to unit-convert.
+        // The plate is one outline with a hole, so there is something to unit-convert.
         #expect(contours.faces.count == 1)
         // A file with no unit is taken as millimetres too, so these two do not tell a declared
         // unit from an assumed one: the warning does.
