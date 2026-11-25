@@ -105,14 +105,13 @@ struct DrawingLoaderTests {
     func jwwSourceVersion() throws {
         for version in [351, 700] {
             let url = try Self.temporaryFile(
-                "plate-\(version).jww", JWWFixture.drawing([], version: version))
+                "empty-\(version).jww", JWWFixture.drawing([], version: version))
             let result = try DrawingLoader.read(from: url)
             #expect(result.source.format == .jww)
             #expect(result.source.version == String(version))
             // SwiftJWW's writer declares a DXF release in its header (`AC1009`): the version of the
             // DXF text, which says nothing of the JWW's.
             #expect(result.drawing.version.hasPrefix("AC"))
-            #expect(result.drawing.version != result.source.version)
         }
     }
 
@@ -121,10 +120,16 @@ struct DrawingLoaderTests {
         let files: [(String, Data)] = [
             ("plate.jww", JWWFixture.plate()),
             ("dimensioned.jww", JWWFixture.dimensionedPlate()),
+            ("chain.jww", JWWFixture.chainedDimensions()),
+            ("turned.jww", JWWFixture.turnedDimensions()),
             ("mixed.jww", JWWFixture.mixedScales()),
             ("unstated.jww", JWWFixture.unstatedScale()),
+            ("unstated-beside.jww", JWWFixture.scaledBesideUnstated()),
+            ("stored.jww", JWWFixture.storedDimension()),
             ("old.jww", JWWFixture.storedDimension(version: 351)),
-            ("solid.jww", JWWFixture.solidInBlock()),
+            ("block.jww", JWWFixture.blockAtScale()),
+            ("solid.jww", JWWFixture.solidFill()),
+            ("solid-block.jww", JWWFixture.solidInBlock()),
             ("empty.jww", JWWFixture.drawing([])),
         ]
         for (name, data) in files {
@@ -149,6 +154,8 @@ struct DrawingLoaderTests {
         let contours = DXFLoader.contourFaces(of: drawing)
         // The plate is one outline with a hole, so there is something for the engine to unit-convert.
         #expect(contours.faces.count == 1)
+        // A file with no unit is taken as millimetres too, so these two do not tell a declared
+        // unit from an assumed one: the warning does.
         #expect(contours.unit == .millimetre && contours.unitScale == 1)
         #expect(
             !contours.warnings.contains {

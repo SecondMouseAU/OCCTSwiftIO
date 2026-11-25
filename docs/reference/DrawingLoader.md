@@ -124,14 +124,14 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
   [SwiftJWW#22](https://github.com/SecondMouseAU/SwiftJWW/issues/22) and
   [#35](https://github.com/SecondMouseAU/SwiftJWW/issues/35)), so a line is a dimension line or an
   extension line as SwiftJWW's recovery decided it, and this package works out no role itself. A
-  piece can belong to more than one dimension, and is listed under each: a chain of dimensions shares one dimension
-  line, and neighbours share an arrow point and an extension line. The points are worked out from
-  the JWW, not read back from the DXF text, so they can differ from the drawing's coordinates in
-  the seventh decimal place. The `.dimension`'s measured points (`defPoint2` and `defPoint3`) can
-  be the far ends of its extension lines rather than its arrow points, so compare arrow points
-  with the `arrowPoint` pieces, not with those. On the JNR 2120 the 29 rebuilt
-  dimensions list 174 pieces (29 value texts, one copy, 58 arrow points, 30 dimension lines and 56
-  extension lines), which are the 125 elements on layer `0-E`.
+  piece can belong to more than one dimension, and is listed under each: a chain of dimensions
+  shares one dimension line, and neighbours share an arrow point and an extension line. The
+  points are worked out from the JWW, not read back from the DXF text, so they can differ from the
+  drawing's coordinates in the seventh decimal place. The `.dimension`'s measured points
+  (`defPoint2` and `defPoint3`) can be the far ends of its extension lines rather than its arrow
+  points, so compare arrow points with the `arrowPoint` pieces, not with those. On the JNR 2120 the
+  29 rebuilt dimensions list 174 pieces (29 value texts, one copy, 58 arrow points, 30 dimension
+  lines and 56 extension lines), which are the 125 elements on layer `0-E`.
 - **Values that are not dimensions stay text.** A radius, diameter or angle value, a value in another
   unit, or a value with no arrow points at the stated distance is kept as a loose text and listed in
   `unexplainedDimensionValues` (the text as written, its position at full size and its layer), with
@@ -156,7 +156,9 @@ them, so `layerNamePrefix` gives a member's scale only when both are in the same
 is read in millimetres, which Jw_cad draws in: SwiftJWW's DXF text declares `$INSUNITS` 4
 ([SwiftJWW#34](https://github.com/SecondMouseAU/SwiftJWW/issues/34)), so `drawing.insUnits` is 4
 and there is no `unitsNotDeclared` warning, and SwiftDXF's contour step takes the unit from the
-drawing and does not assume it. Before SwiftJWW 2.0.0 the DXF text declared none.
+drawing and does not assume it. They are millimetres at full size for a layer group that states a
+scale; a group with a `scaleNotStated` warning is in millimetres on the sheet, at drawn size.
+Before SwiftJWW 2.0.0 the DXF text declared none.
 
 ## `DrawingWarning`
 

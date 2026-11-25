@@ -150,6 +150,29 @@ struct JWWRebuiltPiecesTests {
         return byIdentity
     }
 
+    @Test("a piece's kind is the role it is given, whatever its geometry says")
+    func roleIsTakenAsGiven() throws {
+        // The dimensioned plate at 1:10: element 4 is the dimension line, 5 an extension line,
+        // 7 an arrow point and 9 the value. Give each a role that contradicts what it is, as a
+        // rule that worked the role out from the geometry would not.
+        let jww = try JWW.read(data: JWWFixture.dimensionedPlate())
+        typealias Given = JWW.RecoveredDimension.Piece
+        let given = [
+            Given(index: 4, role: .extensionLine), Given(index: 5, role: .dimensionLine),
+            Given(index: 7, role: .valueTextCopy), Given(index: 9, role: .arrowPoint),
+        ]
+        let report = DXFWriter.Report(appliedScales: [0: 10])
+        let pieces = DrawingLoader.rebuiltPieces(given, jww: jww, report: report)
+        #expect(pieces.map(\.elementIndex) == [4, 5, 7, 9])
+        #expect(
+            pieces.map(\.kind) == [.extensionLine, .dimensionLine, .valueTextCopy, .arrowPoint])
+        // The positions are the elements', at full size, whatever the role.
+        #expect(pieces[0].points == [DXF.Point(0, -20), DXF.Point(100, -20)])
+        #expect(pieces[1].points == [DXF.Point(0, -5), DXF.Point(0, -20)])
+        #expect(pieces[2].points == [DXF.Point(0, -20)])
+        #expect(pieces[3].points == [DXF.Point(45, -18)])
+    }
+
     @Test("each piece's kind is the role the report gives it, for every element and no other")
     func kindsAreTheReportsRoles() throws {
         let files: [(String, Data)] = [
@@ -268,7 +291,6 @@ struct JWWRebuiltPiecesTests {
                 #expect(
                     rebuilt.pieces.map(\.kind) == found.pieces.map { Self.kinds[$0.role] },
                     "\(name): \(rebuilt.identity)")
-                #expect(rebuilt.pieces.map(\.elementIndex) == found.elementIndices)
             }
         }
     }

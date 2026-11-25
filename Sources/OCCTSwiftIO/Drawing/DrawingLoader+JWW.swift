@@ -115,9 +115,9 @@ extension DrawingLoader {
 
     /// The pieces of a rebuilt dimension: the elements SwiftJWW's recovery built it from, each with
     /// the role the recovery gave it, at full size, in file order.
-    private static func rebuiltPieces(
+    static func rebuiltPieces(
         _ recovered: [JWW.RecoveredDimension.Piece], jww: JWW.Drawing, report: DXFWriter.Report
-    ) -> [Piece] {
+    ) -> [DrawingResult.RebuiltDimension.Piece] {
         recovered.compactMap { found in
             guard jww.elements.indices.contains(found.index) else { return nil }
             let element = jww.elements[found.index]
