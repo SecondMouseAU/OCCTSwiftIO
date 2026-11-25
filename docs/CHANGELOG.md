@@ -4,7 +4,11 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
-## Unreleased
+## v2.0.0-beta.12 (2026-11-25)
+
+**Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
+
+**In this release.** SwiftDXF 0.6 is adopted (the cap moves from 0.5.x to 0.6.x, from 0.6.1), and `ShapeLoader` now says everything it leaves out of the compound it returns: `.noEdges` for the eight entity types that have no edge here (text, dimensions, hatches, leaders, tolerance frames, solid fills, wipeouts and 3D faces), `.degenerate` for geometry with no size, and `.notBuilt` for geometry OCCT would not build ([#91](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/91)). **Breaking in two ways:** the three new `DrawingWarning.Kind` cases break an exhaustive `switch` over `Kind`, and `ShapeLoadResult.warnings` is no longer empty for a drawing with text or a dimension. The compound is unchanged. A consumer that cannot resolve SwiftDXF 0.6.1 or later alongside this package cannot use it.
 
 **SwiftDXF 0.6 is adopted, and the shapes path says what it read and made no edge of ([#91](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/91)).** The cap moves from 0.5.x to 0.6.x: the requirement is `.upToNextMinor(from: "0.6.1")` (0.6.1 is what this was measured against, and compares an attribute's tag with its definition's as written, which decides which constant attributes of a block are counted below), so that a later minor that adds an entity case does not break a fresh resolve again, as 0.4.0 and 0.6.0 did (#60, #91); it is adopted by raising the cap. SwiftDXF 0.6.0 adds the `DXF.Entity` cases `.tolerance`, `.solid`, `.wipeout` and `.face3D`, and reads `SOLID`, `WIPEOUT`, `3DFACE` and `TOLERANCE` as entities and a block's `ATTDEF`s onto the block (`Block.attributeDefinitions`), where 0.5 counted all of them as skipped. `DXFLoader` makes no edge of the four, as of a hatch or a leader, but it no longer drops any of them without a word.
 
