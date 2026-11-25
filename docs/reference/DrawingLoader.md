@@ -156,8 +156,9 @@ them, so `layerNamePrefix` gives a member's scale only when both are in the same
 is read in millimetres, which Jw_cad draws in: SwiftJWW's DXF text declares `$INSUNITS` 4
 ([SwiftJWW#34](https://github.com/SecondMouseAU/SwiftJWW/issues/34)), so `drawing.insUnits` is 4
 and there is no `unitsNotDeclared` warning, and SwiftDXF's contour step takes the unit from the
-drawing and does not assume it. They are millimetres at full size for a layer group that states a
-scale; a group with a `scaleNotStated` warning is in millimetres on the sheet, at drawn size.
+drawing and does not assume it. The coordinates are millimetres at full size for a layer group
+that states a scale; for a group with a `scaleNotStated` warning they are millimetres on the sheet,
+at drawn size.
 Before SwiftJWW 2.0.0 the DXF text declared none.
 
 ## `DrawingWarning`
