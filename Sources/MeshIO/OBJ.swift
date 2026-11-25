@@ -31,13 +31,7 @@ public enum OBJ {
             }
         }
         guard !positions.isEmpty, !indices.isEmpty else { throw MeshError.notRecognized }
-        if weldEpsilon > 0 {
-            var soup = [SIMD3<Float>]()
-            soup.reserveCapacity(indices.count)
-            for idx in indices { soup.append(positions[Int(idx)]) }
-            return Mesh.welded(soup, epsilon: weldEpsilon)
-        }
-        return Mesh(positions: positions, indices: indices)
+        return Mesh(positions: positions, indices: indices, weldEpsilon: weldEpsilon)
     }
 
     private static func parseVertex(

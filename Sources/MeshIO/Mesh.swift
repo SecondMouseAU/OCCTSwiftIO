@@ -59,6 +59,20 @@ public struct Mesh: Equatable, Sendable {
         return (lo, hi)
     }
 
+    /// Index triangles given as vertices plus corner indices, welding when `weldEpsilon` is above 0.
+    ///
+    /// Welding expands the triangles to a soup and welds that, so a vertex no triangle uses is
+    /// dropped and a merged corner keeps the position it was first seen at. Without welding,
+    /// `positions` and `indices` are kept as given. Used by the readers whose formats store indexed
+    /// vertices (OBJ, PLY); the soup readers (glTF, 3MF) have no indices to expand.
+    init(positions: [SIMD3<Float>], indices: [UInt32], weldEpsilon: Float) {
+        guard weldEpsilon > 0 else {
+            self.init(positions: positions, indices: indices)
+            return
+        }
+        self = Mesh.welded(indices.map { positions[Int($0)] }, epsilon: weldEpsilon)
+    }
+
     /// Merge coincident vertices by quantizing positions to a grid of size `epsilon`.
     ///
     /// Used to restore connectivity in formats that split vertices at seams (STL has none;
