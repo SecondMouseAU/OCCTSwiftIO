@@ -43,18 +43,36 @@ public struct DrawingWarning: Sendable, Equatable, CustomStringConvertible {
         case mixedScales
         /// A JWW dimension value that is not a dimension in the drawing, one per value.
         case unexplainedDimensionValue
+        /// Entities were read but no edge comes of them, so they are not in the compound
+        /// `ShapeLoader` returns: `TEXT`, `DIMENSION`, `HATCH`, `LEADER`, `TOLERANCE`, `SOLID`,
+        /// `WIPEOUT` or `3DFACE`, by type and layer.
+        ///
+        /// `ShapeLoader` only: `DrawingLoader` returns the entities themselves.
+        case noEdges
+        /// Geometry with no size makes no edge: a line with equal end points, a circle or arc with
+        /// no positive radius, a polyline with no vertices or a segment between equal points, a
+        /// spline or ellipse that fits to no lines or arcs, by type and layer. `ShapeLoader` only;
+        /// ``count`` is entities, or segments for a polyline.
+        case degenerate
+        /// Geometry with a size made no edge, because OCCT would not make one (a line with an
+        /// infinite coordinate), by type and layer. Without a type, edges were made and OCCT could
+        /// not join them into a compound. `ShapeLoader` only.
+        case notBuilt
     }
 
     public var kind: Kind
     /// The entity type, for the kinds that concern one.
     public var type: String?
-    /// The layer, for ``Kind/skippedEntities`` and ``Kind/unexplainedDimensionValue``, or the
-    /// prefix of a layer group's layer names, for ``Kind/scaleNotStated``; `nil` when the format
-    /// does not say.
+    /// The layer, for ``Kind/skippedEntities``, ``Kind/unexplainedDimensionValue`` and the kinds
+    /// of the shapes path (``Kind/noEdges``, ``Kind/degenerate``, ``Kind/notBuilt``), or the prefix
+    /// of a layer group's layer names, for ``Kind/scaleNotStated``; `nil` when the format does not
+    /// say.
     ///
     /// A DWG's skipped entities, and a JWW's solid fills, are counted without their layer, so it is
-    /// `nil` for them.
+    /// `nil` for them. The entities of the shapes path's kinds were read, so each has its layer.
     public var layer: String?
+    /// How many, in the unit the kind counts: entities, except that the shapes path's
+    /// ``Kind/degenerate`` and ``Kind/notBuilt`` count a polyline's segments and a fit's pieces.
     public var count: Int
     public var message: String
 

@@ -50,11 +50,14 @@ public enum DWGLoader {
     /// A DWG file as one compound of OCCT edges, the way ``DXFLoader`` gives a DXF.
     ///
     /// This is `ShapeLoader`'s path for ``CADFileFormat/dwg``. Lines, arcs, circles, ellipses,
-    /// polylines and splines become edges in the z = 0 plane; text, dimensions, hatches and leaders
-    /// have no edges. Block references are expanded, as ``DrawingLoader`` expands them, so the
-    /// geometry in a block is in the compound; what the reader could not read, and what could not
-    /// be expanded, is in ``ShapeLoadResult/warnings``, the same warnings ``DrawingLoader`` gives
-    /// (#70). Use ``readEntities(from:options:)`` or ``DrawingLoader`` for the entities.
+    /// polylines and splines become edges in the z = 0 plane; text, dimensions, hatches, leaders,
+    /// tolerance frames, solid fills, wipeouts and 3D faces have no edges. Block references are
+    /// expanded, as ``DrawingLoader`` expands them, so the geometry in a block is in the compound;
+    /// what the reader could not read, and what could not be expanded, is in
+    /// ``ShapeLoadResult/warnings``, the same warnings ``DrawingLoader`` gives (#70), and then a
+    /// `.noEdges` warning for each type and layer of entity that was read and has no edge, and a
+    /// `.degenerate` or `.notBuilt` one for geometry that made none. Use
+    /// ``readEntities(from:options:)`` or ``DrawingLoader`` for the entities.
     ///
     /// - Throws: ``DWG/Error``, as ``readEntities(from:options:)`` does.
     static func load(from url: URL) throws -> ShapeLoadResult {

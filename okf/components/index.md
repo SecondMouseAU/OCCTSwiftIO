@@ -33,7 +33,7 @@ Public products/targets from `Package.swift` (there are two), plus the key API s
     `rebuiltDimensions`, each with the pieces it was built from (#77), the values it cannot
     explain in `unexplainedDimensionValues`, and each layer group's scale in `layerGroupScales`
     (#67). Block references are expanded by default.
-    Needs SwiftDXF 0.5.x (0.6.0 and later are not supported yet, #91), SwiftJWW 1.5.0 or later and SwiftDWG 0.2.0 or later.
+    Needs SwiftDXF 0.6.x (0.7.0 and later are not supported until adopted, #91), SwiftJWW 1.5.0 or later and SwiftDWG 0.2.0 or later.
   - `DXFLoader.loadContours(from:options:)`: planar faces with holes from a DXF drawing, as a
     `DXFContourResult` (faces, wires, SwiftDXF warnings and open chains). Needs SwiftDXF 0.3.0 or
     later, which owns chaining, nesting, units and curve fitting; this repo only builds OCCT
@@ -46,7 +46,10 @@ Public products/targets from `Package.swift` (there are two), plus the key API s
     `import OCCTSwiftIO` re-exports SwiftDWG's `DWG` namespace, as it does SwiftDXF's `DXF`.
     `ShapeLoader` also loads a DWG (`CADFileFormat.dwg`) as one compound of edges, as it does a DXF.
     Block references are expanded on both, and `ShapeLoadResult.warnings` carries the same
-    `DrawingWarning`s `DrawingLoader` gives; use `DrawingLoader` for the entities.
+    `DrawingWarning`s `DrawingLoader` gives, and a `.noEdges` warning for each type and layer of
+    entity it read and made no edge of (text, dimensions, hatches, leaders, tolerance frames, solid
+    fills, wipeouts, 3D faces), and `.degenerate` and `.notBuilt` warnings for geometry that made
+    none (no size; OCCT would not build it); use `DrawingLoader` for the entities.
   - `DirectoryWatcher`: kqueue-backed file/directory create/modify notifications, macOS-only
     (`#if os(macOS)`). Ignores dotfile writes; starts cleanly on a not-yet-existing path.
 

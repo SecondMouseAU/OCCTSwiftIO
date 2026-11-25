@@ -65,8 +65,8 @@ for simple entities. R13 is written and has never been run, and R12 and earlier 
 `DWG.Error.unsupportedVersion`.
 
 What survives is what SwiftDXF models, so a DWG gives the same entity cases as a DXF. Entity types
-SwiftDXF does not model, and polyface and polygon meshes and the attributes of an insert, are counted
-as skipped.
+SwiftDXF does not model, and polyface and polygon meshes, are counted as skipped. The attributes of
+an insert are read: an `ATTRIB` onto its reference and an `ATTDEF` onto its block.
 
 ## Limits that matter to a caller
 

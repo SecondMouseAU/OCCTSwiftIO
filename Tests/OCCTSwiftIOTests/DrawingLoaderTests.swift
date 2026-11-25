@@ -242,7 +242,7 @@ struct DrawingLoaderTests {
             2
             ENTITIES
             0
-            SOLID
+            MLINE
             8
             FILL
             10
@@ -250,7 +250,7 @@ struct DrawingLoaderTests {
             20
             0
             0
-            SOLID
+            MLINE
             8
             FILL
             10
@@ -288,7 +288,8 @@ struct DrawingLoaderTests {
         let result = try DrawingLoader.read(from: url)
         let skipped = result.warnings.filter { $0.kind == .skippedEntities }
         #expect(skipped.count == 1)
-        #expect(skipped.first?.type == "SOLID" && skipped.first?.layer == "FILL")
+        // MLINE is a type SwiftDXF does not model; SOLID was one until SwiftDXF 0.6.0 (#91).
+        #expect(skipped.first?.type == "MLINE" && skipped.first?.layer == "FILL")
         #expect(skipped.first?.count == 2)
         let hatchCount = result.drawing.entities.filter {
             if case .hatch = $0 { return true } else { return false }
@@ -296,6 +297,41 @@ struct DrawingLoaderTests {
         #expect(hatchCount == 1)
         #expect(!result.warnings.contains { $0.type == "HATCH" })
         #expect(!result.warnings.contains { $0.kind == .unitsNotDeclared })
+    }
+
+    @Test("a solid, a wipeout, a 3D face and a tolerance are entities, so nothing is left out")
+    func entitiesSwiftDXF06Reads() throws {
+        // SwiftDXF 0.5 counted all four as skipped. From 0.6.0 they are in the drawing, and
+        // DrawingLoader returns the drawing, so it has nothing to warn about; the shapes path does,
+        // as it makes no edge of them (ShapeNoEdgeWarningTests).
+        let lines = [
+            "0", "SECTION", "2", "HEADER", "9", "$INSUNITS", "70", "4", "0", "ENDSEC",
+            "0", "SECTION", "2", "ENTITIES",
+            "0", "SOLID", "8", "FILL", "10", "0", "20", "0", "11", "1", "21", "0",
+            "12", "1", "22", "1", "13", "0", "23", "1",
+            "0", "WIPEOUT", "8", "MASK", "10", "0", "20", "0", "30", "0",
+            "11", "1", "21", "0", "31", "0", "12", "0", "22", "1", "32", "0",
+            "13", "1", "23", "1",
+            "0", "3DFACE", "8", "FACE", "10", "0", "20", "0", "30", "0",
+            "11", "1", "21", "0", "31", "0", "12", "1", "22", "1", "32", "1",
+            "0", "TOLERANCE", "8", "GDT", "10", "0", "20", "0", "30", "0", "1", "%%v0.1%%v|A",
+            "0", "ENDSEC", "0", "EOF",
+        ].joined(separator: "\n")
+        let url = try Self.temporaryFile("modelled.dxf", Data(lines.utf8))
+        let result = try DrawingLoader.read(from: url)
+        var kinds: [String] = []
+        for entity in result.drawing.entities {
+            switch entity {
+            case .solid: kinds.append("solid")
+            case .wipeout: kinds.append("wipeout")
+            case .face3D: kinds.append("face3D")
+            case .tolerance: kinds.append("tolerance")
+            default: kinds.append("other")
+            }
+        }
+        #expect(kinds == ["solid", "wipeout", "face3D", "tolerance"])
+        #expect(result.drawing.skipped.isEmpty)
+        #expect(result.warnings.isEmpty, "\(result.warnings)")
     }
 
     @Test("an extrusion not along z and a truncated expansion come through as warnings")

@@ -154,7 +154,12 @@ struct JWWFullSizeTests {
         let url = try DrawingLoaderTests.temporaryFile("plate.jww", JWWFixture.dimensionedPlate())
         let shapes = try await ShapeLoader.load(from: url, format: .jww)
         let drawing = try DrawingLoader.read(from: url)
-        #expect(shapes.warnings == drawing.warnings)
+        // The same warnings, and then what the shapes path made no edge of: the dimension.
+        #expect(shapes.warnings.filter { !$0.isShapesPathOnly } == drawing.warnings)
+        #expect(
+            shapes.warnings.filter { $0.kind == .noEdges }.contains {
+                $0.type == "DIMENSION" && $0.count == 1
+            }, "\(shapes.warnings)")
         let compound = try #require(shapes.shapes.first)
         let bounds = try #require(compound.bounds)
         #expect(abs(bounds.max.x - bounds.min.x - 100) < 1e-6)
