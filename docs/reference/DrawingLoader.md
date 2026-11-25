@@ -86,7 +86,9 @@ extension DrawingResult {
 
 `DrawingSource` records the file's `fileName`, its `sha256` (empty where CryptoKit is unavailable),
 its `format` (`.dxf`, `.dwg`, `.jww`) and the format's own `version`: `$ACADVER` for a DXF and the
-version code for a DWG (both like `AC1032`), the file version for a JWW (`700`).
+version code for a DWG (both like `AC1032`), the file version for a JWW (`700`). For a JWW that is
+the JWW's own version, not the `$ACADVER` of the DXF text it is read through: `drawing.version` is
+`AC1009` there, SwiftJWW's declared release, and `source.version` is the one to record.
 
 ## JWW
 
@@ -117,18 +119,19 @@ rebuild (`DXFWriter.Options(fullSize: true, recoversDimensions: true)`), so:
   `extensionLine` (a line at an angle to the dimension, which ends on an arrow point). Each has its
   `points` at full size (both ends of a line, the one point of an arrow point, the insertion point
   of a text), the `layer` the writer names (`0-E`) and its `elementIndex` among the JWW file's
-  top-level elements. The elements come from SwiftJWW's writer report
-  ([SwiftJWW#22](https://github.com/SecondMouseAU/SwiftJWW/issues/22)). A line is parallel to the
-  dimension when the angle between it and the `.dimension`'s `rotation` is under a thousandth of a
-  radian, which is how SwiftJWW's recovery tells the two kinds of line apart. A piece can belong to
-  more than one dimension, and is listed under each: a chain of dimensions shares one dimension
-  line, and neighbours share an arrow point and an extension line. The points are worked out from
-  the JWW, not read back from the DXF text, so they can differ from the drawing's coordinates in
-  the seventh decimal place. The `.dimension`'s measured points (`defPoint2` and `defPoint3`) can
-  be the far ends of its extension lines rather than its arrow points, so compare arrow points
-  with the `arrowPoint` pieces, not with those. On the JNR 2120 the 29 rebuilt
-  dimensions list 174 pieces (29 value texts, one copy, 58 arrow points, 30 dimension lines and 56
-  extension lines), which are the 125 elements on layer `0-E`.
+  top-level elements. The elements and the role of each, which is its `kind`, come from SwiftJWW's
+  writer report (`recoveredDimensionPieces`,
+  [SwiftJWW#22](https://github.com/SecondMouseAU/SwiftJWW/issues/22) and
+  [#35](https://github.com/SecondMouseAU/SwiftJWW/issues/35)), so a line is a dimension line or an
+  extension line as SwiftJWW's recovery decided it, and this package works out no role itself. A
+  piece can belong to more than one dimension, and is listed under each: a chain of dimensions
+  shares one dimension line, and neighbours share an arrow point and an extension line. The
+  points are worked out from the JWW, not read back from the DXF text, so they can differ from the
+  drawing's coordinates in the seventh decimal place. The `.dimension`'s measured points
+  (`defPoint2` and `defPoint3`) can be the far ends of its extension lines rather than its arrow
+  points, so compare arrow points with the `arrowPoint` pieces, not with those. On the JNR 2120 the
+  29 rebuilt dimensions list 174 pieces (29 value texts, one copy, 58 arrow points, 30 dimension
+  lines and 56 extension lines), which are the 125 elements on layer `0-E`.
 - **Values that are not dimensions stay text.** A radius, diameter or angle value, a value in another
   unit, or a value with no arrow points at the stated distance is kept as a loose text and listed in
   `unexplainedDimensionValues` (the text as written, its position at full size and its layer), with
@@ -150,7 +153,13 @@ not (`Drawing.skippedSolidCount`,
 many are in block definitions. The members of an expanded
 block keep their own layer names but are scaled by the layer group of the reference that places
 them, so `layerNamePrefix` gives a member's scale only when both are in the same group. A JWW
-declares no length unit, so it has the `unitsNotDeclared` warning; Jw_cad draws in millimetres.
+is read in millimetres, which Jw_cad draws in: SwiftJWW's DXF text declares `$INSUNITS` 4
+([SwiftJWW#34](https://github.com/SecondMouseAU/SwiftJWW/issues/34)), so `drawing.insUnits` is 4
+and there is no `unitsNotDeclared` warning, and SwiftDXF's contour step takes the unit from the
+drawing and does not assume it. The coordinates are millimetres at full size for a layer group
+that states a scale; for a group with a `scaleNotStated` warning they are millimetres on the sheet,
+at drawn size.
+Before SwiftJWW 2.0.0 the DXF text declared none.
 
 ## `DrawingWarning`
 
@@ -165,7 +174,7 @@ a `layer` and a `count`, and a `message`.
 | `missingBlock`, `blockCycle`, `blockNestingTooDeep` | A reference names a block the file does not define; a block contains itself; nesting went past the limit. |
 | `notTransformed`, `unsupportedExtrusion`, `extrusionNotApplied` | An entity a non-uniform scale could not carry was dropped; references with an extrusion not along z were expanded flat; entities with such an extrusion were read as if it were along z. |
 | `expansionTruncated` | Block expansion stopped at its size limit. |
-| `unitsNotDeclared` | The file declares no length unit. |
+| `unitsNotDeclared` | The file declares no length unit. A JWW never has it: SwiftJWW's DXF text declares millimetres. |
 | `emptyDrawing` | Nothing was read. |
 | `scaleNotStated` | A JWW layer group that holds part of the drawing states no usable scale, so it was read at drawn size. `layer` is the group's layer-name prefix (`0-`). |
 | `mixedScales` | The JWW layer groups that hold the drawing have different scales; each is at its own full size. `count` is the number of different scales. |

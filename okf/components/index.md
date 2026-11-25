@@ -4,7 +4,7 @@ title: Components index
 resource: https://github.com/SecondMouseAU/OCCTSwiftIO
 tags: [index]
 description: Public modules / API surfaces exposed by OCCTSwiftIO.
-timestamp: 2026-11-21
+timestamp: 2026-11-25
 ---
 
 # Components
@@ -30,10 +30,12 @@ Public products/targets from `Package.swift` (there are two), plus the key API s
     read, paper space, missing blocks, undeclared units). The format is sniffed from the bytes
     (`DrawingFormat.sniff`). DWG is read by SwiftDWG, JWW by SwiftJWW and passed through its DXF
     writer at full size, with the dimensions it rebuilds from loose pieces listed in
-    `rebuiltDimensions`, each with the pieces it was built from (#77), the values it cannot
-    explain in `unexplainedDimensionValues`, and each layer group's scale in `layerGroupScales`
-    (#67). Block references are expanded by default.
-    Needs SwiftDXF 0.6.x (0.7.0 and later are not supported until adopted, #91), SwiftJWW 1.5.0 or later and SwiftDWG 0.2.0 or later.
+    `rebuiltDimensions`, each with the pieces it was built from and the role SwiftJWW gave each
+    (#77, #90), the values it cannot explain in `unexplainedDimensionValues`, and each layer group's
+    scale in `layerGroupScales` (#67). A JWW declares millimetres (SwiftJWW's DXF text has
+    `$INSUNITS` 4), so it has no `unitsNotDeclared` warning. Block references are expanded by
+    default.
+    Needs SwiftDXF 0.6.x (0.7.0 and later are not supported until adopted, #91), SwiftJWW 2.0.0 or later and SwiftDWG 0.2.0 or later.
   - `DXFLoader.loadContours(from:options:)`: planar faces with holes from a DXF drawing, as a
     `DXFContourResult` (faces, wires, SwiftDXF warnings and open chains). Needs SwiftDXF 0.3.0 or
     later, which owns chaining, nesting, units and curve fitting; this repo only builds OCCT

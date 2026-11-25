@@ -240,6 +240,9 @@ struct JWWFullSizeTests {
                 == Set(found.map { result.drawing.identities[$0.index] }))
         #expect(result.unexplainedDimensionValues.isEmpty)
         #expect(result.layerGroupScales == [.init(group: 0, scale: 80)])
+        // SwiftJWW's DXF declares millimetres, so the read does not say the file declares no unit.
+        #expect(result.drawing.insUnits == 4)
+        #expect(!result.warnings.contains { $0.kind == .unitsNotDeclared })
         // Each stated value is within one unit of its last digit of the distance drawn. The two
         // `559` dimensions are drawn 558.499 and 558.501 long, so this is not a tighter bound.
         for (_, dimension) in found {
@@ -262,5 +265,7 @@ struct JWWFullSizeTests {
         #expect(result.unexplainedDimensionValues.map(\.text) == ["5,186.6", "838.2\u{03C6}"])
         #expect(result.warnings.filter { $0.kind == .unexplainedDimensionValue }.count == 2)
         #expect(result.layerGroupScales == [.init(group: 0, scale: 80)])
+        #expect(result.drawing.insUnits == 4)
+        #expect(!result.warnings.contains { $0.kind == .unitsNotDeclared })
     }
 }
