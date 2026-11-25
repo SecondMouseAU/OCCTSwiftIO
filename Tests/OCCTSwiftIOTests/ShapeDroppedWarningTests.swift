@@ -4,13 +4,6 @@ import Testing
 
 @testable import OCCTSwiftIO
 
-extension DrawingWarning {
-    /// The kinds only the shapes path gives: what `DrawingLoader` says leaves them out.
-    var isShapesPathOnly: Bool {
-        kind == .noEdges || kind == .degenerate || kind == .notBuilt
-    }
-}
-
 /// What the shapes path could not make an edge of, though it is drawable, is said (#91).
 ///
 /// Geometry with no size is `.degenerate`; geometry with a size that OCCT would not make an edge of
@@ -74,6 +67,29 @@ struct ShapeDroppedWarningTests {
         #expect(segments?.message.contains("POLYLINE segments") == true, "\(result.warnings)")
         let empty = result.warnings.first { $0.layer == "P" }
         #expect(empty?.message.contains("POLYLINE entities") == true)
+    }
+
+    @Test("a closed polyline that repeats its first vertex is ordinary, and is not counted")
+    func closedAndRepeated() throws {
+        let result = try Self.read([
+            "0", "LWPOLYLINE", "8", "P", "90", "5", "70", "1",
+            "10", "0", "20", "0", "10", "4", "20", "0", "10", "4", "20", "3",
+            "10", "0", "20", "3", "10", "0", "20", "0",
+        ])
+        #expect(Self.edgeCount(result) == 4)
+        #expect(result.warnings.isEmpty, "\(result.warnings)")
+    }
+
+    @Test("end points that differ only in z are the same place on the plane, and are degenerate")
+    func differOnlyInZ() throws {
+        let result = try Self.read(
+            Self.line + [
+                "0", "LINE", "8", "Z", "10", "1", "20", "1", "30", "0", "11", "1",
+                "21", "1", "31", "5",
+            ])
+        #expect(Self.edgeCount(result) == 1)
+        #expect(Self.found(result, .degenerate) == ["LINE@Zx1"], "\(result.warnings)")
+        #expect(Self.found(result, .notBuilt).isEmpty)
     }
 
     @Test("a polyline of one vertex is a vertex, not a drop")
@@ -157,6 +173,27 @@ struct ShapeDroppedWarningTests {
         #expect(Self.found(result, .degenerate) == ["CIRCLE@Cx1"], "\(result.warnings)")
     }
 
+    // MARK: The compound
+
+    @Test("edges that cannot be joined into a compound are counted, and none is returned")
+    func unjoined() throws {
+        let edges = try #require(try Self.read(Self.line + Self.line).shapes.first)
+            .subShapes(ofType: .edge)
+        var tally = DXFLoader.DroppedTally()
+        let compound = DXFLoader.joined(edges, counting: &tally, join: { _ in nil })
+        #expect(compound == nil)
+        let warnings = tally.warnings
+        #expect(warnings.count == 1)
+        #expect(warnings.first?.kind == .notBuilt && warnings.first?.type == nil)
+        #expect(warnings.first?.count == 2, "\(warnings)")
+
+        // Joined, nothing is counted; no edges at all is not a loss of any.
+        var fine = DXFLoader.DroppedTally()
+        #expect(DXFLoader.joined(edges, counting: &fine) != nil)
+        #expect(DXFLoader.joined([], counting: &fine) == nil)
+        #expect(fine.warnings.isEmpty)
+    }
+
     // MARK: The tally
 
     @Test("the tally orders by type, layer and cause, and counts a compound it could not make")
@@ -167,14 +204,19 @@ struct ShapeDroppedWarningTests {
         tally.add(.noLength, type: "LINE", layer: "A")
         tally.add(.noLength, type: "LINE", layer: "A")
         tally.add(.noLength, type: "POLYLINE", layer: "A", unit: .segments)
+        tally.add(.notBuilt, type: "SPLINE", layer: "A", unit: .pieces)
         tally.addUnjoined(3)
         let warnings = tally.warnings
         #expect(
             warnings.map { "\($0.kind.rawValue):\($0.type ?? "-"):\($0.layer ?? "-"):\($0.count)" }
                 == [
                     "degenerate:LINE:A:2", "degenerate:LINE:B:1", "notBuilt:LINE:B:1",
-                    "degenerate:POLYLINE:A:1", "notBuilt:-:-:3",
+                    "degenerate:POLYLINE:A:1", "notBuilt:SPLINE:A:1", "notBuilt:-:-:3",
                 ])
+        #expect(
+            warnings[4].message
+                == "1 SPLINE pieces on layer A gave no edge, as OCCT would not make one, "
+                + "so they are not in the compound")
         #expect(
             warnings[0].message
                 == "2 LINE entities on layer A have no length, so they are not in the compound")

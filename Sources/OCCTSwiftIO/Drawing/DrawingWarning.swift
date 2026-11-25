@@ -71,6 +71,8 @@ public struct DrawingWarning: Sendable, Equatable, CustomStringConvertible {
     /// A DWG's skipped entities, and a JWW's solid fills, are counted without their layer, so it is
     /// `nil` for them. The entities of the shapes path's kinds were read, so each has its layer.
     public var layer: String?
+    /// How many, in the unit the kind counts: entities, except that the shapes path's
+    /// ``Kind/degenerate`` and ``Kind/notBuilt`` count a polyline's segments and a fit's pieces.
     public var count: Int
     public var message: String
 

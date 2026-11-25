@@ -90,7 +90,7 @@ public enum DXFLoader {
         for entity in drawing.entities {
             switch entity {
             case .line(let a, let b, let layer, _):
-                if a == b {
+                if samePlace(a, b) {
                     dropped.add(.noLength, type: "LINE", layer: layer)
                 } else {
                     keep(PlanarEdge.line(from: a, to: b), type: "LINE", layer: layer)
@@ -135,8 +135,12 @@ public enum DXFLoader {
                 for i in 0..<segs {
                     let a = verts[i]
                     let b = verts[(i + 1) % n]
-                    if a.point == b.point {
-                        dropped.add(.noLength, type: "POLYLINE", layer: layer, unit: .segments)
+                    if samePlace(a.point, b.point) {
+                        // A closed polyline that repeats its first vertex is ordinary, as it is to
+                        // SwiftDXF, so its closing segment is not counted.
+                        if !(closed && i == n - 1) {
+                            dropped.add(.noLength, type: "POLYLINE", layer: layer, unit: .segments)
+                        }
                         continue
                     }
                     let edge =
@@ -160,8 +164,7 @@ public enum DXFLoader {
             }
         }
 
-        let compound = Shape.compound(shapes)
-        if compound == nil { dropped.addUnjoined(shapes.count) }
+        let compound = joined(shapes, counting: &dropped)
         let warnings =
             DrawingLoader.warnings(for: drawing, expandedBlocks: true, layersKnown: layersKnown)
             + noEdges.warnings + dropped.warnings
@@ -170,6 +173,23 @@ public enum DXFLoader {
         }
         return ShapeLoadResult(
             shapesWithColors: [(shape: compound, color: nil)], warnings: warnings)
+    }
+
+    /// Whether two points are the same in the plane the shapes path works in: z is not used.
+    private static func samePlace(_ a: DXF.Point, _ b: DXF.Point) -> Bool {
+        a.x == b.x && a.y == b.y
+    }
+
+    /// The compound of `shapes`, or `nil`, with the edges that were made counted as lost.
+    ///
+    /// `join` is `Shape.compound`; a test gives it one that fails.
+    static func joined(
+        _ shapes: [Shape], counting dropped: inout DroppedTally,
+        join: ([Shape]) -> Shape? = { Shape.compound($0) }
+    ) -> Shape? {
+        let compound = join(shapes)
+        if compound == nil { dropped.addUnjoined(shapes.count) }
+        return compound
     }
 
     /// The circular-arc edge for a bulged polyline segment, through the contour layer's segment

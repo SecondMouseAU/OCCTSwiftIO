@@ -28,14 +28,18 @@ struct ShapeNoEdgeWarningTests {
         ]
     }
 
-    private static func read(_ entities: [String], blocks: [String] = []) throws -> ShapeLoadResult
-    {
+    private static func text(_ entities: [String], blocks: [String] = []) -> String {
         let groups =
             header
             + (blocks.isEmpty ? [] : ["0", "SECTION", "2", "BLOCKS"] + blocks + ["0", "ENDSEC"])
             + ["0", "SECTION", "2", "ENTITIES"] + entities + ["0", "ENDSEC", "0", "EOF"]
+        return groups.joined(separator: "\n") + "\n"
+    }
+
+    private static func read(_ entities: [String], blocks: [String] = []) throws -> ShapeLoadResult
+    {
         let drawing = try DXF.read(
-            text: groups.joined(separator: "\n") + "\n", options: DXFLoader.shapeReadOptions)
+            text: text(entities, blocks: blocks), options: DXFLoader.shapeReadOptions)
         return DXFLoader.shapes(of: drawing, layersKnown: true)
     }
 
@@ -153,21 +157,28 @@ struct ShapeNoEdgeWarningTests {
         let block =
             ["0", "BLOCK", "8", "0", "2", "TITLE", "70", "0", "10", "0", "20", "0"]
             + ["0", "ENDBLK", "8", "0"]
-        let result = try Self.read(
-            [
-                "0", "INSERT", "8", "0", "2", "TITLE", "10", "0", "20", "0", "66", "1",
-                "0", "ATTRIB", "8", "SHOWN", "10", "1", "20", "1", "40", "2", "1", "A-101",
-                "2", "NUMBER", "70", "0",
-                "0", "ATTRIB", "8", "SHOWN", "10", "1", "20", "5", "40", "2", "1", "rev B",
-                "2", "REVISION", "70", "0",
-                "0", "ATTRIB", "8", "HIDDEN", "10", "1", "20", "9", "40", "2", "1", "secret",
-                "2", "NOTE", "70", "1",
-                "0", "SEQEND", "8", "0",
-            ],
-            blocks: block)
+        let entities = [
+            "0", "INSERT", "8", "0", "2", "TITLE", "10", "0", "20", "0", "66", "1",
+            "0", "ATTRIB", "8", "SHOWN", "10", "1", "20", "1", "40", "2", "1", "A-101",
+            "2", "NUMBER", "70", "0",
+            "0", "ATTRIB", "8", "SHOWN", "10", "1", "20", "5", "40", "2", "1", "rev B",
+            "2", "REVISION", "70", "0",
+            "0", "ATTRIB", "8", "HIDDEN", "10", "1", "20", "9", "40", "2", "1", "secret",
+            "2", "NOTE", "70", "1",
+            "0", "SEQEND", "8", "0",
+        ]
+        let result = try Self.read(entities, blocks: block)
         let text = Self.noEdges(result).filter { $0.type == "TEXT" }
         #expect(text.count == 1, "\(result.warnings)")
         #expect(text.first?.layer == "SHOWN" && text.first?.count == 2, "\(result.warnings)")
+
+        // The shapes path read the values as text, so it is not an empty drawing; DrawingLoader,
+        // which leaves attributes on their references, finds no entities and says so.
+        #expect(!result.warnings.contains { $0.kind == .emptyDrawing })
+        let url = try DrawingLoaderTests.temporaryFile(
+            "title.dxf", Data(Self.text(entities, blocks: block).utf8))
+        let drawing = try DrawingLoader.read(from: url)
+        #expect(drawing.warnings.contains { $0.kind == .emptyDrawing }, "\(drawing.warnings)")
     }
 
     // MARK: What does not warn
