@@ -120,6 +120,59 @@ struct JWWRebuiltPiecesTests {
         #expect(vertical.pieces.first?.points == [DXF.Point(-20, 0), DXF.Point(-20, 60)])
     }
 
+    /// The kind of piece for each of SwiftJWW's roles, written out, so a test of the mapping does
+    /// not use the mapping.
+    static let kinds: [JWW.RecoveredDimension.Role: Piece.Kind] = [
+        .valueText: .valueText, .valueTextCopy: .valueTextCopy, .arrowPoint: .arrowPoint,
+        .dimensionLine: .dimensionLine, .extensionLine: .extensionLine,
+    ]
+
+    @Test("every role SwiftJWW gives a piece is a kind of piece here, and the same one")
+    func roleMapping() {
+        #expect(Set(JWW.RecoveredDimension.Role.allCases) == Set(Self.kinds.keys))
+        for role in JWW.RecoveredDimension.Role.allCases {
+            #expect(Piece.Kind(role) == Self.kinds[role], "\(role)")
+        }
+    }
+
+    /// The pieces and roles the writer's report gives each rebuilt dimension, by the dimension's
+    /// identity, as the drawing's `.dimension` entities are matched to them.
+    static func report(of jww: JWW.Drawing, for result: DrawingResult)
+        -> [DXF.Identity: [JWW.RecoveredDimension.Piece]]
+    {
+        let report = DXFWriter.output(jww, options: DrawingLoader.jwwWriterOptions).report
+        var byIdentity: [DXF.Identity: [JWW.RecoveredDimension.Piece]] = [:]
+        for rebuilt in result.rebuiltDimensions {
+            if let handle = rebuilt.identity.handle {
+                byIdentity[rebuilt.identity] = report.recoveredDimensionPieces[handle]
+            }
+        }
+        return byIdentity
+    }
+
+    @Test("each piece's kind is the role the report gives it, for every element and no other")
+    func kindsAreTheReportsRoles() throws {
+        let files: [(String, Data)] = [
+            ("plate.jww", JWWFixture.dimensionedPlate()),
+            ("chain.jww", JWWFixture.chainedDimensions()),
+            ("turned.jww", JWWFixture.turnedDimensions()),
+        ]
+        for (name, data) in files {
+            let url = try DrawingLoaderTests.temporaryFile(name, data)
+            let result = try DrawingLoader.read(from: url)
+            let reported = Self.report(of: try JWW.read(data: data), for: result)
+            #expect(!result.rebuiltDimensions.isEmpty, "\(name)")
+            for rebuilt in result.rebuiltDimensions {
+                guard let pieces = reported[rebuilt.identity] else {
+                    Issue.record("\(name): no pieces in the report for \(rebuilt.identity)")
+                    continue
+                }
+                #expect(rebuilt.pieces.map(\.elementIndex) == pieces.map(\.index), "\(name)")
+                #expect(rebuilt.pieces.map(\.kind) == pieces.map { Self.kinds[$0.role] }, "\(name)")
+            }
+        }
+    }
+
     /// `layerNamePrefix` is the one copy of the writer's layer naming left here.
     @Test("a layer group's prefix starts every layer name the writer gives the group")
     func prefixMatchesTheWriter() {
@@ -189,23 +242,33 @@ struct JWWRebuiltPiecesTests {
             let url = JWWFullSizeTests.local(name)
             let result = try DrawingLoader.read(from: url)
             let jww = try JWW.read(data: Data(contentsOf: url))
-            // The element indices of each recovered dimension's extension lines.
-            var extensionLines: [[Int]: Set<Int>] = [:]
-            for found in jww.recoveringDimensions().dimensions {
-                extensionLines[found.elementIndices] = Set(
+            // Two recovered dimensions with the same elements would make the count below differ.
+            let recovered = Dictionary(
+                jww.recoveringDimensions().dimensions.map { ($0.elementIndices, $0) },
+                uniquingKeysWith: { first, _ in first })
+            #expect(!result.rebuiltDimensions.isEmpty)
+            #expect(result.rebuiltDimensions.count == recovered.count, "\(name)")
+            for rebuilt in result.rebuiltDimensions {
+                guard let found = recovered[rebuilt.pieces.map(\.elementIndex)] else {
+                    Issue.record("\(name): no recovered dimension for \(rebuilt.identity)")
+                    continue
+                }
+                // The lines the recovery gave the dimension as extension lines, by their ends.
+                let expected = Set(
                     found.elementIndices.filter { index in
                         guard case .line(let a, let b, _, _) = jww.elements[index].entity else {
                             return false
                         }
                         return found.dimension.extensionLines.contains { $0.a == a && $0.b == b }
                     })
-            }
-            #expect(!result.rebuiltDimensions.isEmpty)
-            for rebuilt in result.rebuiltDimensions {
-                let expected = extensionLines[rebuilt.pieces.map(\.elementIndex)]
                 let labelled = Set(
                     rebuilt.pieces.filter { $0.kind == .extensionLine }.map(\.elementIndex))
                 #expect(expected == labelled, "\(name): \(rebuilt.identity)")
+                // And every piece has the role the recovery gave it, not only the extension lines.
+                #expect(
+                    rebuilt.pieces.map(\.kind) == found.pieces.map { Self.kinds[$0.role] },
+                    "\(name): \(rebuilt.identity)")
+                #expect(rebuilt.pieces.map(\.elementIndex) == found.elementIndices)
             }
         }
     }

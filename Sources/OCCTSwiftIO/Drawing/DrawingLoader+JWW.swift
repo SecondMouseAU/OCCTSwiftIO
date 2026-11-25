@@ -10,6 +10,22 @@ import SwiftJWW
 
 private typealias Piece = DrawingResult.RebuiltDimension.Piece
 
+extension DrawingResult.RebuiltDimension.Piece.Kind {
+    /// The kind of piece for the role SwiftJWW's recovery gave the element.
+    ///
+    /// Every role is named, with no default, so a role SwiftJWW adds stops this package compiling
+    /// until it is placed here.
+    init(_ role: JWW.RecoveredDimension.Role) {
+        switch role {
+        case .valueText: self = .valueText
+        case .valueTextCopy: self = .valueTextCopy
+        case .arrowPoint: self = .arrowPoint
+        case .dimensionLine: self = .dimensionLine
+        case .extensionLine: self = .extensionLine
+        }
+    }
+}
+
 extension DrawingLoader {
 
     /// A JWW drawing in the shared model, with what only the JWW knows.
@@ -34,9 +50,13 @@ extension DrawingLoader {
     ///
     /// The writer multiplies each element by its layer group's scale and names each layer
     /// `<group>-<layer>`. Its report gives the scale it applied to each group, the handles of the
-    /// dimensions it rebuilt, which survive the parse as the entities' identities, the elements
-    /// each was built from, and the indices of the values it could not explain; the elements are
-    /// read from the `JWW.Drawing`.
+    /// dimensions it rebuilt, which survive the parse as the entities' identities, the pieces each
+    /// was built from with the role the recovery gave each, and the indices of the values it could
+    /// not explain; the pieces' positions are read from the `JWW.Drawing`.
+    ///
+    /// Its DXF text declares `$INSUNITS` 4 (millimetres), so the drawing has a length unit, and
+    /// `$ACADVER` `AC1009`, which is the DXF's version and not the JWW's: the version recorded
+    /// here is the JWW's own (`jww.version`).
     static func readJWW(_ data: Data, options: DXF.ReadOptions) throws -> JWWRead {
         let jww = try JWW.read(data: data)
         let output = DXFWriter.output(jww, options: jwwWriterOptions)
@@ -45,17 +65,15 @@ extension DrawingLoader {
 
         var rebuilt: [DrawingResult.RebuiltDimension] = []
         for (index, entity) in drawing.entities.enumerated() {
-            guard case .dimension(let dimension) = entity,
-                drawing.identities.indices.contains(index)
+            guard case .dimension = entity, drawing.identities.indices.contains(index)
             else { continue }
             let identity = drawing.identities[index]
             guard let handle = identity.handle,
-                let elements = report.recoveredDimensionElements[handle]
+                let recovered = report.recoveredDimensionPieces[handle]
             else { continue }
-            // A DIMENSION with no rotation (group 50) is horizontal, as DXF defines it.
-            let pieces = rebuiltPieces(
-                elements, rotation: dimension.rotation ?? 0, jww: jww, report: report)
-            rebuilt.append(DrawingResult.RebuiltDimension(identity: identity, pieces: pieces))
+            rebuilt.append(
+                DrawingResult.RebuiltDimension(
+                    identity: identity, pieces: rebuiltPieces(recovered, jww: jww, report: report)))
         }
 
         let scales = report.appliedScales.sorted { $0.key < $1.key }.map {
@@ -95,61 +113,38 @@ extension DrawingLoader {
             message: "\(count) SOLID entities were not read" + note)
     }
 
-    /// The sine of the angle below which a line is parallel to a dimension, the threshold SwiftJWW's
-    /// recovery uses to tell a dimension line from an extension line.
-    private static let parallelSine = 1e-3
-
-    /// The pieces of a rebuilt dimension: the elements the writer's report lists for it, at full
-    /// size, in file order.
-    ///
-    /// A line is a dimension line when it is parallel to the dimension, whose direction is
-    /// `rotation` degrees from the x axis, and an extension line otherwise.
+    /// The pieces of a rebuilt dimension: the elements SwiftJWW's recovery built it from, each with
+    /// the role the recovery gave it, at full size, in file order.
     private static func rebuiltPieces(
-        _ indices: [Int], rotation: Double, jww: JWW.Drawing, report: DXFWriter.Report
+        _ recovered: [JWW.RecoveredDimension.Piece], jww: JWW.Drawing, report: DXFWriter.Report
     ) -> [Piece] {
-        let angle = rotation * .pi / 180
-        let direction = (x: cos(angle), y: sin(angle))
-        var pieces: [Piece] = []
-        for index in indices where jww.elements.indices.contains(index) {
-            let element = jww.elements[index]
-            // A copy of the value is found after the value, so it comes later in the file.
-            let afterValue = pieces.contains { $0.kind == .valueText }
-            if let piece = piece(
-                element, index: index,
-                factor: report.appliedScales[element.attributes.layerGroup] ?? 1,
-                direction: direction, afterValue: afterValue)
-            {
-                pieces.append(piece)
-            }
+        recovered.compactMap { found in
+            guard jww.elements.indices.contains(found.index) else { return nil }
+            let element = jww.elements[found.index]
+            return piece(
+                element, index: found.index, role: found.role,
+                factor: report.appliedScales[element.attributes.layerGroup] ?? 1)
         }
-        return pieces
     }
 
     /// One element of a rebuilt dimension as a piece, multiplied by `factor` and on the layer the
     /// writer names; nil for an element that is not a text, a point or a line.
     private static func piece(
-        _ element: JWW.Element, index: Int, factor: Double, direction: (x: Double, y: Double),
-        afterValue: Bool
+        _ element: JWW.Element, index: Int, role: JWW.RecoveredDimension.Role, factor: Double
     ) -> Piece? {
         func full(_ point: JWW.Point) -> DXF.Point { DXF.Point(point.x * factor, point.y * factor) }
         func named(_ layer: Int) -> String {
             DXFWriter.layerName(group: element.attributes.layerGroup, layer: layer)
         }
+        let kind = Piece.Kind(role)
         switch element.entity {
         case .text(let at, _, _, _, _, let layer, _):
-            return Piece(
-                kind: afterValue ? .valueTextCopy : .valueText, points: [full(at)],
-                layer: named(layer), elementIndex: index)
+            return Piece(kind: kind, points: [full(at)], layer: named(layer), elementIndex: index)
         case .point(let at, let layer, _):
-            return Piece(
-                kind: .arrowPoint, points: [full(at)], layer: named(layer), elementIndex: index)
+            return Piece(kind: kind, points: [full(at)], layer: named(layer), elementIndex: index)
         case .line(let a, let b, let layer, _):
-            let length = hypot(b.x - a.x, b.y - a.y)
-            let cross = abs((b.x - a.x) * direction.y - (b.y - a.y) * direction.x)
-            let isParallel = length == 0 || cross / length < parallelSine
             return Piece(
-                kind: isParallel ? .dimensionLine : .extensionLine, points: [full(a), full(b)],
-                layer: named(layer), elementIndex: index)
+                kind: kind, points: [full(a), full(b)], layer: named(layer), elementIndex: index)
         default:
             return nil
         }

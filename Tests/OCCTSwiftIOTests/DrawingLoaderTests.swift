@@ -95,8 +95,66 @@ struct DrawingLoaderTests {
         #expect(result.source.format == .jww && result.source.version == "700")
         #expect(result.drawing.entities.count == 5)
         #expect(result.drawing.counts.line == 4 && result.drawing.counts.circle == 1)
-        // JWW declares no length unit, which a consumer must be told rather than assume.
-        #expect(result.warnings.contains { $0.kind == .unitsNotDeclared })
+        // SwiftJWW's DXF text declares millimetres, which is what Jw_cad draws in, so there is a
+        // unit and nothing to tell a consumer about it (#90).
+        #expect(result.drawing.insUnits == 4)
+        #expect(!result.warnings.contains { $0.kind == .unitsNotDeclared })
+    }
+
+    @Test("a JWW's source version is the JWW's, not the $ACADVER of the DXF text it was read as")
+    func jwwSourceVersion() throws {
+        for version in [351, 700] {
+            let url = try Self.temporaryFile(
+                "plate-\(version).jww", JWWFixture.drawing([], version: version))
+            let result = try DrawingLoader.read(from: url)
+            #expect(result.source.format == .jww)
+            #expect(result.source.version == String(version))
+            // SwiftJWW's writer declares a DXF release in its header (`AC1009`): the version of the
+            // DXF text, which says nothing of the JWW's.
+            #expect(result.drawing.version.hasPrefix("AC"))
+            #expect(result.drawing.version != result.source.version)
+        }
+    }
+
+    @Test("every JWW declares its length unit, so none has the units warning, on any path")
+    func jwwDeclaresItsUnit() async throws {
+        let files: [(String, Data)] = [
+            ("plate.jww", JWWFixture.plate()),
+            ("dimensioned.jww", JWWFixture.dimensionedPlate()),
+            ("mixed.jww", JWWFixture.mixedScales()),
+            ("unstated.jww", JWWFixture.unstatedScale()),
+            ("old.jww", JWWFixture.storedDimension(version: 351)),
+            ("solid.jww", JWWFixture.solidInBlock()),
+            ("empty.jww", JWWFixture.drawing([])),
+        ]
+        for (name, data) in files {
+            let url = try Self.temporaryFile(name, data)
+            let result = try DrawingLoader.read(from: url)
+            #expect(result.drawing.insUnits == 4, "\(name)")
+            #expect(!result.warnings.contains { $0.kind == .unitsNotDeclared }, "\(name)")
+            for expanded in [true, false] {
+                let again = try DrawingLoader.read(
+                    from: url, options: .init(expandBlocks: expanded))
+                #expect(!again.warnings.contains { $0.kind == .unitsNotDeclared }, "\(name)")
+            }
+            let shapes = try await ShapeLoader.load(from: url, format: .jww)
+            #expect(!shapes.warnings.contains { $0.kind == .unitsNotDeclared }, "\(name)")
+        }
+    }
+
+    @Test("a JWW's contours are in millimetres as declared, not assumed")
+    func jwwContoursAreNotAssumedMillimetres() throws {
+        let url = try Self.temporaryFile("plate.jww", JWWFixture.plate())
+        let drawing = try DrawingLoader.read(from: url).drawing
+        let contours = DXFLoader.contourFaces(of: drawing)
+        // The plate is one outline with a hole, so there is something for the engine to unit-convert.
+        #expect(contours.faces.count == 1)
+        #expect(contours.unit == .millimetre && contours.unitScale == 1)
+        #expect(
+            !contours.warnings.contains {
+                if case .unitlessAssumed = $0 { true } else { false }
+            })
+        #expect(contours.warnings.isEmpty)
     }
 
     // MARK: the same plate from three formats
