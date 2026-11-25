@@ -14,7 +14,7 @@ Viewport dependency**: safe for CLIs, batch pipelines, and server-side workflows
 | Product | Depends on OCCT? | What it's for |
 |---|---|---|
 | **`MeshIO`** | **No** (pure Swift) | 3D **mesh** formats → a neutral `Mesh` (positions + indices). |
-| **`OCCTSwiftIO`** | Yes | **CAD B-Rep** load/export as OCCT `Shape`s + **JWW** (2D vector) load. |
+| **`OCCTSwiftIO`** | Yes | **CAD B-Rep** load/export as OCCT `Shape`s, plus **2D vector drawings** (JWW, DXF, DWG) as edges or as entities. |
 
 The split lets OCCT-free consumers (e.g. a raw-mesh pipeline) read meshes without pulling in the 1.3 GB
 kernel. The two products are independent: `OCCTSwiftIO` does not depend on `MeshIO`, so taking it does
@@ -22,34 +22,30 @@ not build the mesh-format stack (ThreeMF and its C++ interop, SwiftGLTF, SwiftPM
 
 ## Format coverage
 
-| Format | Read | Write | Product |
-|---|---|---|---|
-| STL (ascii+binary) | ✅ | ✅ | MeshIO |
-| OBJ | ✅ | ✅ | MeshIO |
-| PLY (ascii+binary) | ✅ | ✅ | MeshIO |
-| glTF / GLB | ✅ | ✅ | MeshIO |
-| 3MF | ✅ | ✅ | MeshIO |
-| PMX (MikuMikuDance) | ✅ | — | MeshIO |
-| DirectX `.x` | ✅ | — | MeshIO |
-| STEP / IGES / BREP | ✅ | ✅* | OCCTSwiftIO |
-| JWW (Jw_cad, 2D vector) | ✅ | — | OCCTSwiftIO |
-| DXF (AutoCAD, 2D vector) | ✅ | — | OCCTSwiftIO |
-| DWG (AutoCAD native, 2D vector, R2000 to R2018) | ✅ | — | OCCTSwiftIO |
-
-<sub>*OCCTSwiftIO `ExportManager` exports OCCT `Shape`s to STEP / BREP / OBJ / PLY / glTF / GLB.</sub>
+`MeshIO` reads STL, OBJ, PLY, glTF / GLB, 3MF, PMX and DirectX `.x`, and writes all but PMX and `.x`.
+`OCCTSwiftIO` reads STEP, IGES, BREP, STL and OBJ as OCCT shapes and the 2D vector formats JWW, DXF
+and DWG, and writes STEP, BREP, OBJ, PLY, glTF and GLB. [Formats](docs/formats.md) has the full
+table, the backend for each format and the per-format notes.
 
 ## Install
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/SecondMouseAU/OCCTSwiftIO.git", from: "1.4.0"),
+    .package(url: "https://github.com/SecondMouseAU/OCCTSwiftIO.git", from: "1.8.0"),
 ],
 // then add the product(s) you need:
 .target(name: "YourTarget", dependencies: [
     .product(name: "MeshIO", package: "OCCTSwiftIO"),        // mesh, no OCCT
-    .product(name: "OCCTSwiftIO", package: "OCCTSwiftIO"),   // CAD + JWW (pulls OCCT)
+    .product(name: "OCCTSwiftIO", package: "OCCTSwiftIO"),   // CAD + 2D drawings (pulls OCCT)
 ]),
 ```
+
+`from: "1.8.0"` takes the stable 1.x line, which was at 1.8.0 when this was written; the
+[Releases](https://github.com/SecondMouseAU/OCCTSwiftIO/releases) page has the current one. Most of
+the 2D drawing work described below is not in it: `DrawingLoader`, DWG, `DXFLoader.loadContours`,
+block expansion and `ShapeLoadResult.warnings` for a DXF, and a JWW at full size are in the 2.0.0
+pre-releases only (as is `OCCTSwiftIO` building without `MeshIO`). Take one by naming its tag
+exactly, with `exact:`, since a pre-release can change between builds.
 
 ## MeshIO: pure-Swift mesh I/O
 
@@ -128,25 +124,10 @@ parts. These come from [SwiftDXF](https://github.com/SecondMouseAU/SwiftDXF) 0.4
 [SwiftDWG](https://github.com/SecondMouseAU/SwiftDWG) (MIT) reads a DWG in process: there is no tool
 to build or install, and nothing to find at run time. `import OCCTSwiftIO` brings its `DWG`
 namespace into scope, so a `DWG.Error` can be caught by name. It reads R2000 to R2018 and, for simple
-entities, R14; R12 and earlier throw `DWG.Error.unsupportedVersion`. Its README reports that on
-AutoCAD's sample drawings it matches AutoCAD's own DXF export of the same drawing, handles included,
-and lists its limits. The ones that matter to a caller:
-
-- A file that is damaged in its structure, is of a release it does not read, or (for `DWGLoader`, or
-  a file named `.dwg`) is not a DWG, throws `DWG.Error` (`.notADWG`, `.unsupportedVersion`,
-  `.truncated`, `.invalid`). `DrawingLoader` tells a DWG from its bytes, so any other file with no
-  `.dwg` name is `LoadError.unrecognizedFormat`.
-- An entity, table record or block it cannot read is left out and counted. `DrawingLoader` reports
-  it as a `DrawingWarning` of kind `.unreadable`, by type, so it is not lost.
-- Entities it does not model, and the ones it cannot read, are counted without their layer:
-  `DrawingWarning.layer` is `nil` for a DWG.
-- Polyface and polygon meshes and the attributes of an insert are not decoded; a spline AutoCAD kept
-  as fit points has no control points.
-- A corrupt file ends in a `DWG.Error` or in a drawing that counts what it lost; SwiftDWG's README says
-  it is not meant to trap or never return, and that this is checked by inverting sampled bytes, not
-  proved for every byte. The reader runs in your process, so a file found to trap or hang is a
-  SwiftDWG bug to report, and a pipeline that reads DWGs it does not trust may want to run it out of
-  process.
+entities, R14; R12 and earlier throw `DWG.Error.unsupportedVersion`. It does not read every
+entity, and a corrupt file is not proved safe for every byte: what it cannot read is counted and
+reported as a `DrawingWarning`. The limits, what throws, and how corrupt files are checked are in
+the [DWGLoader reference](docs/reference/DWGLoader.md#limits-that-matter-to-a-caller).
 
 SwiftDWG is a Swift port of the DWG reader in [ACadSharp](https://github.com/DomCR/ACadSharp) (MIT),
 together with the Open Design Alliance's published specification of the format. It is not a
