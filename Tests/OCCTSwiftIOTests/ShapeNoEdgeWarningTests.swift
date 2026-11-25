@@ -147,6 +147,29 @@ struct ShapeNoEdgeWarningTests {
         #expect(!result.warnings.contains { $0.kind == .skippedEntities })
     }
 
+    @Test("a visible attribute a reference carries is counted, an invisible one is not")
+    func carriedAttributes() throws {
+        // The usual title block: an INSERT of a block with no entities, with its values as ATTRIBs.
+        let block =
+            ["0", "BLOCK", "8", "0", "2", "TITLE", "70", "0", "10", "0", "20", "0"]
+            + ["0", "ENDBLK", "8", "0"]
+        let result = try Self.read(
+            [
+                "0", "INSERT", "8", "0", "2", "TITLE", "10", "0", "20", "0", "66", "1",
+                "0", "ATTRIB", "8", "SHOWN", "10", "1", "20", "1", "40", "2", "1", "A-101",
+                "2", "NUMBER", "70", "0",
+                "0", "ATTRIB", "8", "SHOWN", "10", "1", "20", "5", "40", "2", "1", "rev B",
+                "2", "REVISION", "70", "0",
+                "0", "ATTRIB", "8", "HIDDEN", "10", "1", "20", "9", "40", "2", "1", "secret",
+                "2", "NOTE", "70", "1",
+                "0", "SEQEND", "8", "0",
+            ],
+            blocks: block)
+        let text = Self.noEdges(result).filter { $0.type == "TEXT" }
+        #expect(text.count == 1, "\(result.warnings)")
+        #expect(text.first?.layer == "SHOWN" && text.first?.count == 2, "\(result.warnings)")
+    }
+
     // MARK: What does not warn
 
     @Test("a drawing of edges alone carries no such warning")

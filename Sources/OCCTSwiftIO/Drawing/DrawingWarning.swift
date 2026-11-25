@@ -44,15 +44,10 @@ public struct DrawingWarning: Sendable, Equatable, CustomStringConvertible {
         /// A JWW dimension value that is not a dimension in the drawing, one per value.
         case unexplainedDimensionValue
         /// Entities were read but no edge comes of them, so they are not in the compound
-        /// `ShapeLoader` returns, by type and layer.
+        /// `ShapeLoader` returns: `TEXT`, `DIMENSION`, `HATCH`, `LEADER`, `TOLERANCE`, `SOLID`,
+        /// `WIPEOUT` or `3DFACE`, by type and layer.
         ///
-        /// Of the shapes path only (`ShapeLoader`, `DXFLoader.load`, `DWGLoader` and `JWWLoader`
-        /// when they build shapes): `DrawingLoader` returns the entities themselves, so nothing is
-        /// left out there. ``type`` is the DXF type name: `TEXT` (which is also `MTEXT`, and an
-        /// attribute's value), `DIMENSION`, `HATCH`, `LEADER`, `TOLERANCE`, `SOLID`, `WIPEOUT` or
-        /// `3DFACE`. Unlike ``skippedEntities``, the entities are in the drawing the reader built;
-        /// this loader has no geometry for them. An entity in a block that was expanded counts once
-        /// for each reference.
+        /// `ShapeLoader` only: `DrawingLoader` returns the entities themselves.
         case noEdges
     }
 
