@@ -55,7 +55,8 @@ public enum DWGLoader {
     /// expanded, as ``DrawingLoader`` expands them, so the geometry in a block is in the compound;
     /// what the reader could not read, and what could not be expanded, is in
     /// ``ShapeLoadResult/warnings``, the same warnings ``DrawingLoader`` gives (#70), and then a
-    /// `.noEdges` warning for each type and layer of entity that was read and has no edge. Use
+    /// `.noEdges` warning for each type and layer of entity that was read and has no edge, and a
+    /// `.degenerate` or `.notBuilt` one for geometry that made none. Use
     /// ``readEntities(from:options:)`` or ``DrawingLoader`` for the entities.
     ///
     /// - Throws: ``DWG/Error``, as ``readEntities(from:options:)`` does.

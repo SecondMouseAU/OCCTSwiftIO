@@ -155,7 +155,7 @@ struct JWWFullSizeTests {
         let shapes = try await ShapeLoader.load(from: url, format: .jww)
         let drawing = try DrawingLoader.read(from: url)
         // The same warnings, and then what the shapes path made no edge of: the dimension.
-        #expect(shapes.warnings.filter { $0.kind != .noEdges } == drawing.warnings)
+        #expect(shapes.warnings.filter { !$0.isShapesPathOnly } == drawing.warnings)
         #expect(
             shapes.warnings.filter { $0.kind == .noEdges }.contains {
                 $0.type == "DIMENSION" && $0.count == 1

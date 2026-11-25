@@ -59,8 +59,10 @@ public struct ShapeLoadResult: @unchecked Sendable {
   compound ([#70](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/70)); empty for every other
   format. It also carries one `.noEdges` warning for each type and layer of entity that was read and
   gives no edge, so is not in the compound: text, dimensions, hatches, leaders, tolerance frames,
-  solid fills, wipeouts and 3D faces (`DrawingLoader` does not give this one; it returns the
-  entities themselves). A JWW is read as `DrawingLoader` reads it, at full size, so it also carries
+  solid fills, wipeouts and 3D faces. Drawable geometry that makes none is `.degenerate` (no size:
+  a zero-length line, a zero-radius circle, a polyline with no vertices, a fit with no pieces) or
+  `.notBuilt` (OCCT would not build it). `DrawingLoader` gives none of the three; it returns the
+  entities themselves. A JWW is read as `DrawingLoader` reads it, at full size, so it also carries
   the JWW warnings (a layer group with no scale, groups at different scales, dimension values no
   rebuilt dimension explains; see [DrawingLoader](DrawingLoader.md#jww),
   [#67](https://github.com/SecondMouseAU/OCCTSwiftIO/issues/67)).

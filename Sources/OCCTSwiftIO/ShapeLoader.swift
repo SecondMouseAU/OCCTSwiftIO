@@ -43,8 +43,9 @@ public struct ShapeLoadResult: @unchecked Sendable {
     /// DWG could not read, block references that name no block or could not all be expanded, paper
     /// space, an undeclared length unit, an empty drawing, and for a JWW its scales and the
     /// dimension values that are not dimensions, and for each type and layer of entity that was
-    /// read and has no edge (text, a dimension, a hatch), `.noEdges`. Empty for every other format,
-    /// which have no such notion.
+    /// read and has no edge (text, a dimension, a hatch), `.noEdges`, and for geometry that made
+    /// none, `.degenerate` or `.notBuilt`. Empty for every other format, which have no such
+    /// notion.
     public var warnings: [DrawingWarning]
 
     public init(

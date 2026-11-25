@@ -48,7 +48,8 @@ Public products/targets from `Package.swift` (there are two), plus the key API s
     Block references are expanded on both, and `ShapeLoadResult.warnings` carries the same
     `DrawingWarning`s `DrawingLoader` gives, and a `.noEdges` warning for each type and layer of
     entity it read and made no edge of (text, dimensions, hatches, leaders, tolerance frames, solid
-    fills, wipeouts, 3D faces); use `DrawingLoader` for the entities.
+    fills, wipeouts, 3D faces), and `.degenerate` and `.notBuilt` warnings for geometry that made
+    none (no size; OCCT would not build it); use `DrawingLoader` for the entities.
   - `DirectoryWatcher`: kqueue-backed file/directory create/modify notifications, macOS-only
     (`#if os(macOS)`). Ignores dotfile writes; starts cleanly on a not-yet-existing path.
 

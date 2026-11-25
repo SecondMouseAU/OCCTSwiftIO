@@ -123,11 +123,12 @@ struct ShapeBlockTests {
         for (url, format) in files {
             let shapes = try await ShapeLoader.load(from: url, format: format)
             let drawing = try DrawingLoader.read(from: url)
-            // `.noEdges` is the one kind only the shapes path gives (ShapeNoEdgeWarningTests).
+            // `.noEdges`, `.degenerate` and `.notBuilt` are only the shapes path's
+            // (ShapeNoEdgeWarningTests, ShapeDroppedWarningTests).
             #expect(
-                shapes.warnings.filter { $0.kind != .noEdges } == drawing.warnings,
+                shapes.warnings.filter { !$0.isShapesPathOnly } == drawing.warnings,
                 "\(url.lastPathComponent) disagrees")
-            #expect(!drawing.warnings.contains { $0.kind == .noEdges })
+            #expect(!drawing.warnings.contains { $0.isShapesPathOnly })
         }
     }
 
