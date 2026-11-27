@@ -4,7 +4,7 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
-## v2.0.0 (2026-11-27)
+## v2.0.0 (2026-11-28)
 
 **Stable release of the v2.0.0 line.** Everything `v2.0.0-beta.1` to `v2.0.0-beta.12` added since v1.8.0 (entries below) is in it, and it is taken with `from: "2.0.0"`, no longer by naming a pre-release. It requires OCCTSwift 4.0.0 or later; the 1.x line, last released at v1.8.0, stays on OCCTSwift 3.
 
