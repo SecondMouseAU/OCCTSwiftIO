@@ -31,7 +31,7 @@ table, the backend for each format and the per-format notes.
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/SecondMouseAU/OCCTSwiftIO.git", from: "1.8.0"),
+    .package(url: "https://github.com/SecondMouseAU/OCCTSwiftIO.git", from: "2.0.0"),
 ],
 // then add the product(s) you need:
 .target(name: "YourTarget", dependencies: [
@@ -40,12 +40,10 @@ dependencies: [
 ]),
 ```
 
-`from: "1.8.0"` takes the stable 1.x line, which was at 1.8.0 when this was written; the
-[Releases](https://github.com/SecondMouseAU/OCCTSwiftIO/releases) page has the current one. Most of
-the 2D drawing work described below is not in it: `DrawingLoader`, DWG, `DXFLoader.loadContours`,
-block expansion and `ShapeLoadResult.warnings` for a DXF, and a JWW at full size are in the 2.0.0
-pre-releases only (as is `OCCTSwiftIO` building without `MeshIO`). Take one by naming its tag
-exactly, with `exact:`, since a pre-release can change between builds.
+`from: "2.0.0"` takes the stable 2.x line, which requires OCCTSwift 4.0.0 or later; the
+[Releases](https://github.com/SecondMouseAU/OCCTSwiftIO/releases) page has the current one. The 1.x line, last released at 1.8.0,
+stays on OCCTSwift 3 and does not have most of the 2D drawing work described below: `DrawingLoader`, DWG, `DXFLoader.loadContours`, block
+expansion and `ShapeLoadResult.warnings` for a DXF, a JWW at full size, or `OCCTSwiftIO` building without `MeshIO`.
 
 ## MeshIO: pure-Swift mesh I/O
 

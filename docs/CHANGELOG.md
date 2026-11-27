@@ -4,6 +4,12 @@ Most recent first. Pre-1.0: free to break; deprecations documented here. SemVer-
 
 > Note: v1.1.0–v1.4.1 (MeshIO / 3MF / glTF / JWW) shipped as tagged GitHub releases without entries here; this log resumes at v1.5.0.
 
+## v2.0.0 (2026-11-28)
+
+**Stable release of the v2.0.0 line.** Everything `v2.0.0-beta.1` to `v2.0.0-beta.12` added since v1.8.0 (entries below) is in it, and it is taken with `from: "2.0.0"`, no longer by naming a pre-release. It requires OCCTSwift 4.0.0 or later; the 1.x line, last released at v1.8.0, stays on OCCTSwift 3.
+
+Moves the OCCTSwift dependency from `exact: "4.0.0-beta.6"` to `from: "4.0.0"`, the first stable 4.x release, so this line no longer needs a pre-release of OCCTSwift. No source change since beta.12: the package builds with no deprecation warning and all 205 tests pass unmodified against OCCTSwift v4.0.0 (OCCT 8.0.2), run serially (185 in 22 suites and 20 in 3). The behaviours that changed without a compile error (damaged BREP and OCAF input refused, `Shape.solid(from:)`, `Shape.analyze`, `Shape.circularPattern`, the OCCT 8.0.2 numerics) moved no test expectation here.
+
 ## v2.0.0-beta.12 (2026-11-25)
 
 **Pre-release, pinned exactly to OCCTSwift 4.0.0-beta.6.** A consumer only gets this by naming it; the stable line stays at v1.8.0.
